@@ -855,6 +855,24 @@ input {
   box-shadow: 0 8px 32px var(--success-glow);
 }
 
+.waiting-unready-btn {
+  padding: 10px 32px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.waiting-unready-btn:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: rgba(231, 76, 60, 0.08);
+}
+
 /* 错误 */
 .error-box {
   text-align: center;
