@@ -188,15 +188,17 @@ function getCardType(cards) {
     }
   }
 
-  // 四带二（单）
+  // 四带二（单）：四张相同 + 两张不同的单牌
+  // 注意：四带二单和四带二对是不同牌型，只能同类型互压，不能跨类型
   if (n === 6) {
     const four = groups.find(g => g.count === 4);
-    if (four) {
+    const singles = groups.filter(g => g.count === 1);
+    if (four && singles.length === 2) {
       return { type: 'four_two_single', mainValue: four.value };
     }
   }
 
-  // 四带二（对）
+  // 四带二（对）：四张相同 + 两对
   if (n === 8) {
     const four = groups.find(g => g.count === 4);
     const pairs = groups.filter(g => g.count === 2);

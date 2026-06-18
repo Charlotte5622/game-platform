@@ -1,0 +1,9 @@
+{
+  "id": "mahjong",
+  "name": "四人麻将",
+  "description": "经典四人麻将，支持吃碰杠和",
+  "minPlayers": 4,
+  "maxPlayers": 4,
+  "version": "1.0.0",
+  "author": "game-platform"
+}

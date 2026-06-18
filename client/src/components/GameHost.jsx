@@ -60,6 +60,34 @@ export default function GameHost({ gameId, GameComponent }) {
       setGameState(data.state);
     });
 
+    // BUG-4 修复：监听 play_update，即时更新 playHistory
+    s.on('play_update', (data) => {
+      setGameState((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          playHistory: [
+            ...(prev.playHistory || []),
+            { playerId: data.playerId, cards: data.cards, cardType: data.cardType, action: 'play' },
+          ],
+        };
+      });
+    });
+
+    // BUG-5 修复：监听 pass_update，即时写入 playHistory
+    s.on('pass_update', (data) => {
+      setGameState((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          playHistory: [
+            ...(prev.playHistory || []),
+            { playerId: data.playerId, cards: [], action: 'pass' },
+          ],
+        };
+      });
+    });
+
     s.on('game_over', (data) => {
       setResult(data);
       setPhase('finished');
@@ -70,6 +98,8 @@ export default function GameHost({ gameId, GameComponent }) {
       s.off('game_start');
       s.off('state_update');
       s.off('game_restart');
+      s.off('play_update');
+      s.off('pass_update');
       s.off('game_over');
     };
   }, [gameId]);

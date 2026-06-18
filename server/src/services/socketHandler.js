@@ -123,10 +123,10 @@ function setupSocketHandlers(io, prisma) {
       });
     });
 
-    // ========== 准备 ==========
+    // ========== 准备/取消准备 ==========
     socket.on('player_ready', ({ roomId, ready = true }) => {
       const room = roomManager.getRoom(roomId);
-      if (!room || room.state !== 'waiting') return; // BUG-3: 只在等待状态允许准备
+      if (!room || room.state !== 'waiting') return;
 
       const updatedRoom = roomManager.setPlayerReady(roomId, socket.id, ready);
       if (!updatedRoom) return;
@@ -140,7 +140,9 @@ function setupSocketHandlers(io, prisma) {
         state: updatedRoom.state,
       });
 
-      if (roomManager.allPlayersReady(roomId)) {
+      // 传入游戏所需人数，避免 2 人准备就提前开局
+      const maxPlayers = getGameMaxPlayers(updatedRoom.gameId);
+      if (roomManager.allPlayersReady(roomId, maxPlayers)) {
         startGame(io, updatedRoom, prisma);
       }
     });
@@ -248,6 +250,11 @@ function startGame(io, room, prisma) {
       console.error('记录战绩失败:', err);
     }
   };
+
+  // 通知游戏实例依赖已注入完毕（如麻将直接发送 game_start，斗地主在 setLandlord 中发送）
+  if (gameInstance.postInit) {
+    gameInstance.postInit(room.id);
+  }
 
   console.log(`🎮 游戏开始: ${room.gameId} 房间 ${room.id}`);
 }
