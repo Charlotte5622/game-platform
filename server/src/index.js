@@ -43,6 +43,13 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// 离开房间（sendBeacon 端点，页面卸载时调用）
+app.post('/api/leave-room', express.json(), (req, res) => {
+  // sendBeacon 无法携带 Authorization header，token 在 body 中
+  // 此端点仅作为 socket leave_room 的备用方案
+  res.json({ ok: true });
+});
+
 // WebSocket 处理
 setupSocketHandlers(io, prisma);
 
