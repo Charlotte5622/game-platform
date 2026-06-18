@@ -13,21 +13,21 @@ export default function Navbar() {
   };
 
   return (
-    <nav style={styles.nav}>
-      <Link to="/lobby" style={styles.logo}>
+    <nav className="navbar">
+      <Link to="/lobby" className="navbar-logo">
         🎮 联机游戏平台
       </Link>
 
-      <div style={styles.right}>
+      <div className="navbar-right">
         {user ? (
           <>
-            <span style={styles.nickname}>{user.nickname}</span>
-            <button onClick={handleLogout} style={styles.logoutBtn}>
+            <span className="navbar-nickname">{user.nickname}</span>
+            <button onClick={handleLogout} className="navbar-logout">
               退出
             </button>
           </>
         ) : (
-          <Link to="/login" style={styles.loginLink}>
+          <Link to="/login" className="navbar-login">
             登录
           </Link>
         )}
@@ -35,49 +35,3 @@ export default function Navbar() {
     </nav>
   );
 }
-
-const styles = {
-  nav: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '64px',
-    background: 'rgba(15, 15, 35, 0.95)',
-    backdropFilter: 'blur(10px)',
-    borderBottom: '1px solid var(--border)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 24px',
-    zIndex: 1000,
-  },
-  logo: {
-    fontSize: '20px',
-    fontWeight: '700',
-    color: 'var(--text)',
-    textDecoration: 'none',
-  },
-  right: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-  },
-  nickname: {
-    color: 'var(--secondary)',
-    fontWeight: '600',
-  },
-  logoutBtn: {
-    background: 'transparent',
-    border: '1px solid var(--border)',
-    color: 'var(--text-muted)',
-    padding: '6px 16px',
-    borderRadius: '8px',
-    fontSize: '13px',
-  },
-  loginLink: {
-    color: 'var(--secondary)',
-    textDecoration: 'none',
-    fontWeight: '600',
-  },
-};

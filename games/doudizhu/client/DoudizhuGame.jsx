@@ -1,433 +1,326 @@
 import { useState, useEffect, useCallback } from 'react';
 
+// 牌型中文名
+const CARD_TYPE_NAMES = {
+  single: '单张', pair: '对子', trio: '三条',
+  trio_single: '三带一', trio_pair: '三带二',
+  straight: '顺子', pair_straight: '连对', plane: '飞机',
+  plane_single: '飞机带单', plane_pair: '飞机带对',
+  bomb: '💣 炸弹', rocket: '🚀 火箭',
+  four_two_single: '四带二', four_two_pair: '四带二对',
+};
+
+const isRedSuit = (suit) => suit === '♥' || suit === '♦';
+
 /**
- * 斗地主游戏 React 组件
- *
- * Props:
- * - socket: Socket.IO 连接
- * - roomId: 房间 ID
- * - playerId: 当前玩家 ID
- * - gameState: 游戏状态
- * - onAction: 发送操作的回调
- * - players: 房间内玩家列表
+ * 单张牌组件
  */
-export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAction, players }) {
-  const [selectedCards, setSelectedCards] = useState(new Set());
-  const [message, setMessage] = useState('');
-
-  // 重置选择（当游戏状态变化时）
-  useEffect(() => {
-    setSelectedCards(new Set());
-  }, [gameState?.currentTurn]);
-
-  if (!gameState) {
-    return <div style={styles.loading}>等待游戏数据...</div>;
+function Card({ card, selected, onClick, small, faceDown }) {
+  if (faceDown) {
+    return (
+      <div className={`dz-card${small ? ' dz-card-sm' : ''} dz-card-back`}>
+        <div className="dz-card-back-pattern">🂠</div>
+      </div>
+    );
   }
 
-  const { myHand, phase, landlord, currentTurn, lastPlay, playerCardCounts, kitty, highestBid } = gameState;
-  const isMyTurn = gameState.players[currentTurn] === playerId;
-  const isLandlord = landlord === playerId;
-
-  // 切换选牌
-  const toggleCard = useCallback((cardId) => {
-    if (!isMyTurn || phase !== 'playing') return;
-    setSelectedCards(prev => {
-      const next = new Set(prev);
-      if (next.has(cardId)) next.delete(cardId);
-      else next.add(cardId);
-      return next;
-    });
-  }, [isMyTurn, phase]);
-
-  // 叫分
-  const handleBid = useCallback((score) => {
-    onAction({ type: 'bid', score });
-  }, [onAction]);
-
-  // 出牌
-  const handlePlay = useCallback(() => {
-    if (selectedCards.size === 0) {
-      setMessage('请先选牌');
-      setTimeout(() => setMessage(''), 2000);
-      return;
-    }
-    const cards = myHand.filter(c => selectedCards.has(c.id));
-    onAction({ type: 'play', cards });
-  }, [selectedCards, myHand, onAction]);
-
-  // 过牌
-  const handlePass = useCallback(() => {
-    onAction({ type: 'pass' });
-  }, [onAction]);
-
-  // 获取玩家位置信息
-  const getPlayerInfo = (index) => {
-    const pid = gameState.players[index];
-    const player = players.find(p => p.id === pid);
-    return {
-      id: pid,
-      nickname: player?.nickname || `玩家${index + 1}`,
-      cardCount: playerCardCounts?.[pid] || 0,
-      isLandlord: pid === landlord,
-      isCurrent: currentTurn === index,
-    };
-  };
-
-  // 找到当前玩家的索引
-  const myIndex = gameState.players.indexOf(playerId);
-  // 对面玩家（相对位置）
-  const leftPlayer = getPlayerInfo((myIndex + 1) % 3);
-  const rightPlayer = getPlayerInfo((myIndex + 2) % 3);
+  const isJoker = card.rank === 'JOKER_S' || card.rank === 'JOKER_B';
+  const isRed = isRedSuit(card.suit) || card.rank === 'JOKER_B';
 
   return (
-    <div style={styles.container}>
-      {/* 顶部信息栏 */}
-      <div style={styles.topBar}>
-        <span>房间: {roomId}</span>
-        {landlord && <span>地主: {getPlayerInfo(gameState.players.indexOf(landlord)).nickname}</span>}
-        {highestBid > 0 && <span>叫分: {highestBid}</span>}
-      </div>
-
-      {/* 游戏主体 */}
-      <div style={styles.gameArea}>
-        {/* 左边玩家 */}
-        <div style={styles.sidePlayer}>
-          <div style={{
-            ...styles.playerInfo,
-            borderColor: leftPlayer.isCurrent ? 'var(--secondary)' : 'var(--border)',
-          }}>
-            <span style={styles.playerName}>
-              {leftPlayer.nickname}
-              {leftPlayer.isLandlord && ' 👑'}
-            </span>
-            <span style={styles.cardCount}>{leftPlayer.cardCount} 张</span>
+    <div
+      className={`dz-card${small ? ' dz-card-sm' : ''}${selected ? ' dz-card-selected' : ''} ${isRed ? 'dz-card-red' : 'dz-card-black'}`}
+      onClick={onClick}
+    >
+      {isJoker ? (
+        <div className="dz-card-joker">
+          <span className="dz-card-joker-icon">{card.rank === 'JOKER_B' ? '🃏' : '🂿'}</span>
+          <span className="dz-card-joker-label">{card.rank === 'JOKER_B' ? '大' : '小'}</span>
+        </div>
+      ) : (
+        <>
+          <div className="dz-card-tl">
+            <span className="dz-card-rank-text">{card.rank}</span>
+            <span className="dz-card-suit-text">{card.suit}</span>
           </div>
-        </div>
-
-        {/* 中央区域 */}
-        <div style={styles.centerArea}>
-          {/* 底牌 */}
-          {phase === 'playing' && kitty && (
-            <div style={styles.kittyArea}>
-              <span style={styles.kittyLabel}>底牌: </span>
-              {kitty.map(card => (
-                <span key={card.id} style={styles.kittyCard}>{card.display}</span>
-              ))}
-            </div>
-          )}
-
-          {/* 叫分阶段 */}
-          {phase === 'bidding' && (
-            <div style={styles.bidArea}>
-              <h3 style={styles.bidTitle}>叫地主</h3>
-              {isMyTurn && !gameState.bids?.[playerId] ? (
-                <div style={styles.bidButtons}>
-                  <button style={styles.passBtn} onClick={() => handleBid(0)}>不叫</button>
-                  {highestBid < 1 && <button style={styles.bidBtn} onClick={() => handleBid(1)}>1分</button>}
-                  {highestBid < 2 && <button style={styles.bidBtn} onClick={() => handleBid(2)}>2分</button>}
-                  {highestBid < 3 && <button style={styles.bidBtn} onClick={() => handleBid(3)}>3分</button>}
-                </div>
-              ) : (
-                <p style={styles.waitText}>
-                  {isMyTurn ? '等待其他玩家叫分...' : `等待 ${getPlayerInfo(currentTurn).nickname} 叫分`}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* 上一手牌 */}
-          {phase === 'playing' && lastPlay && (
-            <div style={styles.lastPlayArea}>
-              <span style={styles.lastPlayLabel}>
-                {lastPlay.playerId === playerId ? '你出的:' : `${getPlayerInfo(gameState.players.indexOf(lastPlay.playerId)).nickname} 出的:`}
-              </span>
-              <div style={styles.playedCards}>
-                {lastPlay.cards.map(card => (
-                  <span key={card.id} style={styles.playedCard}>{card.display}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 消息提示 */}
-          {message && <div style={styles.message}>{message}</div>}
-        </div>
-
-        {/* 右边玩家 */}
-        <div style={styles.sidePlayer}>
-          <div style={{
-            ...styles.playerInfo,
-            borderColor: rightPlayer.isCurrent ? 'var(--secondary)' : 'var(--border)',
-          }}>
-            <span style={styles.playerName}>
-              {rightPlayer.nickname}
-              {rightPlayer.isLandlord && ' 👑'}
-            </span>
-            <span style={styles.cardCount}>{rightPlayer.cardCount} 张</span>
+          <div className="dz-card-center">
+            {small ? card.suit : <span className="dz-card-center-suit">{card.suit}</span>}
           </div>
-        </div>
-      </div>
-
-      {/* 手牌区域 */}
-      <div style={styles.handArea}>
-        <div style={styles.handCards}>
-          {myHand?.map(card => (
-            <div
-              key={card.id}
-              style={{
-                ...styles.card,
-                ...(selectedCards.has(card.id) ? styles.cardSelected : {}),
-                background: card.suit === '♥' || card.suit === '♦' ? '#c0392b' : '#2c3e50',
-              }}
-              onClick={() => toggleCard(card.id)}
-            >
-              <span style={styles.cardRank}>{card.rank}</span>
-              {card.suit && <span style={styles.cardSuit}>{card.suit}</span>}
-              {card.rank === 'JOKER_S' && <span style={styles.jokerSmall}>小王</span>}
-              {card.rank === 'JOKER_B' && <span style={styles.jokerBig}>大王</span>}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 操作按钮 */}
-      {phase === 'playing' && isMyTurn && (
-        <div style={styles.actionBar}>
-          {lastPlay && lastPlay.playerId !== playerId && (
-            <button style={styles.passActionBtn} onClick={handlePass}>不出</button>
-          )}
-          <button style={styles.playActionBtn} onClick={handlePlay}>出牌</button>
-        </div>
+        </>
       )}
-
-      {/* 角色标识 */}
-      {isLandlord && <div style={styles.roleTag}>👑 地主</div>}
-      {!isLandlord && landlord && <div style={styles.roleTag}>🌾 农民</div>}
     </div>
   );
 }
 
-const styles = {
-  container: {
-    width: '100%',
-    maxWidth: '900px',
-    margin: '0 auto',
-    position: 'relative',
-    minHeight: 'calc(100vh - 64px)',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  loading: {
-    textAlign: 'center',
-    padding: '100px 20px',
-    color: 'var(--text-muted)',
-  },
-  topBar: {
-    display: 'flex',
-    justifyContent: 'space-around',
-    padding: '12px',
-    background: 'var(--bg-card)',
-    borderRadius: 'var(--radius)',
-    marginBottom: '16px',
-    fontSize: '13px',
-    color: 'var(--text-muted)',
-  },
-  gameArea: {
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '16px',
-    minHeight: '200px',
-  },
-  sidePlayer: {
-    width: '120px',
-    textAlign: 'center',
-  },
-  playerInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '16px',
-    background: 'var(--bg-card)',
-    border: '2px solid var(--border)',
-    borderRadius: 'var(--radius)',
-  },
-  playerName: {
-    fontWeight: '600',
-    fontSize: '14px',
-  },
-  cardCount: {
-    fontSize: '12px',
-    color: 'var(--text-muted)',
-  },
-  centerArea: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '16px',
-  },
-  kittyArea: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontSize: '13px',
-  },
-  kittyLabel: {
-    color: 'var(--text-muted)',
-  },
-  kittyCard: {
-    padding: '4px 8px',
-    background: 'var(--bg-input)',
-    borderRadius: '6px',
-    fontSize: '12px',
-  },
-  bidArea: {
-    textAlign: 'center',
-  },
-  bidTitle: {
-    marginBottom: '16px',
-    fontSize: '20px',
-  },
-  bidButtons: {
-    display: 'flex',
-    gap: '12px',
-    justifyContent: 'center',
-  },
-  passBtn: {
-    padding: '10px 24px',
-    background: 'var(--bg-input)',
-    color: 'var(--text-muted)',
-    border: '1px solid var(--border)',
-    borderRadius: 'var(--radius)',
-    fontSize: '14px',
-    fontWeight: '600',
-  },
-  bidBtn: {
-    padding: '10px 24px',
-    background: 'var(--warning)',
-    color: 'white',
-    border: 'none',
-    borderRadius: 'var(--radius)',
-    fontSize: '14px',
-    fontWeight: '600',
-  },
-  waitText: {
-    color: 'var(--text-muted)',
-    fontSize: '14px',
-  },
-  lastPlayArea: {
-    textAlign: 'center',
-  },
-  lastPlayLabel: {
-    fontSize: '13px',
-    color: 'var(--text-muted)',
-    display: 'block',
-    marginBottom: '8px',
-  },
-  playedCards: {
-    display: 'flex',
-    gap: '4px',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-  },
-  playedCard: {
-    padding: '6px 10px',
-    background: 'var(--bg-card)',
-    border: '1px solid var(--border)',
-    borderRadius: '6px',
-    fontSize: '13px',
-    fontWeight: '600',
-  },
-  message: {
-    padding: '8px 16px',
-    background: 'rgba(231, 76, 60, 0.2)',
-    color: 'var(--danger)',
-    borderRadius: '8px',
-    fontSize: '13px',
-  },
-  handArea: {
-    padding: '16px 0',
-    overflowX: 'auto',
-  },
-  handCards: {
-    display: 'flex',
-    gap: '6px',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-    padding: '8px',
-  },
-  card: {
-    width: '56px',
-    height: '80px',
-    borderRadius: '8px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    transition: 'all 0.15s',
-    color: 'white',
-    fontWeight: '700',
-    userSelect: 'none',
-    border: '2px solid transparent',
-  },
-  cardSelected: {
-    transform: 'translateY(-12px)',
-    borderColor: 'var(--secondary)',
-    boxShadow: '0 0 12px rgba(0, 206, 201, 0.5)',
-  },
-  cardRank: {
-    fontSize: '18px',
-    lineHeight: 1,
-  },
-  cardSuit: {
-    fontSize: '14px',
-    marginTop: '2px',
-  },
-  jokerSmall: {
-    fontSize: '12px',
-    color: '#2ecc71',
-  },
-  jokerBig: {
-    fontSize: '12px',
-    color: '#e74c3c',
-  },
-  actionBar: {
-    display: 'flex',
-    justifyContent: 'center',
-    gap: '16px',
-    padding: '16px',
-  },
-  passActionBtn: {
-    padding: '12px 32px',
-    background: 'var(--bg-input)',
-    color: 'var(--text-muted)',
-    border: '1px solid var(--border)',
-    borderRadius: 'var(--radius)',
-    fontSize: '15px',
-    fontWeight: '600',
-  },
-  playActionBtn: {
-    padding: '12px 40px',
-    background: 'var(--primary)',
-    color: 'white',
-    border: 'none',
-    borderRadius: 'var(--radius)',
-    fontSize: '15px',
-    fontWeight: '700',
-  },
-  roleTag: {
-    position: 'fixed',
-    top: '80px',
-    right: '20px',
-    padding: '8px 16px',
-    background: 'var(--bg-card)',
-    border: '1px solid var(--border)',
-    borderRadius: '20px',
-    fontSize: '14px',
-    fontWeight: '600',
-  },
-};
+/**
+ * 玩家信息面板
+ */
+function PlayerPanel({ player, bid, isPassing }) {
+  return (
+    <div
+      className={`dz-panel${player.isCurrent ? ' dz-panel-active' : ''}${player.isLandlord ? ' dz-panel-landlord' : ''}`}
+    >
+      <div className="dz-panel-avatar">{player.isLandlord ? '👑' : '👤'}</div>
+      <div className="dz-panel-name">{player.nickname}</div>
+      <div className="dz-panel-count">{player.cardCount} 张</div>
+      {bid !== undefined && (
+        <div className="dz-panel-bid">{bid.score === 0 ? '不叫' : `${bid.score}分`}</div>
+      )}
+      {player.isCurrent && <div className="dz-panel-turn">⏰</div>}
+      {isPassing && <div className="dz-panel-pass">不出</div>}
+    </div>
+  );
+}
+
+/**
+ * 叫分面板
+ */
+function BiddingPanel({ isMyTurn, highestBid, bids, players, getPlayer, onBid }) {
+  return (
+    <div className="dz-bid">
+      <h3 className="dz-bid-title">🃏 叫地主</h3>
+      <div className="dz-bid-history">
+        {players.map((pid, i) => {
+          const bid = bids?.[pid];
+          const p = getPlayer(i);
+          return (
+            <div key={pid} className="dz-bid-history-item">
+              <span className="dz-bid-history-name">{p.nickname}</span>
+              <span className="dz-bid-history-score">
+                {bid ? (bid.score === 0 ? '不叫' : `${bid.score}分`) : '...'}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      {isMyTurn ? (
+        <div className="dz-bid-buttons">
+          <button className="dz-bid-btn dz-bid-pass" onClick={() => onBid(0)}>不叫</button>
+          {highestBid < 1 && <button className="dz-bid-btn dz-bid-score" onClick={() => onBid(1)}>1分</button>}
+          {highestBid < 2 && <button className="dz-bid-btn dz-bid-score" onClick={() => onBid(2)}>2分</button>}
+          {highestBid < 3 && <button className="dz-bid-btn dz-bid-score" onClick={() => onBid(3)}>3分</button>}
+        </div>
+      ) : (
+        <p className="dz-bid-wait">等待其他玩家叫分...</p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 斗地主游戏主组件
+ */
+export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAction, players }) {
+  const [selectedCards, setSelectedCards] = useState(new Set());
+  const [error, setError] = useState('');
+  const [passAnimation, setPassAnimation] = useState(null);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleError = (data) => {
+      setError(data.message);
+      setTimeout(() => setError(''), 2500);
+    };
+    socket.on('error', handleError);
+    return () => socket.off('error', handleError);
+  }, [socket]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handlePass = (data) => {
+      setPassAnimation(data.playerId);
+      setTimeout(() => setPassAnimation(null), 1000);
+    };
+    socket.on('pass_update', handlePass);
+    return () => socket.off('pass_update', handlePass);
+  }, [socket]);
+
+  useEffect(() => {
+    setSelectedCards(new Set());
+  }, [gameState?.currentTurn, gameState?.phase]);
+
+  if (!gameState) {
+    return (
+      <div className="dz-loading">
+        <div className="dz-loading-spinner">⏳</div>
+        <p>等待游戏数据...</p>
+      </div>
+    );
+  }
+
+  const { myHand, phase, landlord, currentTurn, lastPlay, lastPlayedBy, playerCardCounts, kitty, highestBid, bids, playHistory } = gameState;
+  const isMyTurn = gameState.players[currentTurn] === playerId;
+  const isLandlord = landlord === playerId;
+
+  const myIndex = gameState.players.indexOf(playerId);
+  const getPlayer = (offset) => {
+    const idx = (myIndex + offset) % 3;
+    const pid = gameState.players[idx];
+    const p = players.find((pl) => pl.id === pid);
+    return {
+      id: pid,
+      nickname: p?.nickname || `玩家${idx + 1}`,
+      cardCount: playerCardCounts?.[pid] || 0,
+      isLandlord: pid === landlord,
+      isCurrent: currentTurn === idx,
+      isMe: pid === playerId,
+    };
+  };
+
+  const me = getPlayer(0);
+  const left = getPlayer(1);
+  const right = getPlayer(2);
+
+  const getRecentPlay = (pid) => {
+    if (!playHistory) return null;
+    for (let i = playHistory.length - 1; i >= 0; i--) {
+      if (playHistory[i].playerId === pid) return playHistory[i];
+    }
+    return null;
+  };
+
+  const toggleCard = useCallback(
+    (cardId) => {
+      if (!isMyTurn || phase !== 'playing') return;
+      setSelectedCards((prev) => {
+        const next = new Set(prev);
+        next.has(cardId) ? next.delete(cardId) : next.add(cardId);
+        return next;
+      });
+    },
+    [isMyTurn, phase]
+  );
+
+  const handleBid = useCallback((score) => onAction({ type: 'bid', score }), [onAction]);
+
+  const handlePlay = useCallback(() => {
+    if (selectedCards.size === 0) {
+      setError('请先选牌');
+      setTimeout(() => setError(''), 2000);
+      return;
+    }
+    onAction({ type: 'play', cards: myHand.filter((c) => selectedCards.has(c.id)) });
+  }, [selectedCards, myHand, onAction]);
+
+  const handlePass = useCallback(() => onAction({ type: 'pass' }), [onAction]);
+
+  const canPass = isMyTurn && lastPlayedBy && lastPlayedBy !== playerId;
+
+  const renderPlayedCards = (pid) => {
+    const rp = getRecentPlay(pid);
+    if (!rp) return null;
+    if (rp.action === 'play') {
+      return (
+        <div className="dz-played-row">
+          {rp.cards.map((c) => <Card key={c.id} card={c} small />)}
+        </div>
+      );
+    }
+    if (rp.action === 'pass') return <span className="dz-pass-text">不出</span>;
+    return null;
+  };
+
+  return (
+    <div className="dz">
+      {/* 牌桌 */}
+      <div className="dz-table">
+        {/* 顶部信息 */}
+        <div className="dz-top-info">
+          <span className="dz-room-tag">房间 {roomId?.slice(-6)}</span>
+          {landlord && (
+            <span className="dz-landlord-tag">
+              👑 地主: {getPlayer(gameState.players.indexOf(landlord)).nickname}
+            </span>
+          )}
+          {highestBid > 0 && <span className="dz-bid-tag">底分: {highestBid}</span>}
+        </div>
+
+        {/* 三个玩家区域 */}
+        <div className="dz-table-body">
+          <div className="dz-seat-left">
+            <PlayerPanel player={left} bid={bids?.[left.id]} isPassing={passAnimation === left.id} />
+          </div>
+
+          <div className="dz-center">
+            {/* 底牌 */}
+            {phase === 'playing' && kitty && (
+              <div className="dz-kitty-row">
+                {kitty.map((c) => <Card key={c.id} card={c} small />)}
+              </div>
+            )}
+
+            {/* 叫分阶段 */}
+            {phase === 'bidding' && (
+              <BiddingPanel
+                isMyTurn={isMyTurn && bids?.[playerId] === undefined}
+                highestBid={highestBid}
+                bids={bids}
+                players={gameState.players}
+                getPlayer={getPlayer}
+                onBid={handleBid}
+              />
+            )}
+
+            {/* 出牌区域 */}
+            {phase === 'playing' && (
+              <div className="dz-play-zone">
+                <div className="dz-play-side">{renderPlayedCards(left.id)}</div>
+                {lastPlay && (
+                  <div className="dz-play-info">
+                    <span className="dz-card-type-name">
+                      {CARD_TYPE_NAMES[lastPlay.cardType?.type] || ''}
+                    </span>
+                  </div>
+                )}
+                <div className="dz-play-side">{renderPlayedCards(right.id)}</div>
+              </div>
+            )}
+
+            {error && <div className="dz-error">{error}</div>}
+          </div>
+
+          <div className="dz-seat-right">
+            <PlayerPanel player={right} bid={bids?.[right.id]} isPassing={passAnimation === right.id} />
+          </div>
+        </div>
+
+        {/* 底部 */}
+        <div className="dz-bottom">
+          {phase === 'playing' && renderPlayedCards(playerId) && (
+            <div className="dz-my-played">{renderPlayedCards(playerId)}</div>
+          )}
+
+          {phase === 'playing' && isMyTurn && (
+            <div className="dz-actions">
+              {canPass && (
+                <button className="dz-action-pass" onClick={handlePass}>不出</button>
+              )}
+              <button className="dz-action-play" onClick={handlePlay}>出牌</button>
+            </div>
+          )}
+
+          {landlord && (
+            <div className="dz-my-role">
+              {isLandlord ? '👑 地主' : '🌾 农民'} · {me.cardCount} 张
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 手牌区域 */}
+      <div className="dz-hand">
+        <div className="dz-hand-cards">
+          {myHand?.map((card, i) => (
+            <div key={card.id} className="dz-hand-card-wrap" style={{ zIndex: i }}>
+              <Card
+                card={card}
+                selected={selectedCards.has(card.id)}
+                onClick={() => toggleCard(card.id)}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -231,11 +231,6 @@ function canBeat(cards1Type, cards2Type) {
     return cards2Type.mainValue > cards1Type.mainValue;
   }
 
-  // 炸弹之间比较
-  if (cards1Type.type === 'bomb' && cards2Type.type === 'bomb') {
-    return cards2Type.mainValue > cards1Type.mainValue;
-  }
-
   return false;
 }
 

@@ -16,7 +16,7 @@ export default function App() {
   return (
     <>
       <Navbar />
-      <main style={{ paddingTop: '64px' }}>
+      <main className="main-content">
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

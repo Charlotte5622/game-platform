@@ -4,6 +4,10 @@ let socket = null;
 
 /**
  * 获取 Socket.IO 单例连接
+ *
+ * 开发环境：Vite proxy 将 /socket.io 转发到后端，连接 window.location.origin 即可
+ * 生产环境：Nginx 同理，连接 window.location.origin
+ * 也可通过 VITE_SOCKET_URL 环境变量显式指定后端地址
  */
 export function getSocket() {
   if (socket) return socket;
@@ -11,7 +15,9 @@ export function getSocket() {
   const token = localStorage.getItem('token');
   if (!token) return null;
 
-  socket = io(window.location.origin, {
+  const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin;
+
+  socket = io(socketUrl, {
     auth: { token },
     transports: ['websocket', 'polling'],
   });

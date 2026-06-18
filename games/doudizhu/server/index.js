@@ -1,41 +1,48 @@
 /**
  * 游戏服务器基类
- * 提供房间管理、广播等基础功能
+ * 提供状态访问、广播等基础功能
+ *
+ * 平台注入的属性：
+ *   broadcast(roomId, message)        - 广播给房间所有人
+ *   sendToPlayer(roomId, pid, msg)    - 发送给特定玩家
+ *   onGameOver(roomId, result)        - 游戏结束回调
+ *   _getRoomData(roomId)              - 读取房间游戏状态
+ *   _setRoomData(roomId, data)        - 写入房间游戏状态
  */
-class GameServer {
+class BaseGameServer {
   constructor() {
-    this.broadcast = null;      // 由平台设置
-    this.sendToPlayer = null;   // 由平台设置
-    this.onGameOver = null;     // 由平台设置
-    this._getRoomData = null;   // 由平台设置
-    this._setRoomData = null;   // 由平台设置
-    this._currentRoomId = null;
+    this.broadcast = null;
+    this.sendToPlayer = null;
+    this.onGameOver = null;
+    this._getRoomData = null;
+    this._setRoomData = null;
   }
 
-  /**
-   * 注入状态访问器（由平台调用）
-   * 让游戏实例通过 roomManager 读写游戏状态，而非自行维护 rooms Map
-   */
-  setStateAccessor(roomId, getFn, setFn) {
-    this._currentRoomId = roomId;
-    this._getRoomData = getFn;
-    this._setRoomData = setFn;
+  initGameState(players) { return { players }; }
+  getVisibleState(gameState, playerId) { return gameState; }
+  onPlayerAction(roomId, playerId, action) {}
+
+  // ========== 状态访问辅助 ==========
+
+  getState(roomId) {
+    return this._getRoomData ? this._getRoomData(roomId) : null;
   }
 
-  initGameState(players) {
-    return { players, turn: 0 };
+  saveState(roomId, state) {
+    if (this._setRoomData) this._setRoomData(roomId, state);
   }
 
-  getVisibleState(gameState, playerId) {
-    return gameState;
+  // ========== 广播辅助 ==========
+
+  doBroadcast(roomId, message) {
+    if (this.broadcast) this.broadcast(roomId, message);
   }
 
-  onPlayerAction(roomId, playerId, action) {
-    // 子类实现
+  doBroadcastTo(roomId, playerId, message) {
+    if (this.sendToPlayer) this.sendToPlayer(roomId, playerId, message);
   }
 }
 
-const BaseGameServer = GameServer;
 const { createDeck, shuffleDeck, dealCards, getCardType, canBeat } = require('./cards');
 
 /**
@@ -52,29 +59,6 @@ class DoudizhuServer extends BaseGameServer {
     super();
   }
 
-  // ========== 状态访问辅助方法 ==========
-
-  /**
-   * 获取当前房间的游戏状态
-   */
-  getState(roomId) {
-    if (this._getRoomData) {
-      return this._getRoomData(roomId);
-    }
-    return null;
-  }
-
-  /**
-   * 保存游戏状态到房间
-   */
-  saveState(roomId, state) {
-    if (this._setRoomData) {
-      this._setRoomData(roomId, state);
-    }
-  }
-
-  // ========== 游戏逻辑 ==========
-
   /**
    * 初始化游戏状态
    */
@@ -82,7 +66,6 @@ class DoudizhuServer extends BaseGameServer {
     const deck = shuffleDeck(createDeck());
     const { hands, kitty } = dealCards(deck);
 
-    // 为每个玩家创建手牌映射
     const playerHands = {};
     players.forEach((playerId, i) => {
       playerHands[playerId] = hands[i];
@@ -91,18 +74,19 @@ class DoudizhuServer extends BaseGameServer {
     return {
       players: [...players],
       playerHands,
-      kitty,                    // 底牌
-      landlord: null,           // 地主玩家 ID
-      currentTurn: 0,           // 当前轮到的玩家索引
-      phase: 'bidding',         // bidding | playing
-      bids: {},                 // playerId -> bid score (0=不叫, 1/2/3)
-      bidTurn: 0,               // 当前叫分的玩家索引
-      bidCount: 0,              // 已叫分的人数
-      highestBid: 0,            // 最高叫分
-      highestBidder: null,      // 最高叫分者
-      lastPlay: null,           // 上一手牌 { playerId, cards, type }
-      passCount: 0,             // 连续过牌次数
-      playHistory: [],          // 出牌历史
+      kitty,
+      landlord: null,
+      phase: 'bidding',        // bidding | playing
+      bidTurn: 0,               // 当前叫分玩家索引
+      bidRound: 0,              // 叫分轮次 (0, 1, 2)
+      bids: {},                 // playerId -> { score, timestamp }
+      highestBid: 0,
+      highestBidder: null,
+      currentTurn: 0,           // 出牌玩家索引
+      lastPlay: null,           // { playerId, cards, cardType }
+      lastPlayedBy: null,       // 最后出牌的玩家 ID
+      consecutivePasses: 0,     // 连续过牌次数
+      playHistory: [],          // [{ playerId, cards, cardType, action }]
     };
   }
 
@@ -112,16 +96,16 @@ class DoudizhuServer extends BaseGameServer {
   getVisibleState(gameState, playerId) {
     const visible = { ...gameState };
 
-    // 只显示当前玩家的手牌
-    visible.myHand = gameState.playerHands[playerId] || [];
+    // 当前玩家手牌
+    visible.myHand = (gameState.playerHands[playerId] || []).sort((a, b) => a.value - b.value);
 
-    // 显示其他玩家的牌数
+    // 各玩家牌数
     visible.playerCardCounts = {};
     for (const pid of gameState.players) {
       visible.playerCardCounts[pid] = gameState.playerHands[pid]?.length || 0;
     }
 
-    // 删除其他玩家的手牌详情
+    // 隐藏其他玩家手牌
     delete visible.playerHands;
 
     return visible;
@@ -147,21 +131,23 @@ class DoudizhuServer extends BaseGameServer {
     }
   }
 
-  /**
-   * 处理叫分
-   */
+  // ========== 叫分逻辑 ==========
+
   handleBid(roomId, playerId, score) {
     const state = this.getState(roomId);
     if (!state) return;
 
     if (state.phase !== 'bidding') return;
     if (state.players[state.bidTurn] !== playerId) return;
-    if (score < 0 || score > 3) return;
+    if (state.bids[playerId] !== undefined) return; // 已经叫过
+
+    // 验证叫分
+    if (score !== 0 && (score < 1 || score > 3)) return;
     if (score !== 0 && score <= state.highestBid) return;
 
     // 记录叫分
-    state.bids[playerId] = score;
-    state.bidCount++;
+    state.bids[playerId] = { score, time: Date.now() };
+    state.bidRound++;
 
     if (score > 0) {
       state.highestBid = score;
@@ -169,29 +155,30 @@ class DoudizhuServer extends BaseGameServer {
     }
 
     // 广播叫分结果
-    this.broadcast(roomId, {
+    this.doBroadcast(roomId, {
       type: 'bid_update',
       playerId,
       score,
       highestBid: state.highestBid,
-      bidTurn: state.bidTurn,
+      bidRound: state.bidRound,
+      bids: state.bids,
     });
 
     // 叫 3 分直接成为地主
     if (score === 3) {
       this.saveState(roomId, state);
-      this.setLandlord(roomId, playerId);
+      setTimeout(() => this.setLandlord(roomId, playerId), 1000);
       return;
     }
 
     // 所有人叫完
-    if (state.bidCount >= 3) {
+    if (state.bidRound >= 3) {
       this.saveState(roomId, state);
       if (state.highestBidder) {
-        this.setLandlord(roomId, state.highestBidder);
+        setTimeout(() => this.setLandlord(roomId, state.highestBidder), 1000);
       } else {
         // 没人叫，重新发牌
-        this.restartGame(roomId);
+        setTimeout(() => this.restartGame(roomId), 1500);
       }
       return;
     }
@@ -212,28 +199,27 @@ class DoudizhuServer extends BaseGameServer {
     state.phase = 'playing';
 
     // 地主拿底牌
-    state.playerHands[playerId].push(...state.kitty);
-    state.playerHands[playerId].sort((a, b) => a.value - b.value);
+    state.playerHands[playerId] = [
+      ...state.playerHands[playerId],
+      ...state.kitty,
+    ].sort((a, b) => a.value - b.value);
 
     // 地主先出牌
     state.currentTurn = state.players.indexOf(playerId);
 
     this.saveState(roomId, state);
 
-    // 向每个玩家发送各自可见的游戏状态（使用 sendToPlayer 而非 broadcast）
+    // 向每个玩家发送各自可见的游戏状态
     for (const pid of state.players) {
-      if (this.sendToPlayer) {
-        this.sendToPlayer(roomId, pid, {
-          type: 'game_start',
-          state: this.getVisibleState(state, pid),
-        });
-      }
+      this.doBroadcastTo(roomId, pid, {
+        type: 'game_start',
+        state: this.getVisibleState(state, pid),
+      });
     }
   }
 
-  /**
-   * 处理出牌
-   */
+  // ========== 出牌逻辑 ==========
+
   handlePlay(roomId, playerId, cards) {
     const state = this.getState(roomId);
     if (!state) return;
@@ -245,28 +231,40 @@ class DoudizhuServer extends BaseGameServer {
     // 验证牌在手中
     const hand = state.playerHands[playerId];
     const cardIds = new Set(cards.map(c => c.id));
-    const hasAll = cardIds.every(id => hand.some(c => c.id === id));
+    const hasAll = [...cardIds].every(id => hand.some(c => c.id === id));
     if (!hasAll) return;
 
     // 验证牌型
     const cardType = getCardType(cards);
-    if (!cardType) return;
+    if (!cardType) {
+      this.doBroadcastTo(roomId, playerId, { type: 'error', message: '无效牌型' });
+      return;
+    }
 
     // 验证能否压过上一手
-    if (state.lastPlay && state.lastPlay.playerId !== playerId) {
-      if (!canBeat(state.lastPlay.type, cardType)) return;
+    if (state.lastPlay && state.lastPlayedBy !== playerId) {
+      if (!canBeat(state.lastPlay.cardType, cardType)) {
+        this.doBroadcastTo(roomId, playerId, { type: 'error', message: '打不过上家' });
+        return;
+      }
     }
 
     // 从手牌中移除
     state.playerHands[playerId] = hand.filter(c => !cardIds.has(c.id));
 
     // 更新状态
-    state.lastPlay = { playerId, cards, type: cardType };
-    state.passCount = 0;
-    state.playHistory.push({ playerId, cards, type: cardType });
+    state.lastPlay = { playerId, cards, cardType };
+    state.lastPlayedBy = playerId;
+    state.consecutivePasses = 0;
+    state.playHistory.push({
+      playerId,
+      cards,
+      cardType,
+      action: 'play',
+    });
 
     // 广播出牌
-    this.broadcast(roomId, {
+    this.doBroadcast(roomId, {
       type: 'play_update',
       playerId,
       cards,
@@ -277,17 +275,20 @@ class DoudizhuServer extends BaseGameServer {
     // 检查是否出完
     if (state.playerHands[playerId].length === 0) {
       this.saveState(roomId, state);
-      this.handleGameOver(roomId, playerId);
+      setTimeout(() => this.handleGameOver(roomId, playerId), 500);
       return;
     }
 
     // 下一个玩家
     state.currentTurn = (state.currentTurn + 1) % 3;
     this.saveState(roomId, state);
+
+    // 广播状态更新
+    this.broadcastStateUpdate(roomId, state);
   }
 
   /**
-   * 处理过牌
+   * 过牌
    */
   handlePass(roomId, playerId) {
     const state = this.getState(roomId);
@@ -296,31 +297,50 @@ class DoudizhuServer extends BaseGameServer {
     if (state.phase !== 'playing') return;
     if (state.players[state.currentTurn] !== playerId) return;
 
-    // 如果是自己出的牌，不能过
-    if (state.lastPlay && state.lastPlay.playerId === playerId) return;
+    // 如果是自己出的牌（其他人已过），不能过，必须出
+    if (state.lastPlayedBy === playerId) {
+      this.doBroadcastTo(roomId, playerId, { type: 'error', message: '轮到你出牌，不能跳过' });
+      return;
+    }
 
-    state.passCount++;
+    state.consecutivePasses++;
+    state.playHistory.push({ playerId, cards: [], action: 'pass' });
 
     // 广播过牌
-    this.broadcast(roomId, {
+    this.doBroadcast(roomId, {
       type: 'pass_update',
       playerId,
     });
 
-    // 两人都过，轮到最后出牌者重新出
-    if (state.passCount >= 2) {
+    // 两人连续过牌 → 最后出牌者重新自由出牌
+    if (state.consecutivePasses >= 2) {
       state.lastPlay = null;
-      state.passCount = 0;
+      state.consecutivePasses = 0;
+      // 轮到最后出牌的人
+      state.currentTurn = state.players.indexOf(state.lastPlayedBy);
+    } else {
+      // 下一个玩家
+      state.currentTurn = (state.currentTurn + 1) % 3;
     }
 
-    // 下一个玩家
-    state.currentTurn = (state.currentTurn + 1) % 3;
     this.saveState(roomId, state);
+    this.broadcastStateUpdate(roomId, state);
   }
 
   /**
-   * 游戏结束
+   * 广播状态更新（每人看到自己的手牌）
    */
+  broadcastStateUpdate(roomId, state) {
+    for (const pid of state.players) {
+      this.doBroadcastTo(roomId, pid, {
+        type: 'state_update',
+        state: this.getVisibleState(state, pid),
+      });
+    }
+  }
+
+  // ========== 游戏结束 ==========
+
   handleGameOver(roomId, winnerId) {
     const state = this.getState(roomId);
     if (!state) return;
@@ -330,74 +350,47 @@ class DoudizhuServer extends BaseGameServer {
       ? [state.landlord]
       : state.players.filter(p => p !== state.landlord);
 
-    const result = {
-      winners,
-      landlord: state.landlord,
-      scores: {},
-    };
-
-    // 计算分数
     const baseScore = state.highestBid;
+    const scores = {};
     for (const pid of state.players) {
       if (pid === state.landlord) {
-        result.scores[pid] = isLandlord ? baseScore * 2 : -baseScore * 2;
+        scores[pid] = isLandlord ? baseScore * 2 : -baseScore * 2;
       } else {
-        result.scores[pid] = isLandlord ? -baseScore : baseScore;
+        scores[pid] = isLandlord ? -baseScore : baseScore;
       }
     }
 
-    // 广播游戏结束
-    this.broadcast(roomId, {
+    this.doBroadcast(roomId, {
       type: 'game_over',
       winner: winnerId,
       winners,
       landlord: state.landlord,
-      scores: result.scores,
-      message: isLandlord ? '地主获胜！' : '农民获胜！',
+      scores,
+      message: isLandlord ? '🎉 地主获胜！' : '🎉 农民获胜！',
     });
 
-    // 回调给平台记录战绩
     if (this.onGameOver) {
-      this.onGameOver(roomId, result);
+      this.onGameOver(roomId, { winners, scores, landlord: state.landlord });
     }
   }
 
   /**
-   * 重新发牌（没人叫地主时）
+   * 重新发牌
    */
   restartGame(roomId) {
     const state = this.getState(roomId);
     if (!state) return;
 
-    const deck = shuffleDeck(createDeck());
-    const { hands, kitty } = dealCards(deck);
+    const players = state.players;
+    const newState = this.initGameState(players);
+    this.saveState(roomId, newState);
 
-    state.playerHands = {};
-    state.players.forEach((playerId, i) => {
-      state.playerHands[playerId] = hands[i];
-    });
-    state.kitty = kitty;
-    state.landlord = null;
-    state.phase = 'bidding';
-    state.bids = {};
-    state.bidTurn = 0;
-    state.bidCount = 0;
-    state.highestBid = 0;
-    state.highestBidder = null;
-    state.lastPlay = null;
-    state.passCount = 0;
-    state.playHistory = [];
-
-    this.saveState(roomId, state);
-
-    // 广播重新开始（每人可见状态不同）
-    for (const pid of state.players) {
-      if (this.sendToPlayer) {
-        this.sendToPlayer(roomId, pid, {
-          type: 'game_restart',
-          state: this.getVisibleState(state, pid),
-        });
-      }
+    for (const pid of players) {
+      this.doBroadcastTo(roomId, pid, {
+        type: 'game_restart',
+        state: this.getVisibleState(newState, pid),
+        message: '没有人叫地主，重新发牌',
+      });
     }
   }
 }

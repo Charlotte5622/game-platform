@@ -67,18 +67,20 @@ function getRegisteredGames() {
 }
 
 /**
- * 获取游戏服务端实例
+ * 创建一个新的游戏服务端实例（每次调用都创建新实例，避免多房间共享状态）
  */
-function getGameInstance(gameId) {
+function createGameInstance(gameId) {
   const entry = registeredGames.get(gameId);
-  if (!entry) return null;
+  if (!entry || !entry.GameServerClass) return null;
+  return new entry.GameServerClass();
+}
 
-  // 延迟实例化
-  if (!entry.instance && entry.GameServerClass) {
-    entry.instance = new entry.GameServerClass();
-  }
-
-  return entry.instance;
+/**
+ * 获取游戏的最大人数
+ */
+function getGameMaxPlayers(gameId) {
+  const entry = registeredGames.get(gameId);
+  return entry?.meta?.maxPlayers || 10;
 }
 
 /**
@@ -88,4 +90,4 @@ function gameExists(gameId) {
   return registeredGames.has(gameId);
 }
 
-module.exports = { loadAllGames, getRegisteredGames, getGameInstance, gameExists };
+module.exports = { loadAllGames, getRegisteredGames, createGameInstance, getGameMaxPlayers, gameExists };

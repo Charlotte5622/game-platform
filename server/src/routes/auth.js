@@ -2,17 +2,31 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('@prisma/client');
 const { authMiddleware, generateToken } = require('../middleware/auth');
+const { createRateLimit } = require('../middleware/rateLimit');
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+// 登录/注册接口限流：每 IP 每分钟最多 10 次
+const authRateLimit = createRateLimit(60000, 10, '登录/注册请求过于频繁，请稍后再试');
+
+/**
+ * 简易输入清理：去除首尾空白，限制长度
+ */
+function sanitize(str, maxLen = 50) {
+  if (typeof str !== 'string') return '';
+  return str.trim().slice(0, maxLen);
+}
 
 /**
  * POST /api/auth/register
  * 注册新用户
  */
-router.post('/register', async (req, res) => {
+router.post('/register', authRateLimit, async (req, res) => {
   try {
-    const { username, password, nickname } = req.body;
+    const username = sanitize(req.body.username, 20);
+    const password = req.body.password || '';
+    const nickname = sanitize(req.body.nickname, 20);
 
     // 参数验证
     if (!username || !password || !nickname) {
@@ -25,6 +39,11 @@ router.post('/register', async (req, res) => {
 
     if (password.length < 6) {
       return res.status(400).json({ error: '密码长度至少 6 个字符' });
+    }
+
+    // 用户名只允许字母数字下划线
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      return res.status(400).json({ error: '用户名只能包含字母、数字和下划线' });
     }
 
     // 检查用户名是否已存在
@@ -60,9 +79,10 @@ router.post('/register', async (req, res) => {
  * POST /api/auth/login
  * 用户登录
  */
-router.post('/login', async (req, res) => {
+router.post('/login', authRateLimit, async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const username = sanitize(req.body.username, 20);
+    const password = req.body.password || '';
 
     if (!username || !password) {
       return res.status(400).json({ error: '用户名和密码不能为空' });
@@ -88,7 +108,6 @@ router.post('/login', async (req, res) => {
       token,
       user: { id: user.id, username: user.username, nickname: user.nickname },
     });
-  } catch (err) {
   } catch (err) {
     console.error('登录失败:', err);
     res.status(500).json({ error: '服务器错误，请稍后重试' });
