@@ -261,21 +261,6 @@ function cleanupUser(userId) {
 }
 
 /**
- * 重连：更新玩家的 socketId
- */
-function reconnectPlayer(roomId, oldSocketId, newSocketId) {
-  const room = rooms.get(roomId);
-  if (!room) return;
-
-  const player = room.players.find(p => p.socketId === oldSocketId);
-  if (player) {
-    player.socketId = newSocketId;
-    playerRooms.delete(oldSocketId);
-    playerRooms.set(newSocketId, roomId);
-  }
-}
-
-/**
  * 更新玩家的 socketId（重连场景）
  */
 function updatePlayerSocket(userId, newSocketId) {

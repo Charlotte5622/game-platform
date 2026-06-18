@@ -72,7 +72,7 @@ function setupSocketHandlers(io, prisma) {
         console.log(`✅ 玩家 ${socket.user.username} 宽限期内重连`);
 
         // 更新玩家的 socketId
-        roomManager.reconnectPlayer(pending.roomId, pending.socketId, socket.id);
+        roomManager.updatePlayerSocket(socket.user.id, socket.id);
         socket.join(pending.roomId);
 
         const room = roomManager.getRoom(pending.roomId);
