@@ -171,6 +171,55 @@ export default function GameHost({ gameId, GameComponent }) {
     [socket, roomId]
   );
 
+  // ===== 页面离开检测（手机返回 / 关闭标签页 / 刷新） =====
+  useEffect(() => {
+    if (!socket || !roomId) return;
+
+    // 主动离开房间
+    const leaveRoom = () => {
+      try {
+        socket.emit('leave_room');
+      } catch {}
+    };
+
+    // 1. 浏览器关闭/刷新
+    const handleBeforeUnload = (e) => {
+      leaveRoom();
+    };
+
+    // 2. 手机返回键 / 浏览器后退
+    const handlePopState = (e) => {
+      leaveRoom();
+    };
+
+    // 3. 页面可见性变化（手机切后台/切标签页）
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        // 页面隐藏时发送 beacon（更可靠，不会被页面卸载中断）
+        if (navigator.sendBeacon) {
+          const token = localStorage.getItem('token');
+          navigator.sendBeacon('/api/leave-room', JSON.stringify({ roomId, token }));
+        }
+      }
+    };
+
+    // 4. 组件卸载（React Router 导航离开）
+    const handleUnmount = () => {
+      leaveRoom();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      handleUnmount();
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [socket, roomId]);
+
   // ===== 各阶段渲染 =====
 
   if (error) {

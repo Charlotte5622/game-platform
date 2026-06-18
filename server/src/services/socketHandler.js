@@ -218,6 +218,39 @@ function setupSocketHandlers(io, prisma) {
       room.gameInstance.onPlayerAction(roomId, socket.user.id, action);
     });
 
+    // ========== 主动离开房间 ==========
+    socket.on('leave_room', () => {
+      console.log(`🚪 玩家主动离开: ${socket.user.username} (${socket.id})`);
+      roomManager.cleanupUser(socket.user.id);
+
+      const result = roomManager.leaveRoom(socket.id);
+      if (result && !result.empty && result.room) {
+        io.to(result.roomId).emit('room_update', {
+          roomId: result.roomId,
+          roomCode: result.room.roomCode,
+          players: result.room.players.map(p => ({
+            id: p.id, nickname: p.nickname, ready: p.ready,
+          })),
+          state: result.room.state,
+        });
+
+        if (result.room.state === 'playing') {
+          io.to(result.roomId).emit('game_over', {
+            type: 'game_over',
+            reason: 'player_leave',
+            winner: null,
+            winners: [],
+            landlord: null,
+            scores: {},
+            message: '有玩家离开房间，游戏结束',
+          });
+          roomManager.setRoomState(result.roomId, 'finished');
+        }
+      }
+
+      broadcastStatsDebounced(io);
+    });
+
     // ========== 断开连接 ==========
     socket.on('disconnect', () => {
       console.log(`🔌 玩家断开: ${socket.user.username} (${socket.id})`);
