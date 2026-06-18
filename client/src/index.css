@@ -580,6 +580,140 @@ input {
   justify-content: center;
   padding: 24px;
   animation: fadeIn 0.4s ease;
+  position: relative;
+}
+
+/* 选择入口 */
+.choosing-box {
+  text-align: center;
+  max-width: 480px;
+  width: 100%;
+  animation: slideUp 0.5s ease;
+}
+
+.choosing-box h2 {
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, var(--text) 0%, var(--secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.choosing-box > p {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 32px;
+}
+
+.choosing-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.choosing-btn {
+  padding: 16px 40px;
+  border-radius: var(--radius);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  max-width: 320px;
+}
+
+.choosing-btn.quick-match {
+  background: linear-gradient(135deg, var(--primary) 0%, #a29bfe 100%);
+  color: white;
+  box-shadow: 0 4px 20px var(--primary-glow);
+}
+
+.choosing-btn.quick-match:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px var(--primary-glow);
+}
+
+.choosing-btn.join-code {
+  background: linear-gradient(135deg, var(--secondary) 0%, #4fd1cf 100%);
+  color: #0f0f23;
+  font-weight: 800;
+}
+
+.choosing-btn.join-code:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px var(--secondary-glow);
+}
+
+.choosing-divider {
+  color: var(--text-dim);
+  font-size: 13px;
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+}
+
+.choosing-divider::before,
+.choosing-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 40%;
+  height: 1px;
+  background: var(--border);
+}
+
+.choosing-divider::before { left: 0; }
+.choosing-divider::after { right: 0; }
+
+.choosing-code-input {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.choosing-code-input input {
+  flex: 1;
+  padding: 14px 16px;
+  background: var(--bg-input);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 8px;
+  transition: all var(--transition);
+}
+
+.choosing-code-input input:focus {
+  border-color: var(--secondary);
+  box-shadow: 0 0 0 3px var(--secondary-glow);
+}
+
+.choosing-code-input input::placeholder {
+  letter-spacing: 0;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+.choosing-code-input .choosing-btn {
+  max-width: 140px;
+  padding: 14px 20px;
+  font-size: 14px;
+}
+
+.choosing-error {
+  color: var(--danger);
+  font-size: 13px;
+  margin-top: 12px;
+  padding: 8px 16px;
+  background: var(--danger-glow);
+  border-radius: 8px;
 }
 
 /* 匹配中 */
@@ -589,47 +723,66 @@ input {
 }
 
 .matching-spinner {
-  font-size: 56px;
+  font-size: 64px;
   display: inline-block;
   animation: spin 1.2s linear infinite;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .matching-text {
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 22px;
+  font-weight: 700;
   color: var(--text);
+  margin-bottom: 8px;
 }
 
 .matching-hint {
   color: var(--text-muted);
   font-size: 14px;
-  margin-top: 8px;
 }
 
 /* 等待房间 */
 .waiting-box {
   text-align: center;
-  max-width: 440px;
+  max-width: 480px;
   width: 100%;
   animation: slideUp 0.5s ease;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 36px 32px;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  overflow: hidden;
+}
+
+.waiting-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary), var(--warning));
 }
 
 .waiting-title {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 26px;
+  font-weight: 800;
   margin-bottom: 8px;
 }
 
 .waiting-room-id {
   color: var(--text-dim);
-  font-size: 13px;
+  font-size: 14px;
   font-family: 'SF Mono', 'Fira Code', monospace;
   background: var(--bg-input);
   display: inline-block;
-  padding: 4px 12px;
-  border-radius: 6px;
-  margin-bottom: 24px;
+  padding: 6px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-bottom: 28px;
+  letter-spacing: 2px;
 }
 
 .waiting-players {
@@ -643,16 +796,17 @@ input {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 18px;
-  background: var(--bg-card);
+  padding: 16px 20px;
+  background: var(--bg-input);
   border: 2px solid var(--border);
   border-radius: var(--radius);
-  transition: all var(--transition);
+  transition: all 0.3s ease;
 }
 
 .waiting-player.ready {
   border-color: var(--success);
-  background: rgba(0, 184, 148, 0.06);
+  background: rgba(0, 184, 148, 0.08);
+  box-shadow: 0 0 16px var(--success-glow);
 }
 
 .waiting-player-name {
@@ -663,15 +817,19 @@ input {
 .waiting-player-status {
   font-size: 13px;
   color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .waiting-player-status.ready {
   color: var(--success);
+  font-weight: 600;
 }
 
 .waiting-empty-slot {
-  padding: 14px 18px;
-  background: var(--bg-card);
+  padding: 16px 20px;
+  background: var(--bg-input);
   border: 2px dashed var(--border);
   border-radius: var(--radius);
   color: var(--text-dim);
@@ -681,57 +839,118 @@ input {
 }
 
 .waiting-ready-btn {
-  padding: 14px 48px;
+  padding: 16px 56px;
   background: linear-gradient(135deg, var(--success) 0%, #00a884 100%);
   color: white;
   border-radius: var(--radius);
-  font-size: 16px;
-  font-weight: 700;
-  transition: all var(--transition);
+  font-size: 17px;
+  font-weight: 800;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px var(--success-glow);
+  letter-spacing: 1px;
 }
 
 .waiting-ready-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 24px var(--success-glow);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 32px var(--success-glow);
 }
 
-/* 错误 & 结果 */
-.error-box,
-.result-box {
+/* 错误 */
+.error-box {
   text-align: center;
   animation: fadeIn 0.5s ease;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 48px 40px;
+  max-width: 440px;
+  box-shadow: var(--shadow-lg);
 }
 
 .error-box h2 {
-  font-size: 22px;
+  font-size: 20px;
   margin-bottom: 8px;
+  color: var(--text);
+}
+
+/* 结果 */
+.result-box {
+  text-align: center;
+  animation: slideUp 0.5s ease;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 48px 40px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  overflow: hidden;
+}
+
+.result-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--success), var(--secondary), var(--primary));
 }
 
 .result-box h2 {
-  font-size: 26px;
-  font-weight: 700;
+  font-size: 28px;
+  font-weight: 800;
   margin-bottom: 8px;
 }
 
-.result-box p {
-  color: var(--text-muted);
-  margin-bottom: 24px;
+.result-scores {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  margin: 24px 0;
+  flex-wrap: wrap;
 }
 
+.result-score-item {
+  text-align: center;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 24px;
+  min-width: 100px;
+}
+
+.result-score-name {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.result-score-value {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.result-score-value.win { color: var(--success); }
+.result-score-value.lose { color: var(--danger); }
+.result-score-value.draw { color: var(--text-muted); }
+
 .back-btn {
-  margin-top: 16px;
-  padding: 12px 36px;
-  background: var(--primary);
+  margin-top: 24px;
+  padding: 14px 40px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: white;
   border-radius: var(--radius);
-  font-size: 14px;
-  font-weight: 600;
-  transition: all var(--transition);
+  font-size: 15px;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 12px var(--primary-glow);
 }
 
 .back-btn:hover {
-  background: var(--primary-dark);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px var(--primary-glow);
 }
 
 /* ============================================
