@@ -197,6 +197,17 @@ function ChessBoard({ pieces, flipped, selected, onCellClick }) {
 }
 
 /**
+ * 格式化毫秒为 mm:ss
+ */
+function formatTime(ms) {
+  if (ms == null || ms <= 0) return '0:00';
+  const totalSeconds = Math.ceil(ms / 1000);
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+/**
  * 中国象棋主组件
  */
 export default function ChineseChessGame({ socket, roomId, playerId, gameState, onAction, players }) {
@@ -331,8 +342,54 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
   if (phase === 'rps') {
     const myChoice = myRpsChoice || rpsChoices?.[playerId]?.choice;
     const opponentReady = rpsChoices && Object.keys(rpsChoices).length >= 1 && !myChoice;
+
+    const handleSendTimerSettings = () => {
+      emitAction({
+        type: 'set_timer',
+        settings: {
+          totalTime: timerEnabled ? totalMinutes * 60 * 1000 : 0,
+          stepTime: timerEnabled ? stepSeconds * 1000 : 0,
+        },
+      });
+    };
+
     return (
       <div className="chess">
+        {/* 计时器设置 */}
+        {!timerSettingsSent && (
+          <div className="chess-timer-settings">
+            <h3 className="chess-timer-settings-title">⏱️ 计时设置</h3>
+            <label className="chess-timer-toggle">
+              <input type="checkbox" checked={timerEnabled} onChange={(e) => setTimerEnabled(e.target.checked)} />
+              <span>启用计时</span>
+            </label>
+            {timerEnabled && (
+              <div className="chess-timer-inputs">
+                <label>
+                  总时间（分钟）
+                  <input type="number" min="1" max="60" value={totalMinutes}
+                    onChange={(e) => setTotalMinutes(Number(e.target.value) || 1)} />
+                </label>
+                <label>
+                  每步时间（秒）
+                  <input type="number" min="10" max="600" value={stepSeconds}
+                    onChange={(e) => setStepSeconds(Number(e.target.value) || 10)} />
+                </label>
+              </div>
+            )}
+            <button className="chess-timer-confirm-btn" onClick={handleSendTimerSettings}>
+              确认设置
+            </button>
+          </div>
+        )}
+        {timerSettingsSent && gameState?.timerSettings && (
+          <div className="chess-timer-info">
+            {gameState.timerSettings.enabled
+              ? `⏱️ 总时间 ${Math.round(gameState.timerSettings.totalTime / 60000)} 分钟，每步 ${Math.round(gameState.timerSettings.stepTime / 1000)} 秒`
+              : '⏱️ 不限时'}
+          </div>
+        )}
+
         <div className="chess-rps">
           <h2 className="chess-rps-title">✊✌️🖐 猜拳选色</h2>
           <p className="chess-rps-sub">胜者可选择执红或执黑</p>
@@ -397,6 +454,17 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
         {turnDeadline && <span className={`chess-timer${timeLeft <= 10 ? ' chess-timer-urgent' : ''}`}>⏱️ {timeLeft}s</span>}
         {check && <span className="chess-check-tag">⚠️ 将军!</span>}
       </div>
+      {/* 双方剩余总时间 */}
+      {gameState.timerSettings?.enabled && gameState.timerSettings?.totalTime > 0 && (
+        <div className="chess-time-remaining">
+          <span className={`chess-time-tag ${isMyTurn ? 'chess-time-active' : ''}`}>
+            你: {formatTime(gameState.timeRemaining?.[playerId])}
+          </span>
+          <span className={`chess-time-tag ${!isMyTurn ? 'chess-time-active' : ''}`}>
+            对手: {formatTime(gameState.timeRemaining?.[gameState.players?.find(p => String(p) !== String(playerId))])}
+          </span>
+        </div>
+      )}
 
       {/* 棋盘 */}
       <ChessBoard pieces={pieces} flipped={flipped} selected={selected} onCellClick={handleCellClick} />
