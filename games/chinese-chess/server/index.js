@@ -333,12 +333,12 @@ class ChineseChessServer extends BaseGameServer {
   // ========== 辅助 ==========
 
   broadcastState(roomId, state) {
-    for (const pid of state.players) {
-      this.doBroadcastTo(roomId, pid, {
-        type: 'state_update',
-        state: this.getVisibleState(state, pid),
-      });
-    }
+    // 用 doBroadcast 发给整个 Socket.IO 房间（包括新 tab 的 socket）
+    // 象棋信息完全公开，所有人看到相同状态
+    this.doBroadcast(roomId, {
+      type: 'state_update',
+      state: this.getVisibleState(state, state.players[0]),
+    });
   }
 }
 
