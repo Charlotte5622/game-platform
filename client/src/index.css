@@ -1843,19 +1843,75 @@ input {
 }
 
 /* ============================================
-   响应式
+   触摸设备优化
+   ============================================ */
+@media (hover: none) and (pointer: coarse) {
+  /* 触摸设备：按钮最小 44px 高度 */
+  button, .btn, .auth-submit, .back-btn, .choosing-btn,
+  .waiting-ready-btn, .waiting-unready-btn, .game-card-play,
+  .dz-action-pass, .dz-action-play, .dz-bid-btn,
+  .mj-action-btn {
+    min-height: 44px;
+  }
+
+  /* 移除触摸设备上的 hover 位移 */
+  .game-card:hover {
+    transform: none;
+  }
+
+  .dz-card:hover {
+    transform: none;
+  }
+
+  .mj-tile:hover {
+    transform: none;
+  }
+
+  /* 选中状态保留位移 */
+  .dz-card-selected {
+    transform: translateY(-10px) !important;
+  }
+
+  .mj-tile-selected {
+    transform: translateY(-8px) !important;
+  }
+
+  /* 更大的触摸反馈区域 */
+  .dz-card, .mj-tile {
+    cursor: default;
+  }
+}
+
+/* ============================================
+   平板 / 大手机 (≤768px)
    ============================================ */
 @media (max-width: 768px) {
+  /* 导航栏 */
   .navbar {
     padding: 0 16px;
+    height: 56px;
   }
 
   .navbar-logo {
     font-size: 17px;
   }
 
+  .navbar-nickname {
+    display: none;
+  }
+
+  .navbar-logout {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .main-content {
+    padding-top: 56px;
+  }
+
+  /* 大厅 */
   .lobby-hero {
-    padding: 40px 16px 32px;
+    padding: 32px 16px 24px;
     margin-bottom: 24px;
   }
 
@@ -1865,6 +1921,7 @@ input {
 
   .lobby-hero-sub {
     font-size: 15px;
+    margin-bottom: 24px;
   }
 
   .lobby-stats {
@@ -1880,22 +1937,123 @@ input {
     padding: 0 16px;
   }
 
+  .lobby-section-header {
+    margin-bottom: 16px;
+  }
+
   .lobby-grid {
     grid-template-columns: 1fr;
     gap: 16px;
   }
 
-  .auth-card {
-    padding: 32px 24px;
+  /* 游戏卡片 */
+  .game-card-banner {
+    height: 100px;
   }
 
+  .game-card-banner-icon {
+    font-size: 48px;
+  }
+
+  .game-card-body {
+    padding: 16px 20px 20px;
+  }
+
+  /* 认证 */
+  .auth-card {
+    padding: 32px 24px;
+    border-radius: 16px;
+  }
+
+  .auth-title {
+    font-size: 24px;
+  }
+
+  .auth-form-group input {
+    padding: 14px 16px;
+    font-size: 16px; /* 防止 iOS 缩放 */
+  }
+
+  /* 选择入口 */
+  .choosing-box h2 {
+    font-size: 24px;
+  }
+
+  .choosing-btn {
+    padding: 16px 32px;
+  }
+
+  .choosing-code-input input {
+    padding: 14px 12px;
+    font-size: 20px;
+    letter-spacing: 6px;
+  }
+
+  /* 等待房间 */
   .waiting-box {
-    padding: 0 8px;
+    padding: 28px 20px;
+    border-radius: 16px;
+  }
+
+  .waiting-title {
+    font-size: 22px;
+  }
+
+  .waiting-player {
+    padding: 14px 16px;
+  }
+
+  .waiting-ready-btn {
+    padding: 16px 48px;
+    font-size: 16px;
+    width: 100%;
+    max-width: 280px;
+  }
+
+  .waiting-unready-btn {
+    padding: 12px 32px;
+  }
+
+  /* 结果 */
+  .result-box {
+    padding: 36px 24px;
+  }
+
+  .result-box h2 {
+    font-size: 24px;
+  }
+
+  .result-scores {
+    gap: 12px;
+  }
+
+  .result-score-item {
+    padding: 12px 16px;
+    min-width: 80px;
+  }
+
+  /* ===== 斗地主 ===== */
+  .dz {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .dz-table {
+    padding: 12px;
+    border-radius: 16px;
+    border-width: 2px;
+  }
+
+  .dz-top-info {
+    gap: 10px;
+    font-size: 11px;
   }
 
   .dz-table-body {
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
+    min-height: auto;
+    padding: 0;
   }
 
   .dz-seat-left,
@@ -1907,8 +2065,31 @@ input {
   .dz-panel {
     flex-direction: row;
     width: auto;
-    gap: 12px;
-    padding: 10px 16px;
+    gap: 10px;
+    padding: 8px 14px;
+    border-radius: 10px;
+  }
+
+  .dz-panel-avatar {
+    font-size: 24px;
+  }
+
+  .dz-panel-name {
+    max-width: 120px;
+    font-size: 13px;
+  }
+
+  .dz-center {
+    min-height: 100px;
+    gap: 8px;
+  }
+
+  .dz-play-zone {
+    padding: 0 8px;
+  }
+
+  .dz-play-side {
+    width: 80px;
   }
 
   .dz-card {
@@ -1924,21 +2105,111 @@ input {
     font-size: 11px;
   }
 
+  .dz-card-sm {
+    width: 36px;
+    height: 52px;
+  }
+
+  .dz-card-sm .dz-card-rank-text {
+    font-size: 12px;
+  }
+
+  .dz-card-sm .dz-card-suit-text {
+    font-size: 9px;
+  }
+
+  .dz-bid-title {
+    font-size: 18px;
+  }
+
+  .dz-bid-history {
+    gap: 14px;
+  }
+
   .dz-bid-buttons {
     gap: 8px;
   }
 
   .dz-bid-btn {
-    padding: 8px 20px;
+    padding: 10px 20px;
     font-size: 13px;
+  }
+
+  .dz-actions {
+    gap: 12px;
+  }
+
+  .dz-action-pass {
+    padding: 12px 28px;
+    font-size: 14px;
+  }
+
+  .dz-action-play {
+    padding: 12px 36px;
+    font-size: 14px;
+  }
+
+  .dz-hand {
+    padding: 6px 0 8px;
+  }
+
+  .dz-hand-cards {
+    padding: 4px 8px;
   }
 
   .dz-hand-card-wrap {
     margin-left: -16px;
   }
 
+  /* ===== 麻将 ===== */
+  .mj {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .mj-table {
+    padding: 12px;
+    border-radius: 16px;
+    border-width: 2px;
+    gap: 8px;
+  }
+
   .mj-board {
-    grid-template-columns: 100px 1fr 100px;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    gap: 6px;
+    min-height: auto;
+  }
+
+  .mj-seat-top {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .mj-seat-left,
+  .mj-seat-right {
+    display: none;
+  }
+
+  .mj-center {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  /* 简化对手为横条 */
+  .mj-opponent {
+    min-width: auto;
+    padding: 8px 12px;
+    border-radius: 8px;
+  }
+
+  .mj-opponent-header {
+    margin-bottom: 4px;
+  }
+
+  .mj-opponent-melds,
+  .mj-opponent-discards {
+    display: none;
   }
 
   .mj-tile {
@@ -1963,30 +2234,97 @@ input {
     font-size: 10px;
   }
 
+  .mj-tile-sm .mj-tile-suit {
+    font-size: 7px;
+  }
+
+  .mj-actions {
+    gap: 8px;
+  }
+
   .mj-action-btn {
-    padding: 8px 18px;
+    padding: 10px 18px;
     font-size: 14px;
+    min-height: 44px;
+  }
+
+  .mj-hand-tiles {
+    gap: 3px;
+  }
+
+  .mj-my-melds {
+    padding: 6px 10px;
+    gap: 6px;
   }
 }
 
+/* ============================================
+   小手机 (≤480px)
+   ============================================ */
 @media (max-width: 480px) {
   .lobby-hero-title {
     font-size: 26px;
   }
 
+  .lobby-hero-sub {
+    font-size: 14px;
+  }
+
   .lobby-stats {
-    flex-direction: column;
+    flex-direction: row;
     gap: 12px;
-    padding: 16px;
+    padding: 12px 16px;
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
   .lobby-stat-divider {
-    width: 40px;
-    height: 1px;
+    display: none;
+  }
+
+  .lobby-grid {
+    gap: 12px;
+  }
+
+  .game-card-banner {
+    height: 80px;
+  }
+
+  .game-card-banner-icon {
+    font-size: 40px;
   }
 
   .auth-card {
     padding: 28px 20px;
+  }
+
+  .choosing-code-input {
+    flex-direction: column;
+  }
+
+  .choosing-code-input .choosing-btn {
+    max-width: 100%;
+  }
+
+  .waiting-box {
+    padding: 24px 16px;
+  }
+
+  .waiting-title {
+    font-size: 20px;
+  }
+
+  .waiting-player {
+    padding: 12px 14px;
+  }
+
+  .waiting-player-name {
+    font-size: 14px;
+  }
+
+  /* 斗地主 */
+  .dz-table {
+    padding: 8px;
   }
 
   .dz-card {
@@ -1998,7 +2336,114 @@ input {
     font-size: 13px;
   }
 
+  .dz-card-suit-text {
+    font-size: 10px;
+  }
+
+  .dz-card-center-suit {
+    font-size: 20px;
+  }
+
+  .dz-card-sm {
+    width: 30px;
+    height: 44px;
+  }
+
+  .dz-card-sm .dz-card-rank-text {
+    font-size: 10px;
+  }
+
   .dz-hand-card-wrap {
     margin-left: -14px;
+  }
+
+  .dz-bid-buttons {
+    flex-wrap: wrap;
+  }
+
+  .dz-bid-btn {
+    padding: 10px 16px;
+    font-size: 12px;
+  }
+
+  .dz-action-pass {
+    padding: 12px 20px;
+    font-size: 13px;
+  }
+
+  .dz-action-play {
+    padding: 12px 28px;
+    font-size: 13px;
+  }
+
+  /* 麻将 */
+  .mj-table {
+    padding: 8px;
+  }
+
+  .mj-tile {
+    width: 34px;
+    height: 44px;
+  }
+
+  .mj-tile-text {
+    font-size: 13px;
+  }
+
+  .mj-tile-suit {
+    font-size: 9px;
+  }
+
+  .mj-tile-sm {
+    width: 24px;
+    height: 32px;
+  }
+
+  .mj-tile-sm .mj-tile-text {
+    font-size: 9px;
+  }
+
+  .mj-action-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+}
+
+/* ============================================
+   超小屏 (≤360px)
+   ============================================ */
+@media (max-width: 360px) {
+  .lobby-hero-title {
+    font-size: 22px;
+  }
+
+  .lobby-stats {
+    padding: 10px 12px;
+  }
+
+  .lobby-stat-num {
+    font-size: 18px;
+  }
+
+  .dz-card {
+    width: 36px;
+    height: 52px;
+  }
+
+  .dz-card-rank-text {
+    font-size: 12px;
+  }
+
+  .dz-hand-card-wrap {
+    margin-left: -12px;
+  }
+
+  .mj-tile {
+    width: 30px;
+    height: 40px;
+  }
+
+  .mj-tile-text {
+    font-size: 12px;
   }
 }
