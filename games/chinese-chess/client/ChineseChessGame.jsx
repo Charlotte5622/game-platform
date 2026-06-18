@@ -29,11 +29,22 @@ function ChessBoard({ pieces, flipped, selected, onCellClick }) {
     black: { bg: '#f8fafc', border: '#1e293b', text: '#1e293b' },
   };
 
+  // 坐标标注
+  // 黑方视角（翻转）: 列号从左到右是 9 8 7 6 5 4 3 2 1
+  // 红方视角（不翻转）: 列号从左到右是 1 2 3 4 5 6 7 8 9
+  const colLabels = flipped
+    ? ['9', '8', '7', '6', '5', '4', '3', '2', '1']
+    : ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+  // 行号: 红方视角从下到上是 0-9，黑方视角从下到上是 9-0
+  const rowLabels = flipped
+    ? ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+    : ['9', '8', '7', '6', '5', '4', '3', '2', '1', '0'];
+
   return (
     <div className="chess-board-outer">
       <svg
         className="chess-board-svg"
-        viewBox={`${-PAD} ${-PAD} ${W + PAD * 2} ${H + PAD * 2}`}
+        viewBox={`${-PAD - 20} ${-PAD} ${W + PAD * 2 + 40} ${H + PAD * 2}`}
         preserveAspectRatio="xMidYMid meet"
       >
         {/* 背景 */}
@@ -147,6 +158,39 @@ function ChessBoard({ pieces, flipped, selected, onCellClick }) {
             </g>
           );
         })}
+
+        {/* 列号标注（上方） */}
+        {colLabels.map((label, i) => (
+          <text
+            key={`cl-${i}`}
+            x={i * CELL}
+            y={-PAD + 15}
+            textAnchor="middle"
+            fontSize="16"
+            fill="#8b7355"
+            fontFamily="sans-serif"
+            fontWeight="600"
+          >
+            {label}
+          </text>
+        ))}
+
+        {/* 行号标注（右侧） */}
+        {rowLabels.map((label, i) => (
+          <text
+            key={`rl-${i}`}
+            x={W + PAD - 10}
+            y={i * CELL}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize="14"
+            fill="#8b7355"
+            fontFamily="sans-serif"
+            fontWeight="600"
+          >
+            {label}
+          </text>
+        ))}
       </svg>
     </div>
   );
@@ -161,6 +205,9 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
   const [myRpsChoice, setMyRpsChoice] = useState(null);
   const [turnDeadline, setTurnDeadline] = useState(null);
   const [timeLeft, setTimeLeft] = useState(60);
+  const [drawRequestFrom, setDrawRequestFrom] = useState(null);
+  const [drawRequestSent, setDrawRequestSent] = useState(false);
+  const [opponentDisconnected, setOpponentDisconnected] = useState(false);
 
   useEffect(() => {
     if (!socket) return;
@@ -169,17 +216,35 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
     const handleRpsDraw = () => setMyRpsChoice(null);
     const handleRpsResult = () => setMyRpsChoice(null);
     const handleTurnTimer = (data) => setTurnDeadline(data.deadline);
+    const handleTurnTimeout = (data) => { setError(data.message); setTimeout(() => setError(''), 2500); };
+    const handleDrawRequestReceived = (data) => setDrawRequestFrom(data.from);
+    const handleDrawRequestSent = () => setDrawRequestSent(true);
+    const handleDrawRejected = (data) => { setDrawRequestSent(false); setError(data.message); setTimeout(() => setError(''), 2500); };
+    const handleOpponentDisconnected = (data) => { setOpponentDisconnected(true); setError(data.message); setTimeout(() => setError(''), 5000); };
+    const handleOpponentReconnected = () => { setOpponentDisconnected(false); };
     socket.on('error', handleError);
     socket.on('rps_recorded', handleRpsRecorded);
     socket.on('rps_draw', handleRpsDraw);
     socket.on('rps_result', handleRpsResult);
     socket.on('turn_timer', handleTurnTimer);
+    socket.on('turn_timeout', handleTurnTimeout);
+    socket.on('draw_request_received', handleDrawRequestReceived);
+    socket.on('draw_request_sent', handleDrawRequestSent);
+    socket.on('draw_rejected', handleDrawRejected);
+    socket.on('opponent_disconnected', handleOpponentDisconnected);
+    socket.on('opponent_reconnected', handleOpponentReconnected);
     return () => {
       socket.off('error', handleError);
       socket.off('rps_recorded', handleRpsRecorded);
       socket.off('rps_draw', handleRpsDraw);
       socket.off('rps_result', handleRpsResult);
       socket.off('turn_timer', handleTurnTimer);
+      socket.off('turn_timeout', handleTurnTimeout);
+      socket.off('draw_request_received', handleDrawRequestReceived);
+      socket.off('draw_request_sent', handleDrawRequestSent);
+      socket.off('draw_rejected', handleDrawRejected);
+      socket.off('opponent_disconnected', handleOpponentDisconnected);
+      socket.off('opponent_reconnected', handleOpponentReconnected);
     };
   }, [socket]);
 
@@ -205,16 +270,22 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
     );
   }
 
-  const { phase, colorMap, pieces, turnColor, check, moveHistory, rpsChoices, rpsRound, winner } = gameState;
-  const myColor = colorMap?.[playerId];
-  const isMyTurn = phase === 'playing' && myColor === turnColor;
-  const opponent = players.find(p => p.id !== playerId);
+  const { phase, colorMap, pieces, turnColor, currentTurn, check, moveHistory, rpsChoices, rpsRound, winner } = gameState;
 
-  const emitAction = useCallback((action) => {
-    if (socket && roomId) socket.emit('game_action', { roomId, action });
-  }, [socket, roomId]);
+  // 防御：colorMap 可能尚未就绪（Object.keys 返回字符串，需要兼容比较）
+  const myColor = colorMap
+    ? (colorMap[playerId] ?? colorMap[String(playerId)] ?? colorMap[Number(playerId)])
+    : undefined;
+  const isMyTurn = phase === 'playing' && !!myColor && myColor === turnColor;
+  const opponent = players.find(p => String(p.id) !== String(playerId));
 
-  const handleCellClick = useCallback((col, row) => {
+  const emitAction = (action) => {
+    if (socket && roomId) {
+      socket.emit('game_action', { roomId, action });
+    }
+  };
+
+  const handleCellClick = (col, row) => {
     if (!isMyTurn) return;
     const clickedPiece = pieces?.find(p => p.col === col && p.row === row);
     if (selected) {
@@ -229,7 +300,17 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
         setSelected({ col, row });
       }
     }
-  }, [isMyTurn, selected, pieces, myColor, emitAction]);
+  };
+
+  // playing 阶段但 colorMap 未就绪，显示加载
+  if (phase === 'playing' && !myColor) {
+    return (
+      <div className="chess-loading">
+        <div className="chess-loading-spinner">♟️</div>
+        <p>正在同步游戏状态...</p>
+      </div>
+    );
+  }
 
   // 猜拳阶段
   if (phase === 'rps') {
@@ -263,7 +344,7 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
 
   // 选色阶段
   if (phase === 'choosing') {
-    const isWinner = winner === playerId;
+    const isWinner = String(winner) === String(playerId);
     return (
       <div className="chess">
         <div className="chess-choose">
@@ -284,6 +365,16 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
 
   return (
     <div className="chess">
+      {/* 对方断线提示 */}
+      {opponentDisconnected && (
+        <div className="chess-disconnect-banner">
+          ⚠️ 对方已断线，正在等待重连...
+          <button className="chess-claim-win-btn" onClick={() => emitAction({ type: 'resign' })}>
+            对方认负，结束游戏
+          </button>
+        </div>
+      )}
+
       {/* 顶部信息 */}
       <div className="chess-top-bar">
         <span className="chess-info-tag">你: {myColor === 'red' ? '🔴 红方' : '⚫ 黑方'}</span>
@@ -295,22 +386,55 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
       {/* 棋盘 */}
       <ChessBoard pieces={pieces} flipped={flipped} selected={selected} onCellClick={handleCellClick} />
 
-      {/* 走棋记录 */}
-      {moveHistory && moveHistory.length > 0 && (
-        <div className="chess-history">
-          {moveHistory.slice(-6).map((m, i) => (
-            <span key={i} className={`chess-history-item ${m.color}`}>
-              {m.piece}{m.captured ? `吃${m.captured}` : ''} {m.from.col},{m.from.row}→{m.to.col},{m.to.row}
-            </span>
-          ))}
-        </div>
-      )}
+      {/* 侧边面板（桌面端在棋盘右侧，移动端在棋盘下方） */}
+      <div className="chess-side-panel">
+        {/* 操作按钮 */}
+        {phase === 'playing' && (
+          <div className="chess-actions">
+            <button className="chess-action-btn chess-action-draw" onClick={() => emitAction({ type: 'draw_request' })} disabled={drawRequestSent}>
+              {drawRequestSent ? '已发送求和' : '🤝 求和'}
+            </button>
+            <button className="chess-action-btn chess-action-resign" onClick={() => { if (window.confirm('确定要投降吗？')) emitAction({ type: 'resign' }); }}>
+              🏳️ 投降
+            </button>
+          </div>
+        )}
 
-      {error && <div className="chess-error">{error}</div>}
+        {/* 走棋记录 */}
+        {moveHistory && moveHistory.length > 0 && (
+          <div className="chess-history">
+            <div className="chess-history-title">走棋记录</div>
+            {moveHistory.slice(-12).map((m, i) => (
+              <div key={i} className={`chess-history-item ${m.color}`}>
+                <span className="chess-history-piece">{m.piece}</span>
+                <span className="chess-history-move">
+                  {m.from.col},{m.from.row}→{m.to.col},{m.to.row}
+                </span>
+                {m.captured && <span className="chess-history-capture">吃{m.captured}</span>}
+              </div>
+            ))}
+          </div>
+        )}
 
-      {phase === 'ended' && (
-        <div className="chess-result">
-          <h2>🏆 游戏结束</h2>
+        {error && <div className="chess-error">{error}</div>}
+
+        {phase === 'ended' && (
+          <div className="chess-result">
+            <h2>🏆 游戏结束</h2>
+          </div>
+        )}
+      </div>
+
+      {/* 求和请求弹窗 */}
+      {drawRequestFrom && (
+        <div className="chess-draw-modal">
+          <div className="chess-draw-modal-content">
+            <p>对方请求和棋，是否同意？</p>
+            <div className="chess-draw-modal-buttons">
+              <button className="chess-draw-accept" onClick={() => { emitAction({ type: 'draw_response', accept: true }); setDrawRequestFrom(null); }}>✅ 同意</button>
+              <button className="chess-draw-reject" onClick={() => { emitAction({ type: 'draw_response', accept: false }); setDrawRequestFrom(null); }}>❌ 拒绝</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

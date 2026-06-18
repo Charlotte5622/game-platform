@@ -312,50 +312,26 @@ function setupSocketHandlers(io, prisma) {
         return;
       }
 
-      // 游戏进行中：启动宽限期，不立即踢人
+      // 游戏进行中：标记断线，不自动结束游戏，等待重连
       if (room.state === 'playing') {
-        // 取消之前的宽限期（如果有的话）
         const existing = pendingDisconnects.get(socket.user.id);
         if (existing) clearTimeout(existing.timeout);
 
-        console.log(`⏳ 玩家 ${socket.user.username} 断线，宽限期 ${DISCONNECT_GRACE_MS / 1000}秒`);
+        console.log(`⏳ 玩家 ${socket.user.username} 断线，等待重连`);
 
-        // 通知房间内其他人该玩家断线
-        io.to(roomId).emit('room_update', {
-          roomId,
-          players: room.players.map(p => ({
-            id: p.id, nickname: p.nickname, ready: p.ready,
-          })),
-          state: room.state,
-        });
+        // 通知对方该玩家断线
+        const other = room.players.find(p => p.id !== socket.user.id);
+        if (other) {
+          io.to(other.socketId).emit('opponent_disconnected', {
+            message: '对方已断线，正在等待重连...',
+            disconnectedPlayer: socket.user.username,
+          });
+        }
 
+        // 宽限期：超时后不自动结束，只记录状态
         const timeout = setTimeout(() => {
-          // 宽限期过期，正式移除
           pendingDisconnects.delete(socket.user.id);
-          console.log(`❌ 玩家 ${socket.user.username} 宽限期过期，移出房间`);
-
-          const result = roomManager.leaveRoom(socket.id);
-          if (result && !result.empty && result.room) {
-            roomManager.cleanupUser(socket.user.id);
-            io.to(roomId).emit('room_update', {
-              roomId,
-              players: result.room.players.map(p => ({
-                id: p.id, nickname: p.nickname, ready: p.ready,
-              })),
-              state: result.room.state,
-            });
-            io.to(roomId).emit('game_over', {
-              type: 'game_over',
-              reason: 'player_disconnect',
-              winner: null,
-              winners: [],
-              landlord: null,
-              scores: {},
-              message: '有玩家断开连接，游戏结束',
-            });
-            roomManager.setRoomState(roomId, 'finished');
-          }
-          broadcastStatsDebounced(io);
+          console.log(`⏳ 玩家 ${socket.user.username} 宽限期过期，仍保留在房间中`);
         }, DISCONNECT_GRACE_MS);
 
         pendingDisconnects.set(socket.user.id, { roomId, timeout, socketId: socket.id });
