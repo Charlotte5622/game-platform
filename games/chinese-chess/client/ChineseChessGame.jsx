@@ -5,16 +5,149 @@ const RPS_ICONS = { rock: '✊', scissors: '✌️', paper: '🖐' };
 const RPS_NAMES = { rock: '石头', scissors: '剪刀', paper: '布' };
 
 /**
- * 棋子组件
+ * 中国象棋棋盘 — 纯 SVG 实现，精确对齐十字线交叉点
+ *
+ * 坐标系: col 0-8 (9列), row 0-9 (10行)
+ * viewBox: "-50 -50 900 1000" (四周留 50px 给边缘棋子)
+ * 格子间距: 100 单位
  */
-function Piece({ piece, isSelected, onClick }) {
-  const isRed = piece.color === 'red';
+function ChessBoard({ pieces, flipped, selected, onCellClick }) {
+  const CELL = 100; // 格子间距
+  const PAD = 50;   // 边缘留白
+  const W = 8 * CELL; // 棋盘宽 800
+  const H = 9 * CELL; // 棋盘高 900
+
+  // 棋子 SVG 坐标
+  const getPos = (col, row) => ({
+    x: (flipped ? 8 - col : col) * CELL,
+    y: (flipped ? 9 - row : row) * CELL,
+  });
+
+  // 棋子颜色
+  const PIECE_COLORS = {
+    red:   { bg: '#fef2f2', border: '#dc2626', text: '#dc2626' },
+    black: { bg: '#f8fafc', border: '#1e293b', text: '#1e293b' },
+  };
+
   return (
-    <div
-      className={`chess-piece${isRed ? ' chess-piece-red' : ' chess-piece-black'}${isSelected ? ' chess-piece-selected' : ''}`}
-      onClick={onClick}
-    >
-      {piece.name}
+    <div className="chess-board-outer">
+      <svg
+        className="chess-board-svg"
+        viewBox={`${-PAD} ${-PAD} ${W + PAD * 2} ${H + PAD * 2}`}
+        preserveAspectRatio="xMidYMid meet"
+      >
+        {/* 背景 */}
+        <rect x={-PAD} y={-PAD} width={W + PAD * 2} height={H + PAD * 2} fill="#f5e6c8" rx="8" />
+
+        {/* 横线 (10条) */}
+        {Array.from({ length: 10 }, (_, i) => (
+          <line key={`h${i}`} x1="0" y1={i * CELL} x2={W} y2={i * CELL} stroke="#5c4a32" strokeWidth="2.5" />
+        ))}
+
+        {/* 竖线 — 上半场 (row 0-4, 即 y 0-400) */}
+        {Array.from({ length: 9 }, (_, i) => (
+          <line key={`vu${i}`} x1={i * CELL} y1="0" x2={i * CELL} y2={4 * CELL} stroke="#5c4a32" strokeWidth="2.5" />
+        ))}
+        {/* 竖线 — 下半场 (row 5-9, 即 y 500-900) */}
+        {Array.from({ length: 9 }, (_, i) => (
+          <line key={`vl${i}`} x1={i * CELL} y1={5 * CELL} x2={i * CELL} y2={H} stroke="#5c4a32" strokeWidth="2.5" />
+        ))}
+
+        {/* 边框 */}
+        <rect x="0" y="0" width={W} height={H} fill="none" stroke="#5c4a32" strokeWidth="3.5" />
+
+        {/* 九宫格斜线 — 上方 */}
+        <line x1={3 * CELL} y1="0" x2={5 * CELL} y2={2 * CELL} stroke="#5c4a32" strokeWidth="2" />
+        <line x1={5 * CELL} y1="0" x2={3 * CELL} y2={2 * CELL} stroke="#5c4a32" strokeWidth="2" />
+        {/* 九宫格斜线 — 下方 */}
+        <line x1={3 * CELL} y1={7 * CELL} x2={5 * CELL} y2={9 * CELL} stroke="#5c4a32" strokeWidth="2" />
+        <line x1={5 * CELL} y1={7 * CELL} x2={3 * CELL} y2={9 * CELL} stroke="#5c4a32" strokeWidth="2" />
+
+        {/* 楚河汉界 */}
+        <text x={1.5 * CELL} y={4.55 * CELL} fontSize="42" fontWeight="800" fill="#8b7355" opacity="0.45" fontFamily="serif" textAnchor="middle">楚 河</text>
+        <text x={6.5 * CELL} y={4.55 * CELL} fontSize="42" fontWeight="800" fill="#8b7355" opacity="0.45" fontFamily="serif" textAnchor="middle">汉 界</text>
+
+        {/* 星位标记 (炮位 + 兵位) */}
+        {[
+          [1, 2], [7, 2], [1, 7], [7, 7], // 炮
+          [0, 3], [2, 3], [4, 3], [6, 3], [8, 3], // 黑兵
+          [0, 6], [2, 6], [4, 6], [6, 6], [8, 6], // 红兵
+        ].map(([c, r]) => {
+          const cx = c * CELL;
+          const cy = r * CELL;
+          const s = 12; // 标记长度
+          const g = 4;  // 标记间距
+          return (
+            <g key={`star-${c}-${r}`}>
+              {c > 0 && <line x1={cx - s - g} y1={cy - s} x2={cx - g} y2={cy - s} stroke="#5c4a32" strokeWidth="1.8" />}
+              {c > 0 && <line x1={cx - s - g} y1={cy - s} x2={cx - s - g} y2={cy - g} stroke="#5c4a32" strokeWidth="1.8" />}
+              {c > 0 && <line x1={cx - s - g} y1={cy + s} x2={cx - g} y2={cy + s} stroke="#5c4a32" strokeWidth="1.8" />}
+              {c > 0 && <line x1={cx - s - g} y1={cy + s} x2={cx - s - g} y2={cy + g} stroke="#5c4a32" strokeWidth="1.8" />}
+              {c < 8 && <line x1={cx + g} y1={cy - s} x2={cx + s + g} y2={cy - s} stroke="#5c4a32" strokeWidth="1.8" />}
+              {c < 8 && <line x1={cx + s + g} y1={cy - s} x2={cx + s + g} y2={cy - g} stroke="#5c4a32" strokeWidth="1.8" />}
+              {c < 8 && <line x1={cx + g} y1={cy + s} x2={cx + s + g} y2={cy + s} stroke="#5c4a32" strokeWidth="1.8" />}
+              {c < 8 && <line x1={cx + s + g} y1={cy + s} x2={cx + s + g} y2={cy + g} stroke="#5c4a32" strokeWidth="1.8" />}
+            </g>
+          );
+        })}
+
+        {/* 空白交叉点点击区域（透明圆，增大触摸范围） */}
+        {Array.from({ length: 10 }, (_, row) =>
+          Array.from({ length: 9 }, (_, col) => {
+            const hasPiece = pieces?.some(p => p.col === col && p.row === row);
+            if (hasPiece) return null;
+            const { x, y } = getPos(col, row);
+            return (
+              <circle
+                key={`c-${col}-${row}`}
+                cx={x} cy={y} r={35}
+                fill="transparent"
+                cursor="pointer"
+                onClick={() => onCellClick(col, row)}
+              />
+            );
+          })
+        )}
+
+        {/* 棋子 */}
+        {pieces?.map(piece => {
+          const { x, y } = getPos(piece.col, piece.row);
+          const colors = PIECE_COLORS[piece.color];
+          const isSelected = selected?.col === piece.col && selected?.row === piece.row;
+          const R = 38; // 棋子半径
+          return (
+            <g
+              key={piece.id}
+              cursor="pointer"
+              onClick={() => onCellClick(piece.col, piece.row)}
+            >
+              {/* 阴影 */}
+              <circle cx={x + 2} cy={y + 2} r={R} fill="rgba(0,0,0,0.15)" />
+              {/* 棋子底色 */}
+              <circle cx={x} cy={y} r={R} fill={colors.bg} stroke={colors.border} strokeWidth={isSelected ? 3.5 : 2.5} />
+              {/* 选中光晕 */}
+              {isSelected && (
+                <circle cx={x} cy={y} r={R + 4} fill="none" stroke="#06b6d4" strokeWidth="2.5" opacity="0.8">
+                  <animate attributeName="opacity" values="0.8;0.3;0.8" dur="1.2s" repeatCount="indefinite" />
+                </circle>
+              )}
+              {/* 棋子文字 */}
+              <text
+                x={x} y={y}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontSize="28"
+                fontWeight="800"
+                fill={colors.text}
+                fontFamily="serif"
+                style={{ userSelect: 'none' }}
+              >
+                {piece.name}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
     </div>
   );
 }
@@ -23,48 +156,45 @@ function Piece({ piece, isSelected, onClick }) {
  * 中国象棋主组件
  */
 export default function ChineseChessGame({ socket, roomId, playerId, gameState, onAction, players }) {
-  const [selected, setSelected] = useState(null); // {col, row}
+  const [selected, setSelected] = useState(null);
   const [error, setError] = useState('');
-  const [myRpsChoice, setMyRpsChoice] = useState(null); // 本地记录自己的猜拳选择
+  const [myRpsChoice, setMyRpsChoice] = useState(null);
+  const [turnDeadline, setTurnDeadline] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(60);
 
   useEffect(() => {
     if (!socket) return;
-    const handleError = (data) => {
-      setError(data.message);
-      setTimeout(() => setError(''), 2500);
-    };
-    // 监听猜拳确认（用于即时反馈）
-    const handleRpsRecorded = (data) => {
-      setMyRpsChoice(data.choice);
-    };
-    const handleRpsDraw = () => {
-      setMyRpsChoice(null); // 平局重置
-    };
-    const handleRpsResult = () => {
-      setMyRpsChoice(null); // 有结果后重置
-    };
+    const handleError = (data) => { setError(data.message); setTimeout(() => setError(''), 2500); };
+    const handleRpsRecorded = (data) => setMyRpsChoice(data.choice);
+    const handleRpsDraw = () => setMyRpsChoice(null);
+    const handleRpsResult = () => setMyRpsChoice(null);
+    const handleTurnTimer = (data) => setTurnDeadline(data.deadline);
     socket.on('error', handleError);
     socket.on('rps_recorded', handleRpsRecorded);
     socket.on('rps_draw', handleRpsDraw);
     socket.on('rps_result', handleRpsResult);
+    socket.on('turn_timer', handleTurnTimer);
     return () => {
       socket.off('error', handleError);
       socket.off('rps_recorded', handleRpsRecorded);
       socket.off('rps_draw', handleRpsDraw);
       socket.off('rps_result', handleRpsResult);
+      socket.off('turn_timer', handleTurnTimer);
     };
   }, [socket]);
 
-  // 阶段变化时重置本地状态
   useEffect(() => {
-    setMyRpsChoice(null);
-    setSelected(null);
-  }, [gameState?.phase]);
+    if (!turnDeadline) return;
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((turnDeadline - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      if (remaining <= 0) clearInterval(interval);
+    }, 500);
+    return () => clearInterval(interval);
+  }, [turnDeadline]);
 
-  // 状态变化时重置选择
-  useEffect(() => {
-    setSelected(null);
-  }, [gameState?.turnColor]);
+  useEffect(() => { setMyRpsChoice(null); setSelected(null); }, [gameState?.phase]);
+  useEffect(() => { setSelected(null); }, [gameState?.turnColor]);
 
   if (!gameState) {
     return (
@@ -80,45 +210,29 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
   const isMyTurn = phase === 'playing' && myColor === turnColor;
   const opponent = players.find(p => p.id !== playerId);
 
-  // 直接通过 socket 发送操作（绕过 onAction 链，避免 roomId 未设置的问题）
   const emitAction = useCallback((action) => {
-    if (socket && roomId) {
-      console.log(`[Chess] 发送动作: ${action.type}, roomId=${roomId}`);
-      socket.emit('game_action', { roomId, action });
-    } else {
-      console.warn(`[Chess] 无法发送动作: socket=${!!socket}, roomId=${roomId}`);
-    }
+    if (socket && roomId) socket.emit('game_action', { roomId, action });
   }, [socket, roomId]);
 
-  // 点击棋盘格子
   const handleCellClick = useCallback((col, row) => {
     if (!isMyTurn) return;
-
     const clickedPiece = pieces?.find(p => p.col === col && p.row === row);
-
     if (selected) {
-      // 已选中棋子
       if (clickedPiece && clickedPiece.color === myColor) {
-        // 点击己方棋子，切换选中
         setSelected({ col, row });
         return;
       }
-      // 走棋
       emitAction({ type: 'move', from: selected, to: { col, row } });
       setSelected(null);
     } else {
-      // 未选中，选中点击的棋子
       if (clickedPiece && clickedPiece.color === myColor) {
         setSelected({ col, row });
       }
     }
   }, [isMyTurn, selected, pieces, myColor, emitAction]);
 
-  // 阶段渲染包装（防止 RPS→choosing 切换时崩溃）
-  const renderContent = () => {
   // 猜拳阶段
   if (phase === 'rps') {
-    // 本地优先，服务端兜底
     const myChoice = myRpsChoice || rpsChoices?.[playerId]?.choice;
     const opponentReady = rpsChoices && Object.keys(rpsChoices).length >= 1 && !myChoice;
     return (
@@ -127,17 +241,12 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
           <h2 className="chess-rps-title">✊✌️🖐 猜拳选色</h2>
           <p className="chess-rps-sub">胜者可选择执红或执黑</p>
           {rpsRound > 1 && <p className="chess-rps-round">第 {rpsRound} 轮</p>}
-
           <div className="chess-rps-buttons">
             {Object.entries(RPS_ICONS).map(([key, icon]) => (
               <button
                 key={key}
                 className={`chess-rps-btn${myChoice === key ? ' chess-rps-btn-active' : ''}`}
-                onClick={() => {
-                  if (myChoice) return;
-                  setMyRpsChoice(key); // 立即本地反馈
-                  emitAction({ type: 'rps', choice: key });
-                }}
+                onClick={() => { if (!myChoice) { setMyRpsChoice(key); emitAction({ type: 'rps', choice: key }); } }}
                 disabled={!!myChoice}
               >
                 <span className="chess-rps-icon">{icon}</span>
@@ -145,15 +254,8 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
               </button>
             ))}
           </div>
-
-          {myChoice && (
-            <p className="chess-rps-waiting">
-              你出了 <strong>{RPS_NAMES[myChoice]}</strong>，等待对手...
-            </p>
-          )}
-          {opponentReady && (
-            <p className="chess-rps-waiting">对手已出拳，等你选择</p>
-          )}
+          {myChoice && <p className="chess-rps-waiting">你出了 <strong>{RPS_NAMES[myChoice]}</strong>，等待对手...</p>}
+          {opponentReady && <p className="chess-rps-waiting">对手已出拳，等你选择</p>}
         </div>
       </div>
     );
@@ -165,23 +267,11 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
     return (
       <div className="chess">
         <div className="chess-choose">
-          <h2 className="chess-choose-title">
-            {isWinner ? '🎉 你赢了！请选择阵营' : '等待对手选色...'}
-          </h2>
+          <h2 className="chess-choose-title">{isWinner ? '🎉 你赢了！请选择阵营' : '等待对手选色...'}</h2>
           {isWinner && (
             <div className="chess-choose-buttons">
-              <button
-                className="chess-choose-btn chess-choose-red"
-                onClick={() => emitAction({ type: 'choose_color', color: 'red' })}
-              >
-                🔴 执红（先手）
-              </button>
-              <button
-                className="chess-choose-btn chess-choose-black"
-                onClick={() => emitAction({ type: 'choose_color', color: 'black' })}
-              >
-                ⚫ 执黑（后手）
-              </button>
+              <button className="chess-choose-btn chess-choose-red" onClick={() => emitAction({ type: 'choose_color', color: 'red' })}>🔴 执红（先手）</button>
+              <button className="chess-choose-btn chess-choose-black" onClick={() => emitAction({ type: 'choose_color', color: 'black' })}>⚫ 执黑（后手）</button>
             </div>
           )}
         </div>
@@ -190,98 +280,20 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
   }
 
   // 游戏中 / 结束
-  const myPieces = pieces?.filter(p => p.color === myColor) || [];
-  const opponentPieces = pieces?.filter(p => p.color !== myColor) || [];
-
-  // 棋盘是否需要翻转（黑方在下）
   const flipped = myColor === 'black';
 
   return (
     <div className="chess">
       {/* 顶部信息 */}
       <div className="chess-top-bar">
-        <span className="chess-info-tag">
-          你: {myColor === 'red' ? '🔴 红方' : '⚫ 黑方'}
-        </span>
-        <span className="chess-info-tag">
-          {isMyTurn ? '🟢 轮到你' : `⏳ ${opponent?.nickname || '对手'}走棋`}
-        </span>
+        <span className="chess-info-tag">你: {myColor === 'red' ? '🔴 红方' : '⚫ 黑方'}</span>
+        <span className="chess-info-tag">{isMyTurn ? '🟢 轮到你' : `⏳ ${opponent?.nickname || '对手'}走棋`}</span>
+        {turnDeadline && <span className={`chess-timer${timeLeft <= 10 ? ' chess-timer-urgent' : ''}`}>⏱️ {timeLeft}s</span>}
         {check && <span className="chess-check-tag">⚠️ 将军!</span>}
       </div>
 
       {/* 棋盘 */}
-      <div className="chess-board-wrap">
-        <div className="chess-board">
-          {/* 绘制网格线 */}
-          <svg className="chess-grid-svg" viewBox="0 0 8 9" preserveAspectRatio="none">
-            {/* 横线 */}
-            {Array.from({ length: 10 }, (_, i) => (
-              <line key={`h${i}`} x1="0" y1={i} x2="8" y2={i} stroke="currentColor" strokeWidth="0.04" />
-            ))}
-            {/* 竖线 */}
-            {Array.from({ length: 9 }, (_, i) => (
-              <line key={`v${i}`} x1={i} y1="0" x2={i} y2="9" stroke="currentColor" strokeWidth="0.04" />
-            ))}
-            {/* 中间断开（楚河汉界） */}
-            <line x1="0" y1="4.5" x2="8" y2="4.5" stroke="none" />
-            {/* 九宫格斜线 */}
-            <line x1="3" y1="0" x2="5" y2="2" stroke="currentColor" strokeWidth="0.03" />
-            <line x1="5" y1="0" x2="3" y2="2" stroke="currentColor" strokeWidth="0.03" />
-            <line x1="3" y1="7" x2="5" y2="9" stroke="currentColor" strokeWidth="0.03" />
-            <line x1="5" y1="7" x2="3" y2="9" stroke="currentColor" strokeWidth="0.03" />
-          </svg>
-
-          {/* 楚河汉界 */}
-          <div className="chess-river">
-            <span>楚 河</span>
-            <span>汉 界</span>
-          </div>
-
-          {/* 棋子 */}
-          {pieces?.map(piece => {
-            const displayCol = flipped ? 8 - piece.col : piece.col;
-            const displayRow = flipped ? 9 - piece.row : piece.row;
-            return (
-              <div
-                key={piece.id}
-                className="chess-piece-wrap"
-                style={{
-                  left: `${(displayCol / 8) * 100}%`,
-                  top: `${(displayRow / 9) * 100}%`,
-                }}
-                onClick={() => handleCellClick(piece.col, piece.row)}
-              >
-                <Piece
-                  piece={piece}
-                  isSelected={selected?.col === piece.col && selected?.row === piece.row}
-                  onClick={() => handleCellClick(piece.col, piece.row)}
-                />
-              </div>
-            );
-          })}
-
-          {/* 空白格子点击区域 */}
-          {Array.from({ length: 10 }, (_, row) =>
-            Array.from({ length: 9 }, (_, col) => {
-              const displayCol = flipped ? 8 - col : col;
-              const displayRow = flipped ? 9 - row : row;
-              const hasPiece = pieces?.some(p => p.col === col && p.row === row);
-              if (hasPiece) return null;
-              return (
-                <div
-                  key={`cell-${col}-${row}`}
-                  className="chess-cell"
-                  style={{
-                    left: `${(displayCol / 8) * 100}%`,
-                    top: `${(displayRow / 9) * 100}%`,
-                  }}
-                  onClick={() => handleCellClick(col, row)}
-                />
-              );
-            })
-          )}
-        </div>
-      </div>
+      <ChessBoard pieces={pieces} flipped={flipped} selected={selected} onCellClick={handleCellClick} />
 
       {/* 走棋记录 */}
       {moveHistory && moveHistory.length > 0 && (
@@ -294,10 +306,8 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
         </div>
       )}
 
-      {/* 错误提示 */}
       {error && <div className="chess-error">{error}</div>}
 
-      {/* 游戏结束 */}
       {phase === 'ended' && (
         <div className="chess-result">
           <h2>🏆 游戏结束</h2>
@@ -305,19 +315,4 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
       )}
     </div>
   );
-  }; // end renderContent
-
-  // 错误边界：防止阶段切换时崩溃
-  try {
-    return renderContent();
-  } catch (e) {
-    console.error('[Chess] 渲染出错:', e);
-    return (
-      <div className="chess">
-        <div className="chess-loading">
-          <p>加载中...</p>
-        </div>
-      </div>
-    );
-  }
 }
