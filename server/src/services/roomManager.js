@@ -261,6 +261,25 @@ function cleanupUser(userId) {
 }
 
 /**
+ * 更新玩家的 socketId（重连场景）
+ */
+function updatePlayerSocket(userId, newSocketId) {
+  const roomId = userRooms.get(userId);
+  if (!roomId) return;
+  const room = rooms.get(roomId);
+  if (!room) return;
+
+  const player = room.players.find(p => p.id === userId);
+  if (player) {
+    // 清除旧的 socketId 映射
+    playerRooms.delete(player.socketId);
+    // 更新为新的 socketId
+    player.socketId = newSocketId;
+    playerRooms.set(newSocketId, roomId);
+  }
+}
+
+/**
  * 获取在线统计
  */
 function getStats() {
@@ -288,5 +307,6 @@ module.exports = {
   getUserRoom,
   leaveRoom,
   cleanupUser,
+  updatePlayerSocket,
   getStats,
 };

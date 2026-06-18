@@ -229,7 +229,7 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
           <span className="dz-room-tag">房间 {roomId?.slice(-6)}</span>
           {landlord && (
             <span className="dz-landlord-tag">
-              👑 地主: {getPlayer(gameState.players.indexOf(landlord)).nickname}
+              👑 地主: {players.find(p => p.id === landlord)?.nickname || ''}
             </span>
           )}
           {highestBid > 0 && <span className="dz-bid-tag">底分: {highestBid}</span>}

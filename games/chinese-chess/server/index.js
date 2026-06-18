@@ -101,6 +101,8 @@ class ChineseChessServer extends BaseGameServer {
     const state = this.getState(roomId);
     if (!state) return;
 
+    console.log(`[Chess] 收到动作: ${action.type} from ${pid} in ${roomId}`);
+
     switch (action.type) {
       case 'rps':
         this.handleRPS(roomId, pid, action.choice);
@@ -122,6 +124,7 @@ class ChineseChessServer extends BaseGameServer {
     if (!RPS_CHOICES[choice]) return;
     if (state.rpsChoices[pid]) return; // 已出拳
 
+    console.log(`[RPS] 玩家 ${pid} 出拳: ${choice}, 房间 ${roomId}`);
     state.rpsChoices[pid] = { choice, time: Date.now() };
     this.saveState(roomId, state);
 
@@ -137,13 +140,13 @@ class ChineseChessServer extends BaseGameServer {
       type: 'rps_opponent_ready',
     });
 
-    // 同步状态（rpsChoices 更新）
-    this.broadcastState(roomId, state);
-
-    // 两人都出拳了
+    // 两人都出拳了 → 先结算再广播，客户端直接收到最终状态
     const keys = Object.keys(state.rpsChoices);
     if (keys.length === 2) {
       this.resolveRPS(roomId, state);
+    } else {
+      // 只有一人出拳，同步中间状态
+      this.broadcastState(roomId, state);
     }
   }
 
@@ -152,6 +155,7 @@ class ChineseChessServer extends BaseGameServer {
     const c1 = state.rpsChoices[p1].choice;
     const c2 = state.rpsChoices[p2].choice;
     const result = judgeRPS(c1, c2);
+    console.log(`[RPS] 结算: ${p1}=${c1}, ${p2}=${c2}, 结果=${result}`);
 
     if (result === 'draw') {
       // 平局，重新出拳
