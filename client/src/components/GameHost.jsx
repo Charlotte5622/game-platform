@@ -20,14 +20,16 @@ function getPlayerId() {
 export default function GameHost({ gameId, GameComponent }) {
   const [socket, setSocket] = useState(null);
   const [roomId, setRoomId] = useState(null);
+  const [roomCode, setRoomCode] = useState(null);
   const [players, setPlayers] = useState([]);
   const [gameState, setGameState] = useState(null);
-  const [phase, setPhase] = useState('matching'); // matching | waiting | playing | finished
+  const [phase, setPhase] = useState('choosing'); // choosing | matching | waiting | playing | finished
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
 
   const playerId = useMemo(getPlayerId, []);
 
+  // 初始化 Socket 连接 + 注册事件（只做一次）
   useEffect(() => {
     const s = getSocket();
     if (!s) {
@@ -39,6 +41,7 @@ export default function GameHost({ gameId, GameComponent }) {
     // ===== 房间事件 =====
     s.on('room_update', (data) => {
       setRoomId(data.roomId);
+      setRoomCode(data.roomCode);
       setPlayers(data.players);
       if (data.state === 'waiting') setPhase('waiting');
     });
@@ -57,20 +60,37 @@ export default function GameHost({ gameId, GameComponent }) {
       setGameState(data.state);
     });
 
+    // BUG-4 修复：监听 play_update，即时更新 playHistory
+    s.on('play_update', (data) => {
+      setGameState((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          playHistory: [
+            ...(prev.playHistory || []),
+            { playerId: data.playerId, cards: data.cards, cardType: data.cardType, action: 'play' },
+          ],
+        };
+      });
+    });
+
+    // BUG-5 修复：监听 pass_update，即时写入 playHistory
+    s.on('pass_update', (data) => {
+      setGameState((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          playHistory: [
+            ...(prev.playHistory || []),
+            { playerId: data.playerId, cards: [], action: 'pass' },
+          ],
+        };
+      });
+    });
+
     s.on('game_over', (data) => {
       setResult(data);
       setPhase('finished');
-    });
-
-    // 快速匹配
-    s.emit('quick_match', { gameId }, (response) => {
-      if (response.error) {
-        setError(response.error);
-        return;
-      }
-      setRoomId(response.roomId);
-      setPlayers(response.players);
-      setPhase('waiting');
     });
 
     return () => {
@@ -78,9 +98,46 @@ export default function GameHost({ gameId, GameComponent }) {
       s.off('game_start');
       s.off('state_update');
       s.off('game_restart');
+      s.off('play_update');
+      s.off('pass_update');
       s.off('game_over');
     };
   }, [gameId]);
+
+  // 快速匹配
+  const handleQuickMatch = useCallback(() => {
+    if (!socket) return;
+    setPhase('matching');
+    socket.emit('quick_match', { gameId }, (response) => {
+      if (response.error) {
+        setError(response.error);
+        return;
+      }
+      setRoomId(response.roomId);
+      setRoomCode(response.roomCode);
+      setPlayers(response.players);
+      setPhase('waiting');
+    });
+  }, [socket, gameId]);
+
+  // 通过房间号加入
+  const handleJoinByCode = useCallback((code) => {
+    if (!socket) return;
+    if (!code || !/^\d{3}$/.test(code)) {
+      setError('请输入3位数字房间号');
+      return;
+    }
+    socket.emit('join_by_code', { code, gameId }, (response) => {
+      if (response.error) {
+        setError(response.error);
+        return;
+      }
+      setRoomId(response.roomId);
+      setRoomCode(response.roomCode);
+      setPlayers(response.players);
+      setPhase('waiting');
+    });
+  }, [socket, gameId]);
 
   const handleReady = useCallback(() => {
     if (socket && roomId) {
@@ -113,6 +170,42 @@ export default function GameHost({ gameId, GameComponent }) {
     );
   }
 
+  // 选择入口：快速匹配 or 输入房间号
+  if (phase === 'choosing') {
+    return (
+      <div className="game-host">
+        <div className="choosing-box">
+          <h2>选择加入方式</h2>
+          <div className="choosing-actions">
+            <button className="choosing-btn quick-match" onClick={handleQuickMatch}>
+              ⚡ 快速匹配
+            </button>
+            <div className="choosing-divider">或</div>
+            <div className="choosing-code-input">
+              <input
+                type="text"
+                placeholder="输入3位房间号"
+                maxLength={3}
+                pattern="\d*"
+                id="room-code-input"
+              />
+              <button
+                className="choosing-btn join-code"
+                onClick={() => {
+                  const input = document.getElementById('room-code-input');
+                  handleJoinByCode(input?.value);
+                }}
+              >
+                🚪 加入房间
+              </button>
+            </div>
+          </div>
+          {error && <p className="choosing-error">{error}</p>}
+        </div>
+      </div>
+    );
+  }
+
   if (phase === 'matching') {
     return (
       <div className="game-host">
@@ -131,7 +224,7 @@ export default function GameHost({ gameId, GameComponent }) {
       <div className="game-host">
         <div className="waiting-box">
           <h2 className="waiting-title">🎮 等待玩家加入</h2>
-          <div className="waiting-room-id">房间号: {roomId}</div>
+          <div className="waiting-room-id">房间号: {roomCode || roomId}</div>
 
           <div className="waiting-players">
             {players.map((p) => (
@@ -173,34 +266,20 @@ export default function GameHost({ gameId, GameComponent }) {
     return (
       <div className="game-host">
         <div className="result-box">
-          <span style={{ fontSize: '64px', display: 'block', marginBottom: '12px' }}>
+          <span style={{ fontSize: '72px', display: 'block', marginBottom: '16px' }}>
             {result?.winners?.includes(playerId) ? '🎉' : '😢'}
           </span>
           <h2>{result?.message || '游戏结束'}</h2>
           {result?.scores && (
-            <div style={{ margin: '20px 0', display: 'flex', gap: '20px', justifyContent: 'center' }}>
+            <div className="result-scores">
               {Object.entries(result.scores).map(([pid, score]) => {
-                // pid 来自 Object.entries 一定是字符串，player.id 可能是数字或字符串
                 const p = players.find((pl) => String(pl.id) === String(pid));
+                const cls = score > 0 ? 'win' : score < 0 ? 'lose' : 'draw';
                 return (
-                  <div key={pid} style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                      {p?.nickname || pid}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '20px',
-                        fontWeight: '700',
-                        color:
-                          score > 0
-                            ? 'var(--success)'
-                            : score < 0
-                              ? 'var(--danger)'
-                              : 'var(--text-muted)',
-                      }}
-                    >
-                      {score > 0 ? '+' : ''}
-                      {score}
+                  <div key={pid} className="result-score-item">
+                    <div className="result-score-name">{p?.nickname || pid}</div>
+                    <div className={`result-score-value ${cls}`}>
+                      {score > 0 ? '+' : ''}{score}
                     </div>
                   </div>
                 );
