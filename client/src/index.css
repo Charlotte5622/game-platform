@@ -196,60 +196,153 @@ input {
 .lobby {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 48px 24px;
+  padding-bottom: 48px;
   animation: fadeIn 0.5s ease;
 }
 
-.lobby-header {
+/* Hero 区域 */
+.lobby-hero {
+  position: relative;
+  padding: 60px 24px 48px;
   text-align: center;
-  margin-bottom: 56px;
+  overflow: hidden;
+  margin-bottom: 40px;
 }
 
-.lobby-title {
-  font-size: 36px;
-  font-weight: 800;
-  background: linear-gradient(135deg, var(--text) 0%, var(--secondary) 100%);
+.lobby-hero-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 30% 40%, rgba(108, 92, 231, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 60%, rgba(0, 206, 201, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(243, 156, 18, 0.08) 0%, transparent 40%);
+  pointer-events: none;
+}
+
+.lobby-hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+.lobby-hero-title {
+  font-size: 48px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #fff 0%, var(--secondary) 50%, var(--primary) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+  letter-spacing: -1px;
 }
 
-.lobby-subtitle {
+.lobby-hero-sub {
   color: var(--text-muted);
-  font-size: 16px;
+  font-size: 17px;
+  margin-bottom: 32px;
+}
+
+/* 统计数据 */
+.lobby-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px 32px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
+
+.lobby-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.lobby-stat-num {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--secondary);
+}
+
+.lobby-stat-label {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lobby-stat-divider {
+  width: 1px;
+  height: 32px;
+  background: var(--border);
+}
+
+/* 游戏列表区域 */
+.lobby-section {
+  padding: 0 24px;
+}
+
+.lobby-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.lobby-section-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.lobby-section-count {
+  font-size: 13px;
+  color: var(--text-dim);
+  background: var(--bg-card);
+  padding: 4px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
 }
 
 .lobby-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 24px;
 }
 
+/* 空状态 */
 .lobby-empty {
   text-align: center;
-  padding: 100px 20px;
+  padding: 80px 20px;
   color: var(--text-muted);
   animation: fadeIn 0.5s ease;
 }
 
+.lobby-empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.lobby-empty-text {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
 .lobby-empty-hint {
   font-size: 13px;
-  margin-top: 8px;
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
-.lobby-loading {
+/* 底部 */
+.lobby-footer {
   text-align: center;
-  padding: 100px 20px;
-  color: var(--text-muted);
-  font-size: 16px;
-}
-
-.lobby-error {
-  text-align: center;
-  padding: 100px 20px;
-  color: var(--danger);
+  padding: 48px 24px 0;
+  color: var(--text-dim);
+  font-size: 14px;
 }
 
 /* ============================================
@@ -259,78 +352,103 @@ input {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 28px 24px;
   cursor: pointer;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  animation: slideUp 0.5s ease both;
+}
+
+.game-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* 卡片顶部渐变横幅 */
+.game-card-banner {
+  height: 120px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 14px;
-  transition: all var(--transition);
+  justify-content: center;
   position: relative;
   overflow: hidden;
 }
 
-.game-card::before {
+.game-card-banner::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, var(--primary-glow) 0%, transparent 60%);
-  opacity: 0;
-  transition: opacity var(--transition);
-  pointer-events: none;
+  background: linear-gradient(180deg, transparent 40%, var(--bg-card) 100%);
 }
 
-.game-card:hover {
-  transform: translateY(-4px);
-  border-color: var(--primary);
-  box-shadow: 0 8px 32px rgba(108, 92, 231, 0.2);
-  background: var(--bg-card-hover);
+.game-card-banner-icon {
+  font-size: 56px;
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+  transition: transform 0.35s ease;
 }
 
-.game-card:hover::before {
-  opacity: 1;
+.game-card:hover .game-card-banner-icon {
+  transform: scale(1.15) rotate(-5deg);
 }
 
-.game-card-icon {
-  font-size: 52px;
-  margin-bottom: 4px;
-  animation: float 3s ease-in-out infinite;
+/* 卡片内容 */
+.game-card-body {
+  padding: 20px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .game-card-name {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text);
 }
 
 .game-card-desc {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-muted);
-  text-align: center;
-  line-height: 1.5;
+  line-height: 1.6;
+  min-height: 44px;
 }
 
 .game-card-meta {
   display: flex;
-  gap: 16px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.game-card-tag {
   font-size: 12px;
   color: var(--text-dim);
+  background: var(--bg-input);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
 }
 
 .game-card-play {
-  margin-top: 8px;
-  padding: 10px 28px;
-  background: var(--primary);
+  margin-top: 4px;
+  padding: 12px 24px;
   color: white;
-  border-radius: 8px;
-  font-weight: 600;
+  border-radius: 10px;
+  font-weight: 700;
   font-size: 14px;
-  transition: all var(--transition);
+  letter-spacing: 0.3px;
+  transition: all 0.3s ease;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .game-card:hover .game-card-play {
-  background: var(--primary-dark);
-  box-shadow: 0 4px 16px var(--primary-glow);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
 }
 
 /* ============================================
@@ -1113,12 +1231,30 @@ input {
     font-size: 17px;
   }
 
-  .lobby {
-    padding: 32px 16px;
+  .lobby-hero {
+    padding: 40px 16px 32px;
+    margin-bottom: 24px;
   }
 
-  .lobby-title {
-    font-size: 26px;
+  .lobby-hero-title {
+    font-size: 32px;
+  }
+
+  .lobby-hero-sub {
+    font-size: 15px;
+  }
+
+  .lobby-stats {
+    gap: 16px;
+    padding: 12px 20px;
+  }
+
+  .lobby-stat-num {
+    font-size: 20px;
+  }
+
+  .lobby-section {
+    padding: 0 16px;
   }
 
   .lobby-grid {
@@ -1180,8 +1316,19 @@ input {
 }
 
 @media (max-width: 480px) {
-  .lobby-title {
-    font-size: 22px;
+  .lobby-hero-title {
+    font-size: 26px;
+  }
+
+  .lobby-stats {
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .lobby-stat-divider {
+    width: 40px;
+    height: 1px;
   }
 
   .auth-card {
