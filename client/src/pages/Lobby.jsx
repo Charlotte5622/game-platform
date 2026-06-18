@@ -8,6 +8,7 @@ export default function Lobby() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
 
   useEffect(() => {
     api
@@ -38,8 +39,10 @@ export default function Lobby() {
       <div className="lobby">
         <div className="lobby-hero">
           <div className="lobby-hero-bg" />
-          <h1 className="lobby-hero-title">🎮 游戏大厅</h1>
-          <p className="lobby-hero-sub">加载中...</p>
+          <div className="lobby-hero-content">
+            <h1 className="lobby-hero-title">🎮 游戏大厅</h1>
+            <p className="lobby-hero-sub">加载中...</p>
+          </div>
         </div>
       </div>
     );
@@ -50,8 +53,10 @@ export default function Lobby() {
       <div className="lobby">
         <div className="lobby-hero">
           <div className="lobby-hero-bg" />
-          <h1 className="lobby-hero-title">🎮 游戏大厅</h1>
-          <p className="lobby-hero-sub" style={{ color: 'var(--danger)' }}>{error}</p>
+          <div className="lobby-hero-content">
+            <h1 className="lobby-hero-title">🎮 游戏大厅</h1>
+            <p className="lobby-hero-sub lobby-hero-error">{error}</p>
+          </div>
         </div>
       </div>
     );
@@ -64,26 +69,26 @@ export default function Lobby() {
         <div className="lobby-hero-bg" />
         <div className="lobby-hero-content">
           <h1 className="lobby-hero-title">🎮 游戏大厅</h1>
-          <p className="lobby-hero-sub">选择你喜欢的游戏，开始匹配对战</p>
+          <p className="lobby-hero-sub">
+            {user ? `${user.nickname}，选择你喜欢的游戏开始匹配` : '选择你喜欢的游戏，开始匹配对战'}
+          </p>
 
-          {stats && (
-            <div className="lobby-stats">
-              <div className="lobby-stat">
-                <span className="lobby-stat-num">{stats.onlinePlayers || 0}</span>
-                <span className="lobby-stat-label">在线玩家</span>
-              </div>
-              <div className="lobby-stat-divider" />
-              <div className="lobby-stat">
-                <span className="lobby-stat-num">{stats.playingRooms || 0}</span>
-                <span className="lobby-stat-label">进行中</span>
-              </div>
-              <div className="lobby-stat-divider" />
-              <div className="lobby-stat">
-                <span className="lobby-stat-num">{stats.waitingRooms || 0}</span>
-                <span className="lobby-stat-label">等待中</span>
-              </div>
+          <div className="lobby-stats">
+            <div className="lobby-stat">
+              <span className="lobby-stat-num">{stats?.onlinePlayers || '—'}</span>
+              <span className="lobby-stat-label">在线玩家</span>
             </div>
-          )}
+            <div className="lobby-stat-divider" />
+            <div className="lobby-stat">
+              <span className="lobby-stat-num">{stats?.playingRooms || '—'}</span>
+              <span className="lobby-stat-label">进行中</span>
+            </div>
+            <div className="lobby-stat-divider" />
+            <div className="lobby-stat">
+              <span className="lobby-stat-num">{stats?.waitingRooms || '—'}</span>
+              <span className="lobby-stat-label">等待中</span>
+            </div>
+          </div>
         </div>
       </div>
 
