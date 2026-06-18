@@ -74,10 +74,15 @@ function joinRoom(roomId, socketId, userInfo, maxPlayers) {
     return { error: '你已经在这个房间中' };
   }
 
-  // 检查是否已在其他房间
+  // 检查是否已在其他房间（需验证用户确实在房间中，防止 leaveRoom 后残留误判）
   const existingRoomId = userRooms.get(userInfo.id);
   if (existingRoomId && existingRoomId !== roomId) {
-    return { error: '你已经在其他房间中，请先退出当前房间' };
+    const existingRoom = rooms.get(existingRoomId);
+    if (existingRoom && existingRoom.players.some(p => p.id === userInfo.id)) {
+      return { error: '你已经在其他房间中，请先退出当前房间' };
+    }
+    // 旧房间已不存在或用户已不在其中，清理残留映射
+    userRooms.delete(userInfo.id);
   }
 
   // 检查人数上限
@@ -198,11 +203,8 @@ function leaveRoom(socketId) {
     return null;
   }
 
-  // 找到离开的玩家，清理 userId 映射
+  // 找到离开的玩家（不清理 userRooms，由 disconnect 统一清理）
   const leavingPlayer = room.players.find(p => p.socketId === socketId);
-  if (leavingPlayer) {
-    userRooms.delete(leavingPlayer.id);
-  }
 
   // 移除玩家
   room.players = room.players.filter(p => p.socketId !== socketId);
@@ -252,6 +254,13 @@ function joinByCode(code, socketId, userInfo, maxPlayers) {
 }
 
 /**
+ * 清理用户的 userId 映射（仅在 disconnect 时调用）
+ */
+function cleanupUser(userId) {
+  userRooms.delete(userId);
+}
+
+/**
  * 获取在线统计
  */
 function getStats() {
@@ -278,5 +287,6 @@ module.exports = {
   getPlayerRoom,
   getUserRoom,
   leaveRoom,
+  cleanupUser,
   getStats,
 };

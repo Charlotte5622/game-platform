@@ -194,6 +194,7 @@ function setupSocketHandlers(io, prisma) {
     socket.on('disconnect', () => {
       console.log(`🔌 玩家断开: ${socket.user.username} (${socket.id})`);
       connectedSockets.delete(socket.id);
+      roomManager.cleanupUser(socket.user.id);
 
       const result = roomManager.leaveRoom(socket.id);
       if (result && !result.empty && result.room) {
