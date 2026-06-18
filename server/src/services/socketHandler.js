@@ -6,6 +6,21 @@ const roomManager = require('./roomManager');
 const connectedSockets = new Map();
 
 /**
+ * 广播最新统计给所有客户端（防抖：100ms 内只发一次）
+ */
+let statsTimer = null;
+function broadcastStatsDebounced(io) {
+  if (statsTimer) return;
+  statsTimer = setTimeout(() => {
+    statsTimer = null;
+    const stats = roomManager.getStats();
+    const uniqueUsers = new Set([...connectedSockets.values()].map(u => u.userId));
+    stats.onlinePlayers = uniqueUsers.size;
+    io.emit('stats_update', stats);
+  }, 100);
+}
+
+/**
  * 设置 WebSocket 事件处理
  */
 function setupSocketHandlers(io, prisma) {
@@ -70,6 +85,8 @@ function setupSocketHandlers(io, prisma) {
           id: p.id, nickname: p.nickname, ready: p.ready,
         })),
       });
+
+      broadcastStatsDebounced(io);
     });
 
     // ========== 加入房间 ==========
@@ -97,6 +114,8 @@ function setupSocketHandlers(io, prisma) {
       });
 
       callback({ roomId, roomCode: result.room.roomCode, players: result.room.players });
+
+      broadcastStatsDebounced(io);
     });
 
     // ========== 通过房间号加入 ==========
@@ -131,6 +150,8 @@ function setupSocketHandlers(io, prisma) {
           id: p.id, nickname: p.nickname, ready: p.ready,
         })),
       });
+
+      broadcastStatsDebounced(io);
     });
 
     // ========== 准备/取消准备 ==========
@@ -152,10 +173,11 @@ function setupSocketHandlers(io, prisma) {
 
       // 传入游戏所需人数，避免 2 人准备就提前开局
       const maxPlayers = getGameMaxPlayers(updatedRoom.gameId);
-      console.log(`[准备] 房间 ${roomId} 游戏 ${updatedRoom.gameId} 需要 ${maxPlayers} 人，当前 ${updatedRoom.players.length} 人，已准备 ${updatedRoom.players.filter(p=>p.ready).length} 人`);
       if (roomManager.allPlayersReady(roomId, maxPlayers)) {
         startGame(io, updatedRoom, prisma);
       }
+
+      broadcastStatsDebounced(io);
     });
 
     // ========== 游戏操作 ==========
@@ -198,6 +220,8 @@ function setupSocketHandlers(io, prisma) {
           roomManager.setRoomState(result.roomId, 'finished');
         }
       }
+
+      broadcastStatsDebounced(io);
     });
   });
 
