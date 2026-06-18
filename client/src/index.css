@@ -3157,3 +3157,62 @@ input {
   color: var(--secondary);
   background: rgba(0, 206, 201, 0.1);
 }
+
+/* 胜负弹窗 */
+.chess-result-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  animation: fadeIn 0.3s ease;
+}
+
+.chess-result-modal-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 40px 48px;
+  text-align: center;
+  min-width: 280px;
+}
+
+.chess-result-icon {
+  font-size: 72px;
+  margin-bottom: 16px;
+}
+
+.chess-result-title {
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.chess-result-reason {
+  font-size: 15px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.chess-result-details {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 24px;
+}
+
+.chess-result-back-btn {
+  padding: 12px 36px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chess-result-back-btn:hover {
+  background: var(--primary-dark);
+}
