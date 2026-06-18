@@ -193,24 +193,36 @@ class MahjongServer extends BaseGameServer {
       }
     }
 
-    // 检查暗杠
+    // 合并检查：暗杠 + 自摸，发一条 action_hint
     const concealedKongs = canConcealedKong(state.hands[playerId]);
-    if (concealedKongs.length > 0) {
+    const canWin = canSelfWin(state.hands[playerId]);
+
+    if (concealedKongs.length > 0 || canWin) {
+      const actions = ['discard'];
+      if (concealedKongs.length > 0) actions.push('kong');
+      if (canWin) actions.unshift('win'); // win 放最前
+
       this.doBroadcastTo(roomId, playerId, {
         type: 'action_hint',
-        actions: ['kong', 'pass'],
-        kongOptions: concealedKongs,
+        actions,
+        kongOptions: concealedKongs.length > 0 ? concealedKongs : undefined,
+        hint: canWin ? '可以自摸' : undefined,
       });
     }
 
-    // 检查自摸
-    if (canSelfWin(state.hands[playerId])) {
-      this.doBroadcastTo(roomId, playerId, {
-        type: 'action_hint',
-        actions: ['win', 'discard'],
-        hint: '可以自摸',
-      });
-    }
+    // 出牌超时：30秒内不出牌，随机打一张
+    const turnPlayer = playerId;
+    const turnSnapshot = state.currentTurn;
+    setTimeout(() => {
+      const currentState = this.getState(roomId);
+      if (!currentState || currentState.phase !== 'playing') return;
+      if (currentState.currentTurn !== turnSnapshot) return; // 已经不是该玩家的回合
+      const hand = currentState.hands[turnPlayer];
+      if (hand.length === 0) return;
+      // 随机打一张
+      const randomTile = hand[Math.floor(Math.random() * hand.length)];
+      this.handleDiscard(roomId, turnPlayer, randomTile);
+    }, 30000);
 
     this.saveState(roomId, state);
   }
@@ -297,17 +309,42 @@ class MahjongServer extends BaseGameServer {
         discardedTile: tile,
         discardBy,
         responses: {},
+        timeout: Date.now() + 30000, // 30秒超时
       };
 
       // 通知每个可响应的玩家
       for (const { pid, actions } of responders) {
-        this.doBroadcastTo(roomId, pid, {
+        const msg = {
           type: 'action_required',
           actions: [...actions, 'pass'],
           discardedTile: tile,
           discardBy,
-        });
+          timeout: state.waitingAction.timeout,
+        };
+        // 如果能吃，附带可选的吃法
+        if (actions.includes('chow')) {
+          msg.chowOptions = canChow(state.hands[pid], tile);
+        }
+        this.doBroadcastTo(roomId, pid, msg);
       }
+
+      // 设置超时自动过
+      const waitingRef = state.waitingAction;
+      setTimeout(() => {
+        const currentState = this.getState(roomId);
+        if (currentState && currentState.waitingAction === waitingRef) {
+          // 超时未响应的玩家自动过
+          for (const { pid } of responders) {
+            if (!waitingRef.responses[pid]) {
+              waitingRef.responses[pid] = 'pass';
+            }
+          }
+          // 全部超时，进入下一轮
+          currentState.waitingAction = null;
+          this.saveState(roomId, currentState);
+          this.nextTurn(roomId);
+        }
+      }, 31000);
 
       this.saveState(roomId, state);
     } else {
@@ -352,7 +389,12 @@ class MahjongServer extends BaseGameServer {
       tiles: [discardedTile, ...tiles],
     });
 
-    // 吃完需要打牌
+    // 吃完需要打牌，提示该玩家出牌
+    this.doBroadcastTo(roomId, playerId, {
+      type: 'action_hint',
+      actions: ['discard'],
+    });
+
     this.saveState(roomId, state);
   }
 
@@ -398,6 +440,12 @@ class MahjongServer extends BaseGameServer {
       type: 'pung',
       playerId,
       tile: discardedTile,
+    });
+
+    // 碰完需要打牌，提示该玩家出牌
+    this.doBroadcastTo(roomId, playerId, {
+      type: 'action_hint',
+      actions: ['discard'],
     });
 
     this.saveState(roomId, state);
