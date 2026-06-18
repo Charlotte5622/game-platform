@@ -6,6 +6,21 @@ const roomManager = require('./roomManager');
 const connectedSockets = new Map();
 
 /**
+ * 广播最新统计给所有客户端（防抖：100ms 内只发一次）
+ */
+let statsTimer = null;
+function broadcastStatsDebounced(io) {
+  if (statsTimer) return;
+  statsTimer = setTimeout(() => {
+    statsTimer = null;
+    const stats = roomManager.getStats();
+    const uniqueUsers = new Set([...connectedSockets.values()].map(u => u.userId));
+    stats.onlinePlayers = uniqueUsers.size;
+    io.emit('stats_update', stats);
+  }, 100);
+}
+
+/**
  * 设置 WebSocket 事件处理
  */
 function setupSocketHandlers(io, prisma) {
