@@ -171,6 +171,7 @@ function setupSocketHandlers(io, prisma) {
     // ========== 断开连接 ==========
     socket.on('disconnect', () => {
       console.log(`🔌 玩家断开: ${socket.user.username} (${socket.id})`);
+      connectedSockets.delete(socket.id);
 
       const result = roomManager.leaveRoom(socket.id);
       if (result && !result.empty && result.room) {
