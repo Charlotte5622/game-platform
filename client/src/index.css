@@ -241,6 +241,10 @@ input {
   margin-bottom: 32px;
 }
 
+.lobby-hero-error {
+  color: var(--danger);
+}
+
 /* 统计数据 */
 .lobby-stats {
   display: inline-flex;
@@ -465,7 +469,7 @@ input {
 
 .auth-card {
   background: var(--bg-card);
-  border: 1px solid var(--glass-border);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 44px 40px;
   max-width: 420px;
@@ -1848,12 +1852,12 @@ input {
 
 .chess {
   width: 100%;
-  max-width: 600px;
+  max-width: 900px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 12px;
+  padding: 16px;
   animation: fadeIn 0.4s ease;
 }
 
@@ -2054,38 +2058,199 @@ input {
 .chess-board-outer {
   display: flex;
   justify-content: center;
-  padding: 0 8px;
+  padding: 0;
 }
 
 .chess-board-svg {
   width: 100%;
-  max-width: 500px;
+  max-width: 700px;
   height: auto;
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.1),
+    0 12px 40px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* 桌面端：棋盘更大 */
+@media (min-width: 769px) {
+  .chess {
+    max-width: 1000px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .chess-top-bar {
+    width: 100%;
+    order: -1;
+  }
+
+  .chess-board-outer {
+    flex: 1 1 auto;
+    max-width: 560px;
+  }
+
+  .chess-board-svg {
+    max-width: 560px;
+  }
+
+  .chess-side-panel {
+    width: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .chess-history {
+    max-height: 300px;
+    overflow-y: auto;
+  }
 }
 
 /* 走棋记录 */
 .chess-history {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
-  padding: 8px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.chess-history-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
 }
 
 .chess-history-item {
-  font-size: 12px;
-  padding: 3px 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  padding: 4px 8px;
   border-radius: 4px;
   background: var(--bg-input);
 }
 
 .chess-history-item.red { color: #dc2626; }
 .chess-history-item.black { color: #1e293b; }
+
+.chess-history-piece {
+  font-weight: 700;
+  min-width: 20px;
+}
+
+.chess-history-move {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.chess-history-capture {
+  font-size: 11px;
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* 操作按钮 */
+.chess-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.chess-action-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chess-action-draw {
+  background: var(--bg-input);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.chess-action-draw:hover:not(:disabled) {
+  border-color: var(--secondary);
+  color: var(--secondary);
+}
+
+.chess-action-draw:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chess-action-resign {
+  background: var(--bg-input);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.chess-action-resign:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* 求和弹窗 */
+.chess-draw-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.chess-draw-modal-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  text-align: center;
+  max-width: 300px;
+}
+
+.chess-draw-modal-content p {
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+.chess-draw-modal-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.chess-draw-accept {
+  padding: 10px 24px;
+  background: var(--success);
+  color: white;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.chess-draw-reject {
+  padding: 10px 24px;
+  background: var(--danger);
+  color: white;
+  border-radius: 8px;
+  font-weight: 600;
+}
 
 .chess-error {
   padding: 8px 16px;
@@ -2864,4 +3029,32 @@ input {
   .mj-tile-text {
     font-size: 12px;
   }
+}
+
+/* 对方断线提示 */
+.chess-disconnect-banner {
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  color: #fbbf24;
+  padding: 12px 20px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.chess-claim-win-btn {
+  padding: 8px 20px;
+  background: var(--success);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
 }

@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 
-// 游戏图标映射（可以扩展）
+// 游戏图标映射
 const GAME_ICONS = {
   doudizhu: '🃏',
+  mahjong: '🀄',
+  'chinese-chess': '♟️',
 };
 
 // 游戏渐变色映射
