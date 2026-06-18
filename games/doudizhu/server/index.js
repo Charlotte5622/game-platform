@@ -21,6 +21,7 @@ class BaseGameServer {
   initGameState(players) { return { players }; }
   getVisibleState(gameState, playerId) { return gameState; }
   onPlayerAction(roomId, playerId, action) {}
+  postInit(roomId) {} // 斗地主在 setLandlord 中发 game_start，这里留空
 
   // ========== 状态访问辅助 ==========
 
@@ -86,6 +87,7 @@ class DoudizhuServer extends BaseGameServer {
       lastPlay: null,           // { playerId, cards, cardType }
       lastPlayedBy: null,       // 最后出牌的玩家 ID
       consecutivePasses: 0,     // 连续过牌次数
+      bombCount: 0,             // 炸弹/火箭打出次数（用于计分翻倍）
       playHistory: [],          // [{ playerId, cards, cardType, action }]
     };
   }
@@ -256,6 +258,11 @@ class DoudizhuServer extends BaseGameServer {
     state.lastPlay = { playerId, cards, cardType };
     state.lastPlayedBy = playerId;
     state.consecutivePasses = 0;
+
+    // 炸弹/火箭翻倍计数
+    if (cardType.type === 'bomb' || cardType.type === 'rocket') {
+      state.bombCount++;
+    }
     state.playHistory.push({
       playerId,
       cards,
@@ -343,14 +350,15 @@ class DoudizhuServer extends BaseGameServer {
 
   handleGameOver(roomId, winnerId) {
     const state = this.getState(roomId);
-    if (!state) return;
+    if (!state || state.phase !== 'playing') return; // 防止重复触发
 
     const isLandlord = winnerId === state.landlord;
     const winners = isLandlord
       ? [state.landlord]
       : state.players.filter(p => p !== state.landlord);
 
-    const baseScore = state.highestBid;
+    const multiplier = Math.pow(2, state.bombCount || 0);
+    const baseScore = state.highestBid * multiplier;
     const scores = {};
     for (const pid of state.players) {
       if (pid === state.landlord) {

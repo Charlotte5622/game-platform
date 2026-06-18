@@ -145,6 +145,12 @@ export default function GameHost({ gameId, GameComponent }) {
     }
   }, [socket, roomId]);
 
+  const handleUnready = useCallback(() => {
+    if (socket && roomId) {
+      socket.emit('player_ready', { roomId, ready: false });
+    }
+  }, [socket, roomId]);
+
   const handleAction = useCallback(
     (action) => {
       if (socket && roomId) {
@@ -253,9 +259,14 @@ export default function GameHost({ gameId, GameComponent }) {
               准备
             </button>
           ) : (
-            <p style={{ color: 'var(--success)', fontWeight: '600' }}>
-              ✅ 你已准备，等待其他玩家...
-            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              <p style={{ color: 'var(--success)', fontWeight: '600' }}>
+                ✅ 你已准备，等待其他玩家...
+              </p>
+              <button className="waiting-unready-btn" onClick={handleUnready}>
+                取消准备
+              </button>
+            </div>
           )}
         </div>
       </div>

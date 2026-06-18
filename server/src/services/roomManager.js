@@ -11,6 +11,9 @@ const rooms = new Map();
 // socketId -> roomId（快速查找玩家所在房间）
 const playerRooms = new Map();
 
+// userId -> roomId（同一用户只能在一个房间）
+const userRooms = new Map();
+
 // roomCode -> roomId（通过3位房间号快速查找房间）
 const codeToRoom = new Map();
 
@@ -52,6 +55,7 @@ function createRoom(gameId, creatorSocketId, creatorInfo) {
   rooms.set(roomId, room);
   codeToRoom.set(roomCode, roomId);
   playerRooms.set(creatorSocketId, roomId);
+  userRooms.set(creatorInfo.id, roomId);
 
   return room;
 }
@@ -70,6 +74,12 @@ function joinRoom(roomId, socketId, userInfo, maxPlayers) {
     return { error: '你已经在这个房间中' };
   }
 
+  // 检查是否已在其他房间
+  const existingRoomId = userRooms.get(userInfo.id);
+  if (existingRoomId && existingRoomId !== roomId) {
+    return { error: '你已经在其他房间中，请先退出当前房间' };
+  }
+
   // 检查人数上限
   if (maxPlayers && room.players.length >= maxPlayers) {
     return { error: '房间已满' };
@@ -83,6 +93,7 @@ function joinRoom(roomId, socketId, userInfo, maxPlayers) {
   });
 
   playerRooms.set(socketId, roomId);
+  userRooms.set(userInfo.id, roomId);
 
   return { room };
 }
@@ -124,11 +135,13 @@ function setPlayerReady(roomId, socketId, ready = true) {
 
 /**
  * 检查房间内所有玩家是否都已准备
+ * @param {number} [requiredPlayers] - 需要的人数上限（默认 2，兼容旧调用）
  */
-function allPlayersReady(roomId) {
+function allPlayersReady(roomId, requiredPlayers) {
   const room = rooms.get(roomId);
   if (!room) return false;
-  return room.players.length >= 2 && room.players.every(p => p.ready);
+  const minPlayers = requiredPlayers || 2;
+  return room.players.length >= minPlayers && room.players.every(p => p.ready);
 }
 
 /**
@@ -157,11 +170,19 @@ function getRoom(roomId) {
 }
 
 /**
- * 获取玩家所在房间
+ * 获取玩家所在房间（通过 socketId）
  */
 function getPlayerRoom(socketId) {
   const roomId = playerRooms.get(socketId);
   return roomId ? rooms.get(roomId) : null;
+}
+
+/**
+ * 获取用户所在房间（通过 userId）
+ */
+function getUserRoom(userId) {
+  const roomId = userRooms.get(userId);
+  return roomId ? { roomId, room: rooms.get(roomId) } : null;
 }
 
 /**
@@ -175,6 +196,12 @@ function leaveRoom(socketId) {
   if (!room) {
     playerRooms.delete(socketId);
     return null;
+  }
+
+  // 找到离开的玩家，清理 userId 映射
+  const leavingPlayer = room.players.find(p => p.socketId === socketId);
+  if (leavingPlayer) {
+    userRooms.delete(leavingPlayer.id);
   }
 
   // 移除玩家
@@ -249,6 +276,7 @@ module.exports = {
   setGameData,
   getRoom,
   getPlayerRoom,
+  getUserRoom,
   leaveRoom,
   getStats,
 };
