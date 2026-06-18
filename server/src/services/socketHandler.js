@@ -85,6 +85,8 @@ function setupSocketHandlers(io, prisma) {
           id: p.id, nickname: p.nickname, ready: p.ready,
         })),
       });
+
+      broadcastStatsDebounced(io);
     });
 
     // ========== 加入房间 ==========
@@ -112,6 +114,8 @@ function setupSocketHandlers(io, prisma) {
       });
 
       callback({ roomId, roomCode: result.room.roomCode, players: result.room.players });
+
+      broadcastStatsDebounced(io);
     });
 
     // ========== 通过房间号加入 ==========
@@ -146,6 +150,8 @@ function setupSocketHandlers(io, prisma) {
           id: p.id, nickname: p.nickname, ready: p.ready,
         })),
       });
+
+      broadcastStatsDebounced(io);
     });
 
     // ========== 准备/取消准备 ==========
@@ -167,10 +173,11 @@ function setupSocketHandlers(io, prisma) {
 
       // 传入游戏所需人数，避免 2 人准备就提前开局
       const maxPlayers = getGameMaxPlayers(updatedRoom.gameId);
-      console.log(`[准备] 房间 ${roomId} 游戏 ${updatedRoom.gameId} 需要 ${maxPlayers} 人，当前 ${updatedRoom.players.length} 人，已准备 ${updatedRoom.players.filter(p=>p.ready).length} 人`);
       if (roomManager.allPlayersReady(roomId, maxPlayers)) {
         startGame(io, updatedRoom, prisma);
       }
+
+      broadcastStatsDebounced(io);
     });
 
     // ========== 游戏操作 ==========
@@ -213,6 +220,8 @@ function setupSocketHandlers(io, prisma) {
           roomManager.setRoomState(result.roomId, 'finished');
         }
       }
+
+      broadcastStatsDebounced(io);
     });
   });
 

@@ -26,8 +26,19 @@ export default function GameHost({ gameId, GameComponent }) {
   const [phase, setPhase] = useState('choosing'); // choosing | matching | waiting | playing | finished
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
+  const [maxPlayers, setMaxPlayers] = useState(4); // 默认4人，从API获取
 
   const playerId = useMemo(getPlayerId, []);
+
+  // 获取游戏人数配置
+  useEffect(() => {
+    fetch(`/api/games/${gameId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.game?.maxPlayers) setMaxPlayers(data.game.maxPlayers);
+      })
+      .catch(() => {});
+  }, [gameId]);
 
   // 初始化 Socket 连接 + 注册事件（只做一次）
   useEffect(() => {
@@ -243,7 +254,7 @@ export default function GameHost({ gameId, GameComponent }) {
                 </span>
               </div>
             ))}
-            {Array.from({ length: Math.max(0, 3 - players.length) }).map((_, i) => (
+            {Array.from({ length: Math.max(0, maxPlayers - players.length) }).map((_, i) => (
               <div key={`empty-${i}`} className="waiting-empty-slot">
                 等待玩家加入...
               </div>
@@ -251,7 +262,7 @@ export default function GameHost({ gameId, GameComponent }) {
           </div>
 
           <p style={{ color: 'var(--text-dim)', fontSize: '13px', marginBottom: '16px' }}>
-            需要 3 位玩家才能开始
+            需要 {maxPlayers} 位玩家才能开始
           </p>
 
           {!isReady ? (

@@ -21,11 +21,14 @@ export default function Lobby() {
         setLoading(false);
       });
 
-    // 尝试获取在线统计
+    // 获取在线统计 + 监听实时更新
     try {
       const s = getSocket();
       if (s) {
         s.emit('get_stats', (data) => setStats(data));
+        const handleStatsUpdate = (data) => setStats(data);
+        s.on('stats_update', handleStatsUpdate);
+        return () => s.off('stats_update', handleStatsUpdate);
       }
     } catch {}
   }, []);
