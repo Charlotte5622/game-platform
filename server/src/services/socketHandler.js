@@ -60,6 +60,34 @@ function setupSocketHandlers(io, prisma) {
         return callback({ error: '游戏不存在' });
       }
 
+      // 检查用户是否已在房间中（新 tab 场景）
+      const existing = roomManager.getUserRoom(socket.user.id);
+      if (existing && existing.room) {
+        socket.join(existing.roomId);
+        callback({
+          roomId: existing.roomId,
+          roomCode: existing.room.roomCode,
+          isNew: false,
+          players: existing.room.players.map(p => ({
+            id: p.id, nickname: p.nickname, ready: p.ready,
+          })),
+        });
+        // 如果游戏已在进行，同步当前游戏状态到新 socket
+        if (existing.room.state === 'playing') {
+          const gameInstance = existing.room.gameInstance;
+          if (gameInstance && gameInstance.getVisibleState) {
+            const state = gameInstance.getState(existing.roomId);
+            if (state) {
+              socket.emit('game_start', {
+                roomId: existing.roomId,
+                state: gameInstance.getVisibleState(state, socket.user.id),
+              });
+            }
+          }
+        }
+        return;
+      }
+
       const maxPlayers = getGameMaxPlayers(gameId);
       const result = roomManager.quickMatch(gameId, socket.id, {
         id: socket.user.id,
