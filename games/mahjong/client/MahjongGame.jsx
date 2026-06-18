@@ -122,19 +122,27 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
   const [selectedTile, setSelectedTile] = useState(null);
   const [error, setError] = useState('');
   const [actionHint, setActionHint] = useState(null);
+  // BUG-2 修复：响应动作 + 吃牌选项
+  const [responseData, setResponseData] = useState(null); // { actions, chowOptions }
+  const [showChowPicker, setShowChowPicker] = useState(false);
 
-  // 监听 action_hint
+  // 监听 action_hint + action_required
   useEffect(() => {
     if (!socket) return;
     const handleHint = (data) => setActionHint(data);
+    const handleActionRequired = (data) => {
+      setResponseData({ actions: data.actions, chowOptions: data.chowOptions || null });
+    };
     const handleError = (data) => {
       setError(data.message);
       setTimeout(() => setError(''), 2500);
     };
     socket.on('action_hint', handleHint);
+    socket.on('action_required', handleActionRequired);
     socket.on('error', handleError);
     return () => {
       socket.off('action_hint', handleHint);
+      socket.off('action_required', handleActionRequired);
       socket.off('error', handleError);
     };
   }, [socket]);
@@ -143,6 +151,8 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
   useEffect(() => {
     setSelectedTile(null);
     setActionHint(null);
+    setResponseData(null);
+    setShowChowPicker(false);
   }, [gameState?.currentTurn]);
 
   if (!gameState) {
@@ -156,7 +166,7 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
 
   const {
     myHand, handCounts, melds, discards, wallCount,
-    currentTurn, dealer, lastDiscard, waitingAction,
+    currentTurn, dealer, lastDiscard,
   } = gameState;
 
   const isMyTurn = gameState.players[currentTurn] === playerId;
@@ -202,11 +212,15 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
   const handleResponse = useCallback((type, extra = {}) => {
     onAction({ type, ...extra });
     setActionHint(null);
+    setResponseData(null);
+    setShowChowPicker(false);
   }, [onAction]);
 
-  // 是否有等待响应的操作
-  const myWaitingAction = waitingAction?.responders?.find(r => r.pid === playerId);
-  const showActions = myWaitingAction || actionHint;
+  // BUG-2 修复：用 responseData（来自 action_required 事件）驱动响应按钮
+  const responseActions = responseData?.actions || [];
+  const hasResponse = responseActions.length > 0;
+  const hasDrawAction = actionHint && actionHint.actions?.some(a => a !== 'discard');
+  const showActions = hasResponse || hasDrawAction;
 
   return (
     <div className="mj">
@@ -290,44 +304,51 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
           </div>
         )}
 
-        {/* 操作按钮 */}
-        {showActions && (
+        {/* BUG-1/2/3 修复：操作按钮 */}
+        {showActions && !showChowPicker && (
           <div className="mj-actions">
+            {/* 响应别人打牌的操作 */}
+            {responseActions.includes('win') && (
+              <button className="mj-action-btn mj-action-win" onClick={() => handleResponse('win')}>🏆 和牌</button>
+            )}
+            {responseActions.includes('pung') && (
+              <button className="mj-action-btn mj-action-pung" onClick={() => handleResponse('pung')}>碰</button>
+            )}
+            {responseActions.includes('kong') && (
+              <button className="mj-action-btn mj-action-kong" onClick={() => handleResponse('kong')}>杠</button>
+            )}
+            {/* BUG-3 修复：吃牌打开选择器 */}
+            {responseActions.includes('chow') && (
+              <button className="mj-action-btn mj-action-chow" onClick={() => setShowChowPicker(true)}>吃</button>
+            )}
+            {/* 摸牌后自摸/暗杠 */}
             {actionHint?.actions?.includes('win') && (
-              <button className="mj-action-btn mj-action-win" onClick={() => handleResponse('win')}>
-                🏆 自摸
-              </button>
-            )}
-            {myWaitingAction?.actions?.includes('win') && (
-              <button className="mj-action-btn mj-action-win" onClick={() => handleResponse('win')}>
-                🏆 和牌
-              </button>
-            )}
-            {myWaitingAction?.actions?.includes('pung') && (
-              <button className="mj-action-btn mj-action-pung" onClick={() => handleResponse('pung')}>
-               碰
-              </button>
-            )}
-            {myWaitingAction?.actions?.includes('kong') && (
-              <button className="mj-action-btn mj-action-kong" onClick={() => handleResponse('kong')}>
-                杠
-              </button>
+              <button className="mj-action-btn mj-action-win" onClick={() => handleResponse('win')}>🏆 自摸</button>
             )}
             {actionHint?.actions?.includes('kong') && (
-              <button className="mj-action-btn mj-action-kong" onClick={() => handleResponse('kong', { concealed: true })}>
-                暗杠
-              </button>
+              <button className="mj-action-btn mj-action-kong" onClick={() => handleResponse('kong', { concealed: true })}>暗杠</button>
             )}
-            {myWaitingAction?.actions?.includes('chow') && (
-              <button className="mj-action-btn mj-action-chow" onClick={() => handleResponse('chow', { tiles: [] })}>
-                吃
-              </button>
+            {/* 过 */}
+            {hasResponse && (
+              <button className="mj-action-btn mj-action-pass" onClick={() => handleResponse('pass')}>过</button>
             )}
-            {(myWaitingAction || actionHint) && (
-              <button className="mj-action-btn mj-action-pass" onClick={() => handleResponse('pass')}>
-                过
+          </div>
+        )}
+
+        {/* BUG-3 修复：吃牌选择器 */}
+        {showChowPicker && responseData?.chowOptions && (
+          <div className="mj-actions mj-chow-picker">
+            <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>选择吃法：</span>
+            {responseData.chowOptions.map((option, i) => (
+              <button
+                key={i}
+                className="mj-action-btn mj-action-chow"
+                onClick={() => handleResponse('chow', { tiles: option })}
+              >
+                {option.map(t => t.display).join(' ')}
               </button>
-            )}
+            ))}
+            <button className="mj-action-btn mj-action-pass" onClick={() => { setShowChowPicker(false); handleResponse('pass'); }}>取消</button>
           </div>
         )}
       </div>
