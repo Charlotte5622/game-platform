@@ -1,0 +1,9 @@
+{
+  "id": "game-template",
+  "name": "游戏模板",
+  "description": "新游戏从这里开始",
+  "minPlayers": 2,
+  "maxPlayers": 4,
+  "version": "1.0.0",
+  "author": ""
+}

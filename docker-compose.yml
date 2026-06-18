@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # 游戏平台前端（大厅）
+  client:
+    build: ./client
+    ports:
+      - "${CLIENT_PORT:-3000}:3000"
+    depends_on:
+      - server
+    restart: unless-stopped
+
+  # 游戏服务器（后端）
+  server:
+    build: ./server
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - CLIENT_URL=http://localhost:${CLIENT_PORT:-3000}
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/gameplatform
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:-change-this-to-random-string}
+    volumes:
+      - ./games:/app/games        # 挂载游戏目录，方便热更新
+      - ./data:/app/data          # 持久化数据
+      - ./config:/app/config      # 配置文件
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+
+  # 数据库
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=gameplatform
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  # 缓存（房间状态、在线用户）
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:

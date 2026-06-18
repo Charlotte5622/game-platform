@@ -1,0 +1,9 @@
+{
+  "id": "doudizhu",
+  "name": "斗地主",
+  "description": "经典三人斗地主，54张牌，叫分抢地主",
+  "minPlayers": 3,
+  "maxPlayers": 3,
+  "version": "1.0.0",
+  "author": "game-platform"
+}
