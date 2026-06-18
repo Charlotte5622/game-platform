@@ -365,11 +365,21 @@ class ChineseChessServer extends BaseGameServer {
         const winnerColor = state.turnColor === 'red' ? 'black' : 'red';
         const winnerPid = Object.entries(state.colorMap).find(([, c]) => c === winnerColor)[0];
 
+        const loserPid = state.players.find(p => p !== winnerPid);
         this.doBroadcast(roomId, {
           type: 'checkmate',
+          reason: 'checkmate',
           winner: winnerPid,
-          loser: state.players.find(p => p !== winnerPid),
+          loser: loserPid,
           winnerColor,
+          message: '绝杀！',
+        });
+        // 同时发 game_over 保证客户端统一处理
+        this.doBroadcast(roomId, {
+          type: 'game_over',
+          reason: 'checkmate',
+          winner: winnerPid,
+          loser: loserPid,
           message: '绝杀！',
         });
 
