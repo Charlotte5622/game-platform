@@ -44,9 +44,18 @@ app.get('/api/health', (req, res) => {
 });
 
 // 离开房间（sendBeacon 端点，页面卸载时调用）
-app.post('/api/leave-room', express.json(), (req, res) => {
-  // sendBeacon 无法携带 Authorization header，token 在 body 中
-  // 此端点仅作为 socket leave_room 的备用方案
+// sendBeacon 发送 Content-Type: text/plain，需要用 raw 解析
+const roomManager = require('./services/roomManager');
+const { verifySocketToken } = require('./middleware/auth');
+
+app.post('/api/leave-room', express.raw({ type: '*/*' }), (req, res) => {
+  try {
+    const body = JSON.parse(req.body.toString());
+    const { roomId, token, userId } = body;
+    if (userId) {
+      roomManager.cleanupUser(userId);
+    }
+  } catch {}
   res.json({ ok: true });
 });
 

@@ -5,6 +5,10 @@ const roomManager = require('./roomManager');
 // 在线用户跟踪：socketId -> { userId, username }
 const connectedSockets = new Map();
 
+// 断线宽限期：userId -> { roomId, timeout, socketId }
+const pendingDisconnects = new Map();
+const DISCONNECT_GRACE_MS = 30000; // 30秒宽限期
+
 /**
  * 广播最新统计给所有客户端（防抖：100ms 内只发一次）
  */
@@ -60,10 +64,47 @@ function setupSocketHandlers(io, prisma) {
         return callback({ error: '游戏不存在' });
       }
 
+      // 检查是否有断线宽限期（重连场景）
+      const pending = pendingDisconnects.get(socket.user.id);
+      if (pending) {
+        clearTimeout(pending.timeout);
+        pendingDisconnects.delete(socket.user.id);
+        console.log(`✅ 玩家 ${socket.user.username} 宽限期内重连`);
+
+        // 更新玩家的 socketId
+        roomManager.reconnectPlayer(pending.roomId, pending.socketId, socket.id);
+        socket.join(pending.roomId);
+
+        const room = roomManager.getRoom(pending.roomId);
+        if (room) {
+          callback({
+            roomId: room.id,
+            roomCode: room.roomCode,
+            isNew: false,
+            players: room.players.map(p => ({
+              id: p.id, nickname: p.nickname, ready: p.ready,
+            })),
+          });
+          // 同步当前游戏状态
+          if (room.state === 'playing' && room.gameInstance) {
+            const state = room.gameInstance.getState(room.id);
+            if (state) {
+              socket.emit('game_start', {
+                roomId: room.id,
+                state: room.gameInstance.getVisibleState(state, socket.user.id),
+              });
+            }
+          }
+        }
+        return;
+      }
+
       // 检查用户是否已在房间中（新 tab 场景）
       const existing = roomManager.getUserRoom(socket.user.id);
       if (existing && existing.room) {
         socket.join(existing.roomId);
+        // 更新 playerRooms 映射和玩家的 socketId
+        roomManager.updatePlayerSocket(socket.user.id, socket.id);
         callback({
           roomId: existing.roomId,
           roomCode: existing.room.roomCode,
@@ -221,10 +262,11 @@ function setupSocketHandlers(io, prisma) {
     // ========== 主动离开房间 ==========
     socket.on('leave_room', () => {
       console.log(`🚪 玩家主动离开: ${socket.user.username} (${socket.id})`);
-      roomManager.cleanupUser(socket.user.id);
 
       const result = roomManager.leaveRoom(socket.id);
       if (result && !result.empty && result.room) {
+        roomManager.cleanupUser(socket.user.id);
+
         io.to(result.roomId).emit('room_update', {
           roomId: result.roomId,
           roomCode: result.room.roomCode,
@@ -251,39 +293,87 @@ function setupSocketHandlers(io, prisma) {
       broadcastStatsDebounced(io);
     });
 
-    // ========== 断开连接 ==========
+    // ========== 断开连接（宽限期模式） ==========
     socket.on('disconnect', () => {
       console.log(`🔌 玩家断开: ${socket.user.username} (${socket.id})`);
       connectedSockets.delete(socket.id);
-      roomManager.cleanupUser(socket.user.id);
 
-      const result = roomManager.leaveRoom(socket.id);
-      if (result && !result.empty && result.room) {
-        io.to(result.roomId).emit('room_update', {
-          roomId: result.roomId,
-          roomCode: result.room.roomCode,
-          players: result.room.players.map(p => ({
-            id: p.id, nickname: p.nickname, ready: p.ready,
-          })),
-          state: result.room.state,
-        });
-
-        if (result.room.state === 'playing') {
-          // BUG-2 修复：统一 game_over 事件结构
-          io.to(result.roomId).emit('game_over', {
-            type: 'game_over',
-            reason: 'player_disconnect',
-            winner: null,
-            winners: [],
-            landlord: null,
-            scores: {},
-            message: '有玩家断开连接，游戏结束',
-          });
-          roomManager.setRoomState(result.roomId, 'finished');
-        }
+      // 查找该玩家所在的房间
+      const roomId = roomManager.getPlayerRoom(socket.id)?.id || roomManager.getUserRoom(socket.user.id)?.roomId;
+      if (!roomId) {
+        // 不在任何房间，直接清理
+        roomManager.cleanupUser(socket.user.id);
+        return;
       }
 
-      broadcastStatsDebounced(io);
+      const room = roomManager.getRoom(roomId);
+      if (!room) {
+        roomManager.cleanupUser(socket.user.id);
+        return;
+      }
+
+      // 游戏进行中：启动宽限期，不立即踢人
+      if (room.state === 'playing') {
+        // 取消之前的宽限期（如果有的话）
+        const existing = pendingDisconnects.get(socket.user.id);
+        if (existing) clearTimeout(existing.timeout);
+
+        console.log(`⏳ 玩家 ${socket.user.username} 断线，宽限期 ${DISCONNECT_GRACE_MS / 1000}秒`);
+
+        // 通知房间内其他人该玩家断线
+        io.to(roomId).emit('room_update', {
+          roomId,
+          players: room.players.map(p => ({
+            id: p.id, nickname: p.nickname, ready: p.ready,
+          })),
+          state: room.state,
+        });
+
+        const timeout = setTimeout(() => {
+          // 宽限期过期，正式移除
+          pendingDisconnects.delete(socket.user.id);
+          console.log(`❌ 玩家 ${socket.user.username} 宽限期过期，移出房间`);
+
+          const result = roomManager.leaveRoom(socket.id);
+          if (result && !result.empty && result.room) {
+            roomManager.cleanupUser(socket.user.id);
+            io.to(roomId).emit('room_update', {
+              roomId,
+              players: result.room.players.map(p => ({
+                id: p.id, nickname: p.nickname, ready: p.ready,
+              })),
+              state: result.room.state,
+            });
+            io.to(roomId).emit('game_over', {
+              type: 'game_over',
+              reason: 'player_disconnect',
+              winner: null,
+              winners: [],
+              landlord: null,
+              scores: {},
+              message: '有玩家断开连接，游戏结束',
+            });
+            roomManager.setRoomState(roomId, 'finished');
+          }
+          broadcastStatsDebounced(io);
+        }, DISCONNECT_GRACE_MS);
+
+        pendingDisconnects.set(socket.user.id, { roomId, timeout, socketId: socket.id });
+      } else {
+        // 等待中：直接移除（不影响游戏）
+        const result = roomManager.leaveRoom(socket.id);
+        if (result && !result.empty && result.room) {
+          roomManager.cleanupUser(socket.user.id);
+          io.to(roomId).emit('room_update', {
+            roomId,
+            players: result.room.players.map(p => ({
+              id: p.id, nickname: p.nickname, ready: p.ready,
+            })),
+            state: result.room.state,
+          });
+        }
+        broadcastStatsDebounced(io);
+      }
     });
   });
 

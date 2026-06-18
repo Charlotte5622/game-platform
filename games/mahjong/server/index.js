@@ -57,6 +57,18 @@ class MahjongServer extends BaseGameServer {
   }
 
   /**
+   * 广播完整状态更新（每人看到自己的手牌）
+   */
+  broadcastStateUpdate(roomId, state) {
+    for (const pid of state.players) {
+      this.doBroadcastTo(roomId, pid, {
+        type: 'state_update',
+        state: this.getVisibleState(state, pid),
+      });
+    }
+  }
+
+  /**
    * 依赖注入后发送 game_start（麻将无叫分流程，直接开始）
    */
   postInit(roomId) {
@@ -225,6 +237,7 @@ class MahjongServer extends BaseGameServer {
     }, 30000);
 
     this.saveState(roomId, state);
+    this.broadcastStateUpdate(roomId, state);
   }
 
   // ========== 打牌 ==========
@@ -347,6 +360,7 @@ class MahjongServer extends BaseGameServer {
       }, 31000);
 
       this.saveState(roomId, state);
+      this.broadcastStateUpdate(roomId, state);
     } else {
       // 无人响应，下家摸牌
       this.nextTurn(roomId);
@@ -396,6 +410,7 @@ class MahjongServer extends BaseGameServer {
     });
 
     this.saveState(roomId, state);
+    this.broadcastStateUpdate(roomId, state);
   }
 
   // ========== 碰 ==========
@@ -449,6 +464,7 @@ class MahjongServer extends BaseGameServer {
     });
 
     this.saveState(roomId, state);
+    this.broadcastStateUpdate(roomId, state);
   }
 
   // ========== 杠 ==========
@@ -590,9 +606,11 @@ class MahjongServer extends BaseGameServer {
     if (allPassed) {
       state.waitingAction = null;
       this.saveState(roomId, state);
+      this.broadcastStateUpdate(roomId, state);
       this.nextTurn(roomId);
     } else {
       this.saveState(roomId, state);
+      this.broadcastStateUpdate(roomId, state);
     }
   }
 

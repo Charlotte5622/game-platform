@@ -21,7 +21,18 @@ class BaseGameServer {
   initGameState(players) { return { players }; }
   getVisibleState(gameState, playerId) { return gameState; }
   onPlayerAction(roomId, playerId, action) {}
-  postInit(roomId) {} // 斗地主在 setLandlord 中发 game_start，这里留空
+  postInit(roomId) {
+    // 斗地主在 postInit 中发送初始叫分状态
+    const state = this.getState(roomId);
+    if (!state) return;
+
+    for (const pid of state.players) {
+      this.doBroadcastTo(roomId, pid, {
+        type: 'game_start',
+        state: this.getVisibleState(state, pid),
+      });
+    }
+  }
 
   // ========== 状态访问辅助 ==========
 
@@ -156,7 +167,7 @@ class DoudizhuServer extends BaseGameServer {
       state.highestBidder = playerId;
     }
 
-    // 广播叫分结果
+    // 广播叫分结果 + 完整状态
     this.doBroadcast(roomId, {
       type: 'bid_update',
       playerId,
@@ -165,6 +176,7 @@ class DoudizhuServer extends BaseGameServer {
       bidRound: state.bidRound,
       bids: state.bids,
     });
+    this.broadcastStateUpdate(roomId, state);
 
     // 叫 3 分直接成为地主
     if (score === 3) {

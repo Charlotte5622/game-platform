@@ -25,6 +25,7 @@ function Piece({ piece, isSelected, onClick }) {
 export default function ChineseChessGame({ socket, roomId, playerId, gameState, onAction, players }) {
   const [selected, setSelected] = useState(null); // {col, row}
   const [error, setError] = useState('');
+  const [myRpsChoice, setMyRpsChoice] = useState(null); // 本地记录自己的猜拳选择
 
   useEffect(() => {
     if (!socket) return;
@@ -32,9 +33,33 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
       setError(data.message);
       setTimeout(() => setError(''), 2500);
     };
+    // 监听猜拳确认（用于即时反馈）
+    const handleRpsRecorded = (data) => {
+      setMyRpsChoice(data.choice);
+    };
+    const handleRpsDraw = () => {
+      setMyRpsChoice(null); // 平局重置
+    };
+    const handleRpsResult = () => {
+      setMyRpsChoice(null); // 有结果后重置
+    };
     socket.on('error', handleError);
-    return () => socket.off('error', handleError);
+    socket.on('rps_recorded', handleRpsRecorded);
+    socket.on('rps_draw', handleRpsDraw);
+    socket.on('rps_result', handleRpsResult);
+    return () => {
+      socket.off('error', handleError);
+      socket.off('rps_recorded', handleRpsRecorded);
+      socket.off('rps_draw', handleRpsDraw);
+      socket.off('rps_result', handleRpsResult);
+    };
   }, [socket]);
+
+  // 阶段变化时重置本地状态
+  useEffect(() => {
+    setMyRpsChoice(null);
+    setSelected(null);
+  }, [gameState?.phase]);
 
   // 状态变化时重置选择
   useEffect(() => {
@@ -55,6 +80,16 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
   const isMyTurn = phase === 'playing' && myColor === turnColor;
   const opponent = players.find(p => p.id !== playerId);
 
+  // 直接通过 socket 发送操作（绕过 onAction 链，避免 roomId 未设置的问题）
+  const emitAction = useCallback((action) => {
+    if (socket && roomId) {
+      console.log(`[Chess] 发送动作: ${action.type}, roomId=${roomId}`);
+      socket.emit('game_action', { roomId, action });
+    } else {
+      console.warn(`[Chess] 无法发送动作: socket=${!!socket}, roomId=${roomId}`);
+    }
+  }, [socket, roomId]);
+
   // 点击棋盘格子
   const handleCellClick = useCallback((col, row) => {
     if (!isMyTurn) return;
@@ -69,7 +104,7 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
         return;
       }
       // 走棋
-      onAction({ type: 'move', from: selected, to: { col, row } });
+      emitAction({ type: 'move', from: selected, to: { col, row } });
       setSelected(null);
     } else {
       // 未选中，选中点击的棋子
@@ -77,11 +112,14 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
         setSelected({ col, row });
       }
     }
-  }, [isMyTurn, selected, pieces, myColor, onAction]);
+  }, [isMyTurn, selected, pieces, myColor, emitAction]);
 
+  // 阶段渲染包装（防止 RPS→choosing 切换时崩溃）
+  const renderContent = () => {
   // 猜拳阶段
   if (phase === 'rps') {
-    const myChoice = rpsChoices?.[playerId]?.choice;
+    // 本地优先，服务端兜底
+    const myChoice = myRpsChoice || rpsChoices?.[playerId]?.choice;
     const opponentReady = rpsChoices && Object.keys(rpsChoices).length >= 1 && !myChoice;
     return (
       <div className="chess">
@@ -95,7 +133,11 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
               <button
                 key={key}
                 className={`chess-rps-btn${myChoice === key ? ' chess-rps-btn-active' : ''}`}
-                onClick={() => !myChoice && onAction({ type: 'rps', choice: key })}
+                onClick={() => {
+                  if (myChoice) return;
+                  setMyRpsChoice(key); // 立即本地反馈
+                  emitAction({ type: 'rps', choice: key });
+                }}
                 disabled={!!myChoice}
               >
                 <span className="chess-rps-icon">{icon}</span>
@@ -130,13 +172,13 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
             <div className="chess-choose-buttons">
               <button
                 className="chess-choose-btn chess-choose-red"
-                onClick={() => onAction({ type: 'choose_color', color: 'red' })}
+                onClick={() => emitAction({ type: 'choose_color', color: 'red' })}
               >
                 🔴 执红（先手）
               </button>
               <button
                 className="chess-choose-btn chess-choose-black"
-                onClick={() => onAction({ type: 'choose_color', color: 'black' })}
+                onClick={() => emitAction({ type: 'choose_color', color: 'black' })}
               >
                 ⚫ 执黑（后手）
               </button>
@@ -263,4 +305,19 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
       )}
     </div>
   );
+  }; // end renderContent
+
+  // 错误边界：防止阶段切换时崩溃
+  try {
+    return renderContent();
+  } catch (e) {
+    console.error('[Chess] 渲染出错:', e);
+    return (
+      <div className="chess">
+        <div className="chess-loading">
+          <p>加载中...</p>
+        </div>
+      </div>
+    );
+  }
 }

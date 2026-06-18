@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { getSocket } from '../services/socket';
 
 /**
@@ -26,7 +26,8 @@ export default function GameHost({ gameId, GameComponent }) {
   const [phase, setPhase] = useState('choosing'); // choosing | matching | waiting | playing | finished
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
-  const [maxPlayers, setMaxPlayers] = useState(4); // 默认4人，从API获取
+  const [maxPlayers, setMaxPlayers] = useState(null); // 从API获取
+  const effectiveMaxPlayers = maxPlayers || 2; // 兜底2人
 
   const playerId = useMemo(getPlayerId, []);
 
@@ -71,34 +72,6 @@ export default function GameHost({ gameId, GameComponent }) {
       setGameState(data.state);
     });
 
-    // BUG-4 修复：监听 play_update，即时更新 playHistory
-    s.on('play_update', (data) => {
-      setGameState((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          playHistory: [
-            ...(prev.playHistory || []),
-            { playerId: data.playerId, cards: data.cards, cardType: data.cardType, action: 'play' },
-          ],
-        };
-      });
-    });
-
-    // BUG-5 修复：监听 pass_update，即时写入 playHistory
-    s.on('pass_update', (data) => {
-      setGameState((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          playHistory: [
-            ...(prev.playHistory || []),
-            { playerId: data.playerId, cards: [], action: 'pass' },
-          ],
-        };
-      });
-    });
-
     s.on('game_over', (data) => {
       setResult(data);
       setPhase('finished');
@@ -109,8 +82,6 @@ export default function GameHost({ gameId, GameComponent }) {
       s.off('game_start');
       s.off('state_update');
       s.off('game_restart');
-      s.off('play_update');
-      s.off('pass_update');
       s.off('game_over');
     };
   }, [gameId]);
@@ -172,51 +143,38 @@ export default function GameHost({ gameId, GameComponent }) {
   );
 
   // ===== 页面离开检测（手机返回 / 关闭标签页 / 刷新） =====
+  const hasLeftRef = useRef(false);
+
   useEffect(() => {
     if (!socket || !roomId) return;
+    hasLeftRef.current = false;
 
-    // 主动离开房间
     const leaveRoom = () => {
+      if (hasLeftRef.current) return;
+      hasLeftRef.current = true;
       try {
         socket.emit('leave_room');
+        // sendBeacon 兜底（页面卸载时 socket 可能已断）
+        if (navigator.sendBeacon) {
+          const userId = JSON.parse(localStorage.getItem('user'))?.id;
+          navigator.sendBeacon('/api/leave-room', JSON.stringify({ roomId, userId }));
+        }
       } catch {}
     };
 
     // 1. 浏览器关闭/刷新
-    const handleBeforeUnload = (e) => {
-      leaveRoom();
-    };
+    const handleBeforeUnload = () => leaveRoom();
 
     // 2. 手机返回键 / 浏览器后退
-    const handlePopState = (e) => {
-      leaveRoom();
-    };
-
-    // 3. 页面可见性变化（手机切后台/切标签页）
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        // 页面隐藏时发送 beacon（更可靠，不会被页面卸载中断）
-        if (navigator.sendBeacon) {
-          const token = localStorage.getItem('token');
-          navigator.sendBeacon('/api/leave-room', JSON.stringify({ roomId, token }));
-        }
-      }
-    };
-
-    // 4. 组件卸载（React Router 导航离开）
-    const handleUnmount = () => {
-      leaveRoom();
-    };
+    const handlePopState = () => leaveRoom();
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     window.addEventListener('popstate', handlePopState);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      handleUnmount();
+      leaveRoom();
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('popstate', handlePopState);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [socket, roomId]);
 
@@ -303,7 +261,7 @@ export default function GameHost({ gameId, GameComponent }) {
                 </span>
               </div>
             ))}
-            {Array.from({ length: Math.max(0, maxPlayers - players.length) }).map((_, i) => (
+            {Array.from({ length: Math.max(0, effectiveMaxPlayers - players.length) }).map((_, i) => (
               <div key={`empty-${i}`} className="waiting-empty-slot">
                 等待玩家加入...
               </div>
@@ -311,7 +269,7 @@ export default function GameHost({ gameId, GameComponent }) {
           </div>
 
           <p style={{ color: 'var(--text-dim)', fontSize: '13px', marginBottom: '16px' }}>
-            需要 {maxPlayers} 位玩家才能开始
+            需要 {effectiveMaxPlayers} 位玩家才能开始
           </p>
 
           {!isReady ? (
