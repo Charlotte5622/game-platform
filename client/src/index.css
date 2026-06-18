@@ -1843,6 +1843,352 @@ input {
 }
 
 /* ============================================
+   中国象棋
+   ============================================ */
+
+.chess {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  animation: fadeIn 0.4s ease;
+}
+
+.chess-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 64px);
+  gap: 16px;
+  color: var(--text-muted);
+}
+
+.chess-loading-spinner {
+  font-size: 64px;
+  animation: float 2s ease-in-out infinite;
+}
+
+/* 猜拳 */
+.chess-rps {
+  text-align: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 40px 24px;
+  animation: slideUp 0.5s ease;
+}
+
+.chess-rps-title {
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.chess-rps-sub {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.chess-rps-round {
+  color: var(--warning);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.chess-rps-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.chess-rps-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 28px;
+  background: var(--bg-input);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  transition: all 0.2s ease;
+  min-width: 90px;
+}
+
+.chess-rps-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: rgba(108, 92, 231, 0.1);
+  transform: translateY(-2px);
+}
+
+.chess-rps-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chess-rps-btn-active {
+  border-color: var(--secondary) !important;
+  background: rgba(0, 206, 201, 0.1) !important;
+}
+
+.chess-rps-icon {
+  font-size: 36px;
+}
+
+.chess-rps-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.chess-rps-waiting {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* 选色 */
+.chess-choose {
+  text-align: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 40px 24px;
+  animation: slideUp 0.5s ease;
+}
+
+.chess-choose-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 28px;
+}
+
+.chess-choose-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.chess-choose-btn {
+  padding: 18px 36px;
+  border-radius: var(--radius);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.chess-choose-red {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: white;
+  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.3);
+}
+
+.chess-choose-red:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(220, 38, 38, 0.4);
+}
+
+.chess-choose-black {
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  color: white;
+  border: 2px solid #475569;
+}
+
+.chess-choose-black:hover {
+  transform: translateY(-2px);
+  border-color: #64748b;
+}
+
+/* 顶部信息 */
+.chess-top-bar {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.chess-info-tag {
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.chess-check-tag {
+  font-size: 13px;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  font-weight: 700;
+  animation: pulse 1s infinite;
+}
+
+/* 棋盘 */
+.chess-board-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.chess-board {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 8 / 9;
+  background: #f5e6c8;
+  border-radius: 8px;
+  border: 3px solid #8b7355;
+  box-shadow: inset 0 0 30px rgba(139, 115, 85, 0.2), 0 8px 32px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.chess-grid-svg {
+  position: absolute;
+  inset: 5%;
+  width: 90%;
+  height: 90%;
+  color: #5c4a32;
+  pointer-events: none;
+}
+
+/* 楚河汉界 */
+.chess-river {
+  position: absolute;
+  top: 44%;
+  left: 5%;
+  right: 5%;
+  height: 12%;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  font-size: 20px;
+  font-weight: 800;
+  color: #8b7355;
+  letter-spacing: 8px;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* 棋子 */
+.chess-piece-wrap {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  cursor: pointer;
+  width: 11%;
+  height: 10%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chess-piece {
+  width: 90%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 800;
+  border: 2px solid;
+  transition: all 0.15s ease;
+  user-select: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.chess-piece-red {
+  background: linear-gradient(180deg, #fef2f2, #fee2e2);
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+.chess-piece-black {
+  background: linear-gradient(180deg, #f8fafc, #e2e8f0);
+  color: #1e293b;
+  border-color: #1e293b;
+}
+
+.chess-piece-selected {
+  transform: scale(1.15);
+  box-shadow: 0 0 16px rgba(6, 182, 212, 0.6);
+  border-color: #06b6d4 !important;
+}
+
+.chess-piece:hover {
+  transform: scale(1.08);
+}
+
+/* 空白格子点击区域 */
+.chess-cell {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 11%;
+  height: 10%;
+  z-index: 5;
+  cursor: pointer;
+}
+
+.chess-cell:hover {
+  background: rgba(6, 182, 212, 0.15);
+  border-radius: 50%;
+}
+
+/* 走棋记录 */
+.chess-history {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.chess-history-item {
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--bg-input);
+}
+
+.chess-history-item.red { color: #dc2626; }
+.chess-history-item.black { color: #1e293b; }
+
+.chess-error {
+  padding: 8px 16px;
+  background: var(--danger-glow);
+  color: var(--danger);
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: center;
+  animation: fadeIn 0.2s;
+}
+
+.chess-result {
+  text-align: center;
+  padding: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.chess-result h2 {
+  font-size: 24px;
+}
+
+/* ============================================
    触摸设备优化
    ============================================ */
 @media (hover: none) and (pointer: coarse) {
@@ -1850,7 +2196,7 @@ input {
   button, .btn, .auth-submit, .back-btn, .choosing-btn,
   .waiting-ready-btn, .waiting-unready-btn, .game-card-play,
   .dz-action-pass, .dz-action-play, .dz-bid-btn,
-  .mj-action-btn {
+  .mj-action-btn, .chess-rps-btn, .chess-choose-btn {
     min-height: 44px;
   }
 
@@ -2256,6 +2602,54 @@ input {
     padding: 6px 10px;
     gap: 6px;
   }
+
+  /* 象棋 */
+  .chess {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .chess-rps {
+    padding: 28px 16px;
+  }
+
+  .chess-rps-title {
+    font-size: 22px;
+  }
+
+  .chess-rps-buttons {
+    gap: 12px;
+  }
+
+  .chess-rps-btn {
+    padding: 16px 20px;
+    min-width: 80px;
+  }
+
+  .chess-rps-icon {
+    font-size: 30px;
+  }
+
+  .chess-piece {
+    font-size: 14px;
+  }
+
+  .chess-river {
+    font-size: 16px;
+    letter-spacing: 4px;
+  }
+
+  .chess-choose-buttons {
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .chess-choose-btn {
+    padding: 16px 32px;
+    width: 100%;
+    max-width: 260px;
+  }
 }
 
 /* ============================================
@@ -2406,6 +2800,29 @@ input {
   .mj-action-btn {
     padding: 8px 14px;
     font-size: 13px;
+  }
+
+  /* 象棋 */
+  .chess-rps-title {
+    font-size: 20px;
+  }
+
+  .chess-rps-btn {
+    padding: 14px 16px;
+    min-width: 70px;
+  }
+
+  .chess-rps-icon {
+    font-size: 26px;
+  }
+
+  .chess-piece {
+    font-size: 12px;
+  }
+
+  .chess-river {
+    font-size: 14px;
+    letter-spacing: 2px;
   }
 }
 

@@ -10,11 +10,13 @@
 // 导入游戏组件
 import DoudizhuGame from '../../../games/doudizhu/client/DoudizhuGame';
 import MahjongGame from '../../../games/mahjong/client/MahjongGame';
+import ChineseChessGame from '../../../games/chinese-chess/client/ChineseChessGame';
 
 // 游戏注册表: gameId -> React Component
 const gameComponents = {
   'doudizhu': DoudizhuGame,
   'mahjong': MahjongGame,
+  'chinese-chess': ChineseChessGame,
 };
 
 /**
