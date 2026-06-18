@@ -2,6 +2,9 @@ const { verifySocketToken } = require('../middleware/auth');
 const { createGameInstance, getGameMaxPlayers, gameExists } = require('./gameLoader');
 const roomManager = require('./roomManager');
 
+// 在线用户跟踪：socketId -> { userId, username }
+const connectedSockets = new Map();
+
 /**
  * 设置 WebSocket 事件处理
  */
@@ -25,8 +28,15 @@ function setupSocketHandlers(io, prisma) {
   io.on('connection', (socket) => {
     console.log(`🔌 玩家连接: ${socket.user.username} (${socket.id})`);
 
+    // 跟踪在线连接
+    connectedSockets.set(socket.id, { userId: socket.user.id, username: socket.user.username });
+
     socket.on('get_stats', (callback) => {
-      callback(roomManager.getStats());
+      const stats = roomManager.getStats();
+      // 统计去重后的在线用户数（同一用户多 tab 只算 1 人）
+      const uniqueUsers = new Set([...connectedSockets.values()].map(u => u.userId));
+      stats.onlinePlayers = uniqueUsers.size;
+      callback(stats);
     });
 
     // ========== 快速匹配 ==========
@@ -142,6 +152,7 @@ function setupSocketHandlers(io, prisma) {
 
       // 传入游戏所需人数，避免 2 人准备就提前开局
       const maxPlayers = getGameMaxPlayers(updatedRoom.gameId);
+      console.log(`[准备] 房间 ${roomId} 游戏 ${updatedRoom.gameId} 需要 ${maxPlayers} 人，当前 ${updatedRoom.players.length} 人，已准备 ${updatedRoom.players.filter(p=>p.ready).length} 人`);
       if (roomManager.allPlayersReady(roomId, maxPlayers)) {
         startGame(io, updatedRoom, prisma);
       }
@@ -160,6 +171,7 @@ function setupSocketHandlers(io, prisma) {
     // ========== 断开连接 ==========
     socket.on('disconnect', () => {
       console.log(`🔌 玩家断开: ${socket.user.username} (${socket.id})`);
+      connectedSockets.delete(socket.id);
 
       const result = roomManager.leaveRoom(socket.id);
       if (result && !result.empty && result.room) {
