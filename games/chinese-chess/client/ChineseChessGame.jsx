@@ -11,7 +11,7 @@ const RPS_NAMES = { rock: '石头', scissors: '剪刀', paper: '布' };
  * viewBox: "-50 -50 900 1000" (四周留 50px 给边缘棋子)
  * 格子间距: 100 单位
  */
-function ChessBoard({ pieces, flipped, selected, onCellClick }) {
+function ChessBoard({ pieces, flipped, selected, onCellClick, lastMove }) {
   const CELL = 100; // 格子间距
   const PAD = 50;   // 边缘留白
   const W = 8 * CELL; // 棋盘宽 800
@@ -26,7 +26,7 @@ function ChessBoard({ pieces, flipped, selected, onCellClick }) {
   // 棋子颜色
   const PIECE_COLORS = {
     red:   { bg: '#fef2f2', border: '#dc2626', text: '#dc2626' },
-    black: { bg: '#f8fafc', border: '#1e293b', text: '#1e293b' },
+    black: { bg: '#e2e8f0', border: '#1e293b', text: '#1e293b' },
   };
 
   // 坐标标注
@@ -101,6 +101,22 @@ function ChessBoard({ pieces, flipped, selected, onCellClick }) {
             </g>
           );
         })}
+
+        {/* 最后一步高亮 */}
+        {lastMove && (() => {
+          const from = getPos(lastMove.from.col, lastMove.from.row);
+          const to = getPos(lastMove.to.col, lastMove.to.row);
+          return (
+            <g>
+              {/* 起点：半透明圆 */}
+              <circle cx={from.x} cy={from.y} r={30} fill="rgba(251, 191, 36, 0.25)" stroke="none" />
+              {/* 终点：高亮框 */}
+              <circle cx={to.x} cy={to.y} r={42} fill="none" stroke="#fbbf24" strokeWidth="3" opacity="0.7">
+                <animate attributeName="opacity" values="0.7;0.3;0.7" dur="1.5s" repeatCount="indefinite" />
+              </circle>
+            </g>
+          );
+        })()}
 
         {/* 空白交叉点点击区域（透明圆，增大触摸范围） */}
         {Array.from({ length: 10 }, (_, row) =>
@@ -310,16 +326,17 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
 
   const { phase, colorMap, pieces, turnColor, currentTurn, check, moveHistory, rpsChoices, rpsRound, winner } = gameState;
 
-  // 防御：colorMap 可能尚未就绪（Object.keys 返回字符串，需要兼容比较）
-  const myColor = colorMap
-    ? (colorMap[playerId] ?? colorMap[String(playerId)] ?? colorMap[Number(playerId)])
-    : undefined;
+  // JSON 传输后所有 key 变为字符串，必须用 String(playerId) 查找
+  const myColor = colorMap ? colorMap[String(playerId)] : undefined;
   const isMyTurn = phase === 'playing' && !!myColor && myColor === turnColor;
   const opponent = players.find(p => String(p.id) !== String(playerId));
 
   const emitAction = (action) => {
     if (socket && roomId) {
+      console.log(`[Chess] emitAction: ${action.type}, roomId=${roomId}, socket.connected=${socket.connected}`);
       socket.emit('game_action', { roomId, action });
+    } else {
+      console.warn(`[Chess] emitAction 跳过: socket=${!!socket}, roomId=${roomId}`);
     }
   };
 
@@ -405,7 +422,8 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
         <div className="chess-rps">
           <h2 className="chess-rps-title">✊✌️🖐 猜拳选色</h2>
           <p className="chess-rps-sub">胜者可选择执红或执黑</p>
-          {rpsRound > 1 && <p className="chess-rps-round">第 {rpsRound} 轮</p>}
+          {rpsRound > 1 && <p className="chess-rps-round">第 {rpsRound} 轮（上轮平局）</p>}
+
           <div className="chess-rps-buttons">
             {Object.entries(RPS_ICONS).map(([key, icon]) => (
               <button
@@ -419,8 +437,25 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
               </button>
             ))}
           </div>
-          {myChoice && <p className="chess-rps-waiting">你出了 <strong>{RPS_NAMES[myChoice]}</strong>，等待对手...</p>}
-          {opponentReady && <p className="chess-rps-waiting">对手已出拳，等你选择</p>}
+
+          {/* 状态提示 */}
+          <div className="chess-rps-status">
+            {myChoice && !opponentReady && (
+              <p className="chess-rps-waiting">
+                你出了 <strong>{RPS_ICONS[myChoice]} {RPS_NAMES[myChoice]}</strong>，等待对手出拳...
+              </p>
+            )}
+            {!myChoice && opponentReady && (
+              <p className="chess-rps-waiting">
+                对手已出拳，请选择你的出拳
+              </p>
+            )}
+            {myChoice && opponentReady && (
+              <p className="chess-rps-waiting">
+                双方已出拳，等待结果...
+              </p>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -435,8 +470,8 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
           <h2 className="chess-choose-title">{isWinner ? '🎉 你赢了！请选择阵营' : '等待对手选色...'}</h2>
           {isWinner && (
             <div className="chess-choose-buttons">
-              <button className="chess-choose-btn chess-choose-red" onClick={() => emitAction({ type: 'choose_color', color: 'red' })}>🔴 执红（先手）</button>
-              <button className="chess-choose-btn chess-choose-black" onClick={() => emitAction({ type: 'choose_color', color: 'black' })}>⚫ 执黑（后手）</button>
+              <button className="chess-choose-btn chess-choose-red" onClick={() => { console.log('[Chess] 点击执红'); emitAction({ type: 'choose_color', color: 'red' }); }}>🔴 执红（先手）</button>
+              <button className="chess-choose-btn chess-choose-black" onClick={() => { console.log('[Chess] 点击执黑'); emitAction({ type: 'choose_color', color: 'black' }); }}>⚫ 执黑（后手）</button>
             </div>
           )}
         </div>
@@ -462,10 +497,26 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
       {/* 顶部信息 */}
       <div className="chess-top-bar">
         <span className="chess-info-tag">你: {myColor === 'red' ? '🔴 红方' : '⚫ 黑方'}</span>
-        <span className="chess-info-tag">{isMyTurn ? '🟢 轮到你' : `⏳ ${opponent?.nickname || '对手'}走棋`}</span>
+        <span className={`chess-turn-tag ${isMyTurn ? 'chess-turn-mine' : ''}`}>
+          {isMyTurn ? '🟢 轮到你走棋' : `⏳ 等待 ${opponent?.nickname || '对手'} 走棋`}
+        </span>
         {turnDeadline && <span className={`chess-timer${timeLeft <= 10 ? ' chess-timer-urgent' : ''}`}>⏱️ {timeLeft}s</span>}
         {check && <span className="chess-check-tag">⚠️ 将军!</span>}
       </div>
+
+      {/* 刚走的棋提示 */}
+      {gameState.lastMove && (
+        <div className="chess-last-move">
+          <span className="chess-last-move-label">上一步:</span>
+          <span className={`chess-last-move-text ${gameState.lastMove.color}`}>
+            {gameState.lastMove.piece}
+            {gameState.lastMove.from.col},{gameState.lastMove.from.row}
+            →{gameState.lastMove.to.col},{gameState.lastMove.to.row}
+            {gameState.lastMove.captured && ` 吃${gameState.lastMove.captured}`}
+          </span>
+          {isMyTurn && <span className="chess-your-turn-hint">← 轮到你了</span>}
+        </div>
+      )}
       {/* 双方剩余总时间 */}
       {gameState.timerSettings?.enabled && gameState.timerSettings?.totalTime > 0 && (
         <div className="chess-time-remaining">
@@ -479,7 +530,7 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
       )}
 
       {/* 棋盘 */}
-      <ChessBoard pieces={pieces} flipped={flipped} selected={selected} onCellClick={handleCellClick} />
+      <ChessBoard pieces={pieces} flipped={flipped} selected={selected} onCellClick={handleCellClick} lastMove={gameState.lastMove} />
 
       {/* 侧边面板（桌面端在棋盘右侧，移动端在棋盘下方） */}
       <div className="chess-side-panel">
@@ -516,22 +567,32 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
         {/* 胜负弹窗 */}
         {gameResult && (
           <div className="chess-result-modal">
-            <div className="chess-result-modal-content">
+            <div className={`chess-result-modal-content ${String(gameResult.winner) === String(playerId) ? 'chess-result-win' : gameResult.reason === 'draw_agreed' ? 'chess-result-draw' : 'chess-result-lose'}`}>
               <div className="chess-result-icon">
-                {String(gameResult.winner) === String(playerId) ? '🎉' : '😢'}
+                {gameResult.reason === 'draw_agreed'
+                  ? '🤝'
+                  : String(gameResult.winner) === String(playerId)
+                    ? '🎉'
+                    : '😢'}
               </div>
               <h2 className="chess-result-title">
-                {String(gameResult.winner) === String(playerId)
-                  ? '你赢了！'
-                  : gameResult.reason === 'draw_agreed'
-                    ? '和棋'
+                {gameResult.reason === 'draw_agreed'
+                  ? '和棋'
+                  : String(gameResult.winner) === String(playerId)
+                    ? '你赢了！'
                     : '你输了'}
               </h2>
               <p className="chess-result-reason">{gameResult.message}</p>
               <div className="chess-result-details">
-                {gameResult.reason === 'checkmate' && <span>绝杀</span>}
-                {gameResult.reason === 'resign' && <span>投降</span>}
-                {gameResult.reason === 'timeout_loss' && <span>超时判负</span>}
+                {gameResult.reason === 'checkmate' && (
+                  <span>{String(gameResult.winner) === String(playerId) ? '你绝杀了对手' : '你被对手绝杀'}</span>
+                )}
+                {gameResult.reason === 'resign' && (
+                  <span>{String(gameResult.winner) === String(playerId) ? '对手投降认负' : '你选择了投降'}</span>
+                )}
+                {gameResult.reason === 'timeout_loss' && (
+                  <span>{String(gameResult.winner) === String(playerId) ? '对手超时判负' : '你的总时间耗尽'}</span>
+                )}
                 {gameResult.reason === 'draw_agreed' && <span>双方同意和棋</span>}
                 {gameResult.reason === 'player_disconnect' && <span>对方断线</span>}
               </div>
