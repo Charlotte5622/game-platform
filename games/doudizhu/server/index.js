@@ -4,9 +4,22 @@
  */
 class GameServer {
   constructor() {
-    this.rooms = new Map();
-    this.broadcast = null;  // 由平台设置
-    this.onGameOver = null; // 由平台设置
+    this.broadcast = null;      // 由平台设置
+    this.sendToPlayer = null;   // 由平台设置
+    this.onGameOver = null;     // 由平台设置
+    this._getRoomData = null;   // 由平台设置
+    this._setRoomData = null;   // 由平台设置
+    this._currentRoomId = null;
+  }
+
+  /**
+   * 注入状态访问器（由平台调用）
+   * 让游戏实例通过 roomManager 读写游戏状态，而非自行维护 rooms Map
+   */
+  setStateAccessor(roomId, getFn, setFn) {
+    this._currentRoomId = roomId;
+    this._getRoomData = getFn;
+    this._setRoomData = setFn;
   }
 
   initGameState(players) {
@@ -37,9 +50,30 @@ const { createDeck, shuffleDeck, dealCards, getCardType, canBeat } = require('./
 class DoudizhuServer extends BaseGameServer {
   constructor() {
     super();
-    // 覆盖父类的 rooms，使用自定义结构
-    this.rooms = new Map();
   }
+
+  // ========== 状态访问辅助方法 ==========
+
+  /**
+   * 获取当前房间的游戏状态
+   */
+  getState(roomId) {
+    if (this._getRoomData) {
+      return this._getRoomData(roomId);
+    }
+    return null;
+  }
+
+  /**
+   * 保存游戏状态到房间
+   */
+  saveState(roomId, state) {
+    if (this._setRoomData) {
+      this._setRoomData(roomId, state);
+    }
+  }
+
+  // ========== 游戏逻辑 ==========
 
   /**
    * 初始化游戏状态
@@ -97,10 +131,7 @@ class DoudizhuServer extends BaseGameServer {
    * 处理玩家操作
    */
   onPlayerAction(roomId, playerId, action) {
-    const room = this.rooms.get(roomId);
-    if (!room) return;
-
-    const state = room.data;
+    const state = this.getState(roomId);
     if (!state) return;
 
     switch (action.type) {
@@ -120,8 +151,8 @@ class DoudizhuServer extends BaseGameServer {
    * 处理叫分
    */
   handleBid(roomId, playerId, score) {
-    const room = this.rooms.get(roomId);
-    const state = room.data;
+    const state = this.getState(roomId);
+    if (!state) return;
 
     if (state.phase !== 'bidding') return;
     if (state.players[state.bidTurn] !== playerId) return;
@@ -148,12 +179,14 @@ class DoudizhuServer extends BaseGameServer {
 
     // 叫 3 分直接成为地主
     if (score === 3) {
+      this.saveState(roomId, state);
       this.setLandlord(roomId, playerId);
       return;
     }
 
     // 所有人叫完
     if (state.bidCount >= 3) {
+      this.saveState(roomId, state);
       if (state.highestBidder) {
         this.setLandlord(roomId, state.highestBidder);
       } else {
@@ -165,14 +198,15 @@ class DoudizhuServer extends BaseGameServer {
 
     // 下一个人叫分
     state.bidTurn = (state.bidTurn + 1) % 3;
+    this.saveState(roomId, state);
   }
 
   /**
    * 设置地主
    */
   setLandlord(roomId, playerId) {
-    const room = this.rooms.get(roomId);
-    const state = room.data;
+    const state = this.getState(roomId);
+    if (!state) return;
 
     state.landlord = playerId;
     state.phase = 'playing';
@@ -184,10 +218,12 @@ class DoudizhuServer extends BaseGameServer {
     // 地主先出牌
     state.currentTurn = state.players.indexOf(playerId);
 
-    // 广播游戏开始（每人可见状态不同）
+    this.saveState(roomId, state);
+
+    // 向每个玩家发送各自可见的游戏状态（使用 sendToPlayer 而非 broadcast）
     for (const pid of state.players) {
-      if (this.broadcast) {
-        this.broadcast(roomId, {
+      if (this.sendToPlayer) {
+        this.sendToPlayer(roomId, pid, {
           type: 'game_start',
           state: this.getVisibleState(state, pid),
         });
@@ -199,8 +235,8 @@ class DoudizhuServer extends BaseGameServer {
    * 处理出牌
    */
   handlePlay(roomId, playerId, cards) {
-    const room = this.rooms.get(roomId);
-    const state = room.data;
+    const state = this.getState(roomId);
+    if (!state) return;
 
     if (state.phase !== 'playing') return;
     if (state.players[state.currentTurn] !== playerId) return;
@@ -240,20 +276,22 @@ class DoudizhuServer extends BaseGameServer {
 
     // 检查是否出完
     if (state.playerHands[playerId].length === 0) {
+      this.saveState(roomId, state);
       this.handleGameOver(roomId, playerId);
       return;
     }
 
     // 下一个玩家
     state.currentTurn = (state.currentTurn + 1) % 3;
+    this.saveState(roomId, state);
   }
 
   /**
    * 处理过牌
    */
   handlePass(roomId, playerId) {
-    const room = this.rooms.get(roomId);
-    const state = room.data;
+    const state = this.getState(roomId);
+    if (!state) return;
 
     if (state.phase !== 'playing') return;
     if (state.players[state.currentTurn] !== playerId) return;
@@ -277,14 +315,15 @@ class DoudizhuServer extends BaseGameServer {
 
     // 下一个玩家
     state.currentTurn = (state.currentTurn + 1) % 3;
+    this.saveState(roomId, state);
   }
 
   /**
    * 游戏结束
    */
   handleGameOver(roomId, winnerId) {
-    const room = this.rooms.get(roomId);
-    const state = room.data;
+    const state = this.getState(roomId);
+    if (!state) return;
 
     const isLandlord = winnerId === state.landlord;
     const winners = isLandlord
@@ -327,8 +366,8 @@ class DoudizhuServer extends BaseGameServer {
    * 重新发牌（没人叫地主时）
    */
   restartGame(roomId) {
-    const room = this.rooms.get(roomId);
-    const state = room.data;
+    const state = this.getState(roomId);
+    if (!state) return;
 
     const deck = shuffleDeck(createDeck());
     const { hands, kitty } = dealCards(deck);
@@ -349,10 +388,12 @@ class DoudizhuServer extends BaseGameServer {
     state.passCount = 0;
     state.playHistory = [];
 
-    // 广播重新开始
+    this.saveState(roomId, state);
+
+    // 广播重新开始（每人可见状态不同）
     for (const pid of state.players) {
-      if (this.broadcast) {
-        this.broadcast(roomId, {
+      if (this.sendToPlayer) {
+        this.sendToPlayer(roomId, pid, {
           type: 'game_restart',
           state: this.getVisibleState(state, pid),
         });

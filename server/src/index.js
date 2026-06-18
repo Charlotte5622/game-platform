@@ -10,6 +10,7 @@ const { PrismaClient } = require('@prisma/client');
 const authRoutes = require('./routes/auth');
 const gamesRoutes = require('./routes/games');
 const { setupSocketHandlers } = require('./services/socketHandler');
+const { loadAllGames } = require('./services/gameLoader');
 
 const prisma = new PrismaClient();
 const app = express();
@@ -47,6 +48,9 @@ setupSocketHandlers(io, prisma);
 
 // 启动服务器
 server.listen(PORT, () => {
+  // 加载游戏插件
+  loadAllGames();
+
   console.log(`🎮 游戏平台服务器运行在 http://localhost:${PORT}`);
   console.log(`📡 WebSocket 已就绪`);
 });

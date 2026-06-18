@@ -164,7 +164,7 @@ function getCardType(cards) {
   if (n >= 8 && n % 4 === 0) {
     const trios = groups.filter(g => g.count === 3);
     const singles = groups.filter(g => g.count === 1);
-    if (trios.length >= 2 && trios.length === singles.length + (groups.filter(g => g.count === 3).length - singles.length)) {
+    if (trios.length >= 2 && trios.length === singles.length) {
       const noSpecial = trios.every(g => g.value >= 3 && g.value <= 14);
       trios.sort((a, b) => a.value - b.value);
       const consecutive = trios[trios.length - 1].value - trios[0].value === trios.length - 1;

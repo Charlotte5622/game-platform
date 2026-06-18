@@ -167,6 +167,22 @@ function leaveRoom(socketId) {
 }
 
 /**
+ * 获取房间的游戏数据
+ */
+function getGameData(roomId) {
+  const room = rooms.get(roomId);
+  return room ? room.gameState : null;
+}
+
+/**
+ * 设置房间的游戏数据
+ */
+function setGameData(roomId, data) {
+  const room = rooms.get(roomId);
+  if (room) room.gameState = data;
+}
+
+/**
  * 获取在线统计
  */
 function getStats() {
@@ -186,6 +202,8 @@ module.exports = {
   allPlayersReady,
   setRoomState,
   setGameState,
+  getGameData,
+  setGameData,
   getRoom,
   getPlayerRoom,
   leaveRoom,

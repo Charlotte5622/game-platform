@@ -39,6 +39,7 @@ router.post('/register', async (req, res) => {
     // 创建用户
     const user = await prisma.user.create({
       data: { username, password: hashedPassword, nickname },
+      select: { id: true, username: true, nickname: true },
     });
 
     // 生成 Token
@@ -87,6 +88,7 @@ router.post('/login', async (req, res) => {
       token,
       user: { id: user.id, username: user.username, nickname: user.nickname },
     });
+  } catch (err) {
   } catch (err) {
     console.error('登录失败:', err);
     res.status(500).json({ error: '服务器错误，请稍后重试' });

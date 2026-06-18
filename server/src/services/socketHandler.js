@@ -1,6 +1,7 @@
 const { verifySocketToken } = require('../middleware/auth');
 const { getGameInstance, gameExists } = require('./gameLoader');
 const roomManager = require('./roomManager');
+const { getGameData, setGameData } = roomManager;
 
 /**
  * 设置 WebSocket 事件处理
@@ -181,9 +182,25 @@ function startGame(io, room, prisma) {
   const playerIds = room.players.map(p => p.id);
   const gameState = gameInstance.initGameState(playerIds);
 
+  // 存储游戏状态到房间
+  roomManager.setGameState(room.id, gameState);
+
+  // 注入状态访问器，让游戏实例通过 roomManager 读写状态
+  if (gameInstance.setStateAccessor) {
+    gameInstance.setStateAccessor(room.id, getGameData, setGameData);
+  }
+
   // 设置广播回调
   gameInstance.broadcast = (roomId, message) => {
     io.to(roomId).emit(message.type, message);
+  };
+
+  // 设置向单个玩家发送的回调
+  gameInstance.sendToPlayer = (roomId, playerId, message) => {
+    const targetPlayer = room.players.find(p => p.id === playerId);
+    if (targetPlayer) {
+      io.to(targetPlayer.socketId).emit(message.type, message);
+    }
   };
 
   // 设置游戏结束回调
@@ -209,21 +226,7 @@ function startGame(io, room, prisma) {
     }
   };
 
-  // 通知每个玩家（发送各自可见的状态）
-  for (const player of room.players) {
-    const visibleState = gameInstance.getVisibleState
-      ? gameInstance.getVisibleState(gameState, player.id)
-      : gameState;
-
-    io.to(player.socketId).emit('game_start', {
-      roomId: room.id,
-      state: visibleState,
-    });
-  }
-
-  // 存储游戏状态
-  roomManager.setGameState(room.id, gameState);
-
+  // 游戏开始（由游戏实例内部的 setLandlord 触发 game_start 事件）
   console.log(`🎮 游戏开始: ${room.gameId} 房间 ${room.id}`);
 }
 
