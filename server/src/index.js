@@ -9,8 +9,10 @@ const { PrismaClient } = require('@prisma/client');
 
 const authRoutes = require('./routes/auth');
 const gamesRoutes = require('./routes/games');
+const externalGamesRoutes = require('./routes/externalGames');
 const { setupSocketHandlers } = require('./services/socketHandler');
 const { loadAllGames } = require('./services/gameLoader');
+const { loadExternalGames, registerAllExternalProxies } = require('./services/externalGameLoader');
 
 const prisma = new PrismaClient();
 const app = express();
@@ -31,12 +33,16 @@ const io = new Server(server, {
 app.use(cors({ origin: CLIENT_URL, credentials: true }));
 app.use(express.json());
 
-// 静态文件：游戏资源
-app.use('/games', express.static(path.join(__dirname, '../../games')));
+// 静态文件：内置游戏资源（只响应实际存在的文件，不拦截代理请求）
+app.use('/games', express.static(path.join(__dirname, '../../games'), {
+  // 设置 fallthrough，让不存在的文件请求传递给后续中间件（代理）
+  fallthrough: true,
+}));
 
 // API 路由
 app.use('/api/auth', authRoutes);
 app.use('/api/games', gamesRoutes);
+app.use('/api/external-games', externalGamesRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {
@@ -64,8 +70,12 @@ setupSocketHandlers(io, prisma);
 
 // 启动服务器
 server.listen(PORT, () => {
-  // 加载游戏插件
+  // 加载内置游戏插件
   loadAllGames();
+
+  // 加载外部游戏配置并注册代理
+  loadExternalGames();
+  registerAllExternalProxies(app, io);
 
   console.log(`🎮 游戏平台服务器运行在 http://localhost:${PORT}`);
   console.log(`📡 WebSocket 已就绪`);

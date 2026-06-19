@@ -198,7 +198,7 @@ function setupSocketHandlers(io, prisma) {
       const result = roomManager.joinByCode(code, socket.id, {
         id: socket.user.id,
         nickname: socket.user.username,
-      }, maxPlayers);
+      }, maxPlayers, gameId);
 
       if (result.error) return callback({ error: result.error });
 
