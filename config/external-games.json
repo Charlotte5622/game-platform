@@ -1,0 +1,16 @@
+{
+  "games": [
+    {
+      "id": "example-game",
+      "name": "示例外部游戏",
+      "description": "这是一个外部游戏配置示例",
+      "port": 4001,
+      "host": "localhost",
+      "wsPath": "/socket.io",
+      "frontendPath": "/",
+      "minPlayers": 2,
+      "maxPlayers": 4,
+      "enabled": false
+    }
+  ]
+}

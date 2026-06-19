@@ -242,10 +242,19 @@ function setGameData(roomId, data) {
  * @param {string} socketId - 玩家 socket ID
  * @param {object} userInfo - { id, nickname }
  * @param {number} [maxPlayers] - 房间最大人数
+ * @param {string} [gameId] - 游戏 ID（校验房间属于该游戏）
  */
-function joinByCode(code, socketId, userInfo, maxPlayers) {
+function joinByCode(code, socketId, userInfo, maxPlayers, gameId) {
   const roomId = codeToRoom.get(code);
   if (!roomId) return { error: '房间号不存在' };
+
+  const room = rooms.get(roomId);
+  if (!room) return { error: '房间不存在' };
+
+  // 校验房间属于当前游戏
+  if (gameId && room.gameId !== gameId) {
+    return { error: '该房间号不属于当前游戏' };
+  }
 
   const result = joinRoom(roomId, socketId, userInfo, maxPlayers);
   if (result.error) return result;
