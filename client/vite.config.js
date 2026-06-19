@@ -17,6 +17,7 @@ export default defineConfig({
       },
       '/games': {
         target: 'http://localhost:8080',
+        ws: true,
       },
     },
   },
