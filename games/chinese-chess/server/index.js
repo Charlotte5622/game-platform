@@ -68,6 +68,7 @@ class ChineseChessServer extends BaseGameServer {
       currentTurn: 0,         // 当前走棋方索引 (对应 players[colorMap 中 red 的 pid])
       turnColor: 'red',       // 当前走棋方颜色
       moveHistory: [],         // 走棋记录
+      lastMove: null,          // { from: {col,row}, to: {col,row}, piece, captured }
       check: false,            // 当前是否将军
       timeoutCount: {},        // pid -> 连续超时次数
       drawRequest: null,       // { from, timestamp } 求和请求
@@ -219,18 +220,28 @@ class ChineseChessServer extends BaseGameServer {
 
   handleChooseColor(roomId, pid, color) {
     const state = this.getState(roomId);
-    if (!state || state.phase !== 'choosing') return;
-    if (String(pid) !== String(state.winner)) return;
-    if (color !== 'red' && color !== 'black') return;
+    console.log(`[Chess] handleChooseColor: pid=${pid}, color=${color}, phase=${state?.phase}, winner=${state?.winner}`);
+    if (!state || state.phase !== 'choosing') {
+      console.log(`[Chess] 选色拒绝: phase=${state?.phase}`);
+      return;
+    }
+    if (String(pid) !== String(state.winner)) {
+      console.log(`[Chess] 选色拒绝: 不是胜者 pid=${pid} winner=${state.winner}`);
+      return;
+    }
+    if (color !== 'red' && color !== 'black') {
+      console.log(`[Chess] 选色拒绝: 颜色不对 color=${color}`);
+      return;
+    }
 
     const other = state.players.find(p => String(p) !== String(pid));
-    // 统一用整数 key 存 colorMap
-    state.colorMap[Number(pid)] = color;
-    state.colorMap[Number(other)] = color === 'red' ? 'black' : 'red';
+    // 统一用字符串 key 存 colorMap（JSON 序列化后 key 一定是字符串）
+    state.colorMap[String(pid)] = color;
+    state.colorMap[String(other)] = color === 'red' ? 'black' : 'red';
 
     // 红方先走
-    const redPlayerId = Number(Object.entries(state.colorMap).find(([, c]) => c === 'red')[0]);
-    state.currentTurn = state.players.findIndex(p => Number(p) === redPlayerId);
+    const redPlayerId = Object.entries(state.colorMap).find(([, c]) => c === 'red')[0];
+    state.currentTurn = state.players.findIndex(p => String(p) === String(redPlayerId));
     state.turnColor = 'red';
     state.phase = 'playing';
 
@@ -241,13 +252,20 @@ class ChineseChessServer extends BaseGameServer {
     this.doBroadcast(roomId, {
       type: 'color_chosen',
       colorMap: state.colorMap,
-      redPlayer: redPlayerKey,
+      redPlayer: redPlayerId,
       message: `${pid === state.winner ? '你' : '对方'}选择了${color === 'red' ? '红方' : '黑方'}，红方先行`,
     });
 
-    // 发送当前棋盘状态 + 启动计时器
+    // 启动计时器
     this.startTurnTimer(roomId, state);
-    this.broadcastState(roomId, state);
+
+    // 向每个玩家发送完整的 game_start（包含 colorMap 和棋盘）
+    for (const pid of state.players) {
+      this.doBroadcastTo(roomId, pid, {
+        type: 'game_start',
+        state: this.getVisibleState(state, pid),
+      });
+    }
   }
 
   // ========== 走棋 ==========
@@ -315,14 +333,16 @@ class ChineseChessServer extends BaseGameServer {
     }
 
     // 记录走法
-    state.moveHistory.push({
+    const moveRecord = {
       pid,
       color: piece.color,
       piece: piece.name,
       from: { col: fromCol, row: fromRow },
       to: { col: toCol, row: toRow },
       captured: captured ? captured.name : null,
-    });
+    };
+    state.moveHistory.push(moveRecord);
+    state.lastMove = moveRecord;
 
     // 走棋成功，重置该玩家的连续超时计数
     state.timeoutCount[pid] = 0;
@@ -335,7 +355,15 @@ class ChineseChessServer extends BaseGameServer {
     if (settings?.enabled && settings.totalTime > 0 && (state.timeRemaining[pid] || 0) <= 0) {
       const winnerPid = state.players.find(p => p !== pid);
       state.phase = 'ended';
-      this.doBroadcast(roomId, {
+      // 发送不同的消息给胜负双方
+      this.doBroadcastTo(roomId, winnerPid, {
+        type: 'game_over',
+        reason: 'timeout_loss',
+        winner: winnerPid,
+        loser: pid,
+        message: '对方时间耗尽，你赢了！',
+      });
+      this.doBroadcastTo(roomId, pid, {
         type: 'game_over',
         reason: 'timeout_loss',
         winner: winnerPid,
@@ -352,7 +380,7 @@ class ChineseChessServer extends BaseGameServer {
     // 切换走棋方
     const nextColor = state.turnColor === 'red' ? 'black' : 'red';
     state.turnColor = nextColor;
-    state.currentTurn = state.players.findIndex(p => state.colorMap[p] === nextColor);
+    state.currentTurn = state.players.findIndex(p => state.colorMap[String(p)] === nextColor);
 
     // 检查将军/绝杀
     const opponentColor = nextColor;
@@ -366,21 +394,37 @@ class ChineseChessServer extends BaseGameServer {
         const winnerPid = Object.entries(state.colorMap).find(([, c]) => c === winnerColor)[0];
 
         const loserPid = state.players.find(p => p !== winnerPid);
-        this.doBroadcast(roomId, {
+        // 发送不同的消息给胜负双方
+        this.doBroadcastTo(roomId, winnerPid, {
           type: 'checkmate',
           reason: 'checkmate',
           winner: winnerPid,
           loser: loserPid,
           winnerColor,
-          message: '绝杀！',
+          message: '绝杀！你赢了！',
+        });
+        this.doBroadcastTo(roomId, loserPid, {
+          type: 'checkmate',
+          reason: 'checkmate',
+          winner: winnerPid,
+          loser: loserPid,
+          winnerColor,
+          message: '被绝杀，你输了',
         });
         // 同时发 game_over 保证客户端统一处理
-        this.doBroadcast(roomId, {
+        this.doBroadcastTo(roomId, winnerPid, {
           type: 'game_over',
           reason: 'checkmate',
           winner: winnerPid,
           loser: loserPid,
-          message: '绝杀！',
+          message: '绝杀！你赢了！',
+        });
+        this.doBroadcastTo(roomId, loserPid, {
+          type: 'game_over',
+          reason: 'checkmate',
+          winner: winnerPid,
+          loser: loserPid,
+          message: '被绝杀，你输了',
         });
 
         if (this.onGameOver) {
@@ -444,18 +488,28 @@ class ChineseChessServer extends BaseGameServer {
     if (!state || state.phase !== 'playing') return;
 
     const winnerPid = state.players.find(p => p !== pid);
-    const winnerColor = state.colorMap[winnerPid];
+    const winnerColor = state.colorMap[String(winnerPid)];
 
     state.phase = 'ended';
     this.saveState(roomId, state);
 
-    this.doBroadcast(roomId, {
+    // 发送不同的消息给胜负双方
+    this.doBroadcastTo(roomId, winnerPid, {
       type: 'game_over',
       reason: 'resign',
       winner: winnerPid,
       loser: pid,
       winnerColor,
-      message: '对方投降，游戏结束',
+      message: '对方投降，你赢了！',
+    });
+
+    this.doBroadcastTo(roomId, pid, {
+      type: 'game_over',
+      reason: 'resign',
+      winner: winnerPid,
+      loser: pid,
+      winnerColor,
+      message: '你已投降',
     });
 
     if (this.onGameOver) {
@@ -621,7 +675,7 @@ class ChineseChessServer extends BaseGameServer {
 
       const nextColor = currentState.turnColor === 'red' ? 'black' : 'red';
       currentState.turnColor = nextColor;
-      currentState.currentTurn = currentState.players.findIndex(p => currentState.colorMap[p] === nextColor);
+      currentState.currentTurn = currentState.players.findIndex(p => currentState.colorMap[String(p)] === nextColor);
       this.startTurnTimer(roomId, currentState);
 
       this.doBroadcast(roomId, {

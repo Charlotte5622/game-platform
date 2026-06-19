@@ -1956,6 +1956,22 @@ input {
   font-size: 14px;
 }
 
+.chess-rps-status {
+  margin-top: 20px;
+  min-height: 24px;
+}
+
+.chess-rps-status .chess-rps-waiting {
+  padding: 10px 16px;
+  background: var(--bg-input);
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.chess-rps-status .chess-rps-waiting strong {
+  color: var(--secondary);
+}
+
 /* 选色 */
 .chess-choose {
   text-align: center;
@@ -3179,6 +3195,21 @@ input {
   min-width: 280px;
 }
 
+.chess-result-win {
+  border-color: var(--success);
+  box-shadow: 0 0 30px var(--success-glow);
+}
+
+.chess-result-lose {
+  border-color: var(--danger);
+  box-shadow: 0 0 30px var(--danger-glow);
+}
+
+.chess-result-draw {
+  border-color: var(--warning);
+  box-shadow: 0 0 30px rgba(243, 156, 18, 0.2);
+}
+
 .chess-result-icon {
   font-size: 72px;
   margin-bottom: 16px;
@@ -3215,4 +3246,55 @@ input {
 
 .chess-result-back-btn:hover {
   background: var(--primary-dark);
+}
+
+/* 走棋反馈 */
+.chess-turn-tag {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 6px;
+  color: var(--text-muted);
+}
+
+.chess-turn-mine {
+  color: var(--success);
+  background: rgba(0, 184, 148, 0.15);
+  animation: pulse 1.5s infinite;
+}
+
+.chess-last-move {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.chess-last-move-label {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.chess-last-move-text {
+  font-weight: 700;
+}
+
+.chess-last-move-text.red {
+  color: #dc2626;
+}
+
+.chess-last-move-text.black {
+  color: #1e293b;
+}
+
+.chess-your-turn-hint {
+  color: var(--success);
+  font-weight: 700;
+  font-size: 13px;
+  animation: pulse 1s infinite;
 }
