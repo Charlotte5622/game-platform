@@ -488,7 +488,7 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
       {opponentDisconnected && (
         <div className="chess-disconnect-banner">
           ⚠️ 对方已断线，正在等待重连...
-          <button className="chess-claim-win-btn" onClick={() => emitAction({ type: 'resign' })}>
+          <button className="chess-claim-win-btn" onClick={() => emitAction({ type: 'claim_win' })}>
             对方认负，结束游戏
           </button>
         </div>

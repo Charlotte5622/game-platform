@@ -28,6 +28,9 @@ export default function Stats() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [editingNickname, setEditingNickname] = useState(false);
+  const [nicknameInput, setNicknameInput] = useState('');
+  const [nicknameError, setNicknameError] = useState('');
   const { user, setUser } = useAuthStore();
 
   const currentAvatar = user?.avatar || AVATARS[(user?.id || 0) % AVATARS.length];
@@ -45,6 +48,26 @@ export default function Stats() {
       setShowAvatarPicker(false);
     } catch {
       // 静默失败
+    }
+  };
+
+  const handleSaveNickname = async () => {
+    const nickname = nicknameInput.trim();
+    if (!nickname || nickname.length < 2) {
+      setNicknameError('昵称至少 2 个字符');
+      return;
+    }
+    if (nickname.length > 20) {
+      setNicknameError('昵称最多 20 个字符');
+      return;
+    }
+    try {
+      const res = await api.put('/api/auth/nickname', { nickname });
+      setUser({ ...user, nickname: res.data.nickname });
+      setEditingNickname(false);
+      setNicknameError('');
+    } catch (err) {
+      setNicknameError(err.response?.data?.error || '修改失败');
     }
   };
 
@@ -69,24 +92,55 @@ export default function Stats() {
 
   return (
     <div className="stats-page">
-      {/* 头像 */}
+      {/* 头像 + 昵称 */}
       <div className="stats-avatar-section">
         <div className="stats-avatar-display" onClick={() => setShowAvatarPicker(!showAvatarPicker)}>
           <span className="stats-avatar-emoji">{currentAvatar}</span>
           <span className="stats-avatar-edit">✏️</span>
         </div>
-        <p className="stats-avatar-hint">点击更换头像</p>
+
+        {/* 昵称显示/编辑 */}
+        {editingNickname ? (
+          <div className="stats-nickname-edit">
+            <input
+              className="stats-nickname-input"
+              type="text"
+              value={nicknameInput}
+              onChange={(e) => { setNicknameInput(e.target.value); setNicknameError(''); }}
+              maxLength={20}
+              placeholder="输入新昵称"
+              autoFocus
+              onKeyDown={(e) => e.key === 'Enter' && handleSaveNickname()}
+            />
+            <div className="stats-nickname-actions">
+              <button className="stats-nickname-save" onClick={handleSaveNickname}>保存</button>
+              <button className="stats-nickname-cancel" onClick={() => { setEditingNickname(false); setNicknameError(''); }}>取消</button>
+            </div>
+            {nicknameError && <p className="stats-nickname-error">{nicknameError}</p>}
+          </div>
+        ) : (
+          <div className="stats-nickname-display">
+            <span className="stats-nickname-text">{user?.nickname}</span>
+            <button className="stats-nickname-btn" onClick={() => { setNicknameInput(user?.nickname || ''); setEditingNickname(true); }}>
+              ✏️ 改名
+            </button>
+          </div>
+        )}
+
         {showAvatarPicker && (
           <div className="stats-avatar-picker">
-            {AVATARS.map(a => (
-              <button
-                key={a}
-                className={`stats-avatar-option${a === currentAvatar ? ' stats-avatar-selected' : ''}`}
-                onClick={() => handleSelectAvatar(a)}
-              >
-                {a}
-              </button>
-            ))}
+            <p className="stats-avatar-picker-title">选择头像</p>
+            <div className="stats-avatar-grid">
+              {AVATARS.map(a => (
+                <button
+                  key={a}
+                  className={`stats-avatar-option${a === currentAvatar ? ' stats-avatar-selected' : ''}`}
+                  onClick={() => handleSelectAvatar(a)}
+                >
+                  {a}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>

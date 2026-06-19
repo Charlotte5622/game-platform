@@ -1,6 +1,7 @@
 const { verifySocketToken } = require('../middleware/auth');
 const { createGameInstance, getGameMaxPlayers, gameExists } = require('./gameLoader');
 const roomManager = require('./roomManager');
+const botManager = require('./botManager');
 
 // 在线用户跟踪：socketId -> { userId, username }
 const connectedSockets = new Map();
@@ -206,6 +207,7 @@ function setupSocketHandlers(io, prisma) {
 
       io.to(result.roomId).emit('room_update', {
         roomId: result.roomId,
+        roomCode: result.room.roomCode,
         players: result.room.players.map(p => ({
           id: p.id, nickname: p.nickname, ready: p.ready,
         })),
@@ -214,7 +216,7 @@ function setupSocketHandlers(io, prisma) {
 
       callback({
         roomId: result.roomId,
-        roomCode: code,
+        roomCode: result.room.roomCode,
         players: result.room.players.map(p => ({
           id: p.id, nickname: p.nickname, ready: p.ready,
         })),
@@ -247,6 +249,44 @@ function setupSocketHandlers(io, prisma) {
       }
 
       broadcastStatsDebounced(io);
+    });
+
+    // ========== 添加机器人 ==========
+    socket.on('add_bots', ({ roomId }, callback) => {
+      const room = roomManager.getRoom(roomId);
+      if (!room || room.state !== 'waiting') {
+        return callback?.({ error: '房间不在等待状态' });
+      }
+
+      const maxPlayers = getGameMaxPlayers(room.gameId);
+      const currentCount = room.players.length;
+
+      if (currentCount >= maxPlayers) {
+        return callback?.({ error: '房间已满' });
+      }
+
+      // 添加机器人
+      const bots = botManager.fillRoomWithBots(room, room.gameId, maxPlayers);
+
+      // 广播房间更新
+      io.to(roomId).emit('room_update', {
+        roomId,
+        roomCode: room.roomCode,
+        players: room.players.map(p => ({
+          id: p.id,
+          nickname: p.nickname,
+          ready: p.ready,
+          isBot: p.isBot || false,
+        })),
+        state: room.state,
+      });
+
+      callback?.({ ok: true, botsAdded: bots.length });
+
+      // 检查是否可以开始游戏
+      if (roomManager.allPlayersReady(roomId, maxPlayers)) {
+        startGame(io, room, prisma);
+      }
     });
 
     // ========== 游戏操作 ==========
@@ -424,11 +464,32 @@ function startGame(io, room, prisma) {
     } catch (err) {
       console.error('记录战绩失败:', err);
     }
+
+    // 停止机器人
+    botManager.stopRoomBots(roomId);
   };
 
   // 通知游戏实例依赖已注入完毕（如麻将直接发送 game_start，斗地主在 setLandlord 中发送）
   if (gameInstance.postInit) {
     gameInstance.postInit(room.id);
+  }
+
+  // 启动机器人决策循环
+  const botIds = room.players.filter(p => p.isBot).map(p => p.id);
+  if (botIds.length > 0) {
+    botManager.startBotDecisionLoop(
+      room.id,
+      room.gameId,
+      botIds,
+      (roomId) => roomManager.getGameData(roomId),
+      (roomId, botId, action) => {
+        const curRoom = roomManager.getRoom(roomId);
+        if (curRoom?.gameInstance) {
+          curRoom.gameInstance.onPlayerAction(roomId, botId, action);
+        }
+      }
+    );
+    console.log(`🤖 ${botIds.length} 个机器人已激活`);
   }
 
   console.log(`🎮 游戏开始: ${room.gameId} 房间 ${room.id}`);

@@ -173,6 +173,33 @@ router.put('/avatar', authMiddleware, async (req, res) => {
 });
 
 /**
+ * PUT /api/auth/nickname
+ * 更新用户昵称
+ */
+router.put('/nickname', authMiddleware, async (req, res) => {
+  try {
+    const nickname = sanitize(req.body.nickname, 20);
+
+    if (!nickname || nickname.length < 2) {
+      return res.status(400).json({ error: '昵称至少 2 个字符' });
+    }
+    if (nickname.length > 20) {
+      return res.status(400).json({ error: '昵称最多 20 个字符' });
+    }
+
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { nickname },
+    });
+
+    res.json({ ok: true, nickname });
+  } catch (err) {
+    console.error('更新昵称失败:', err);
+    res.status(500).json({ error: '服务器错误' });
+  }
+});
+
+/**
  * GET /api/auth/stats
  * 获取当前用户的详细战绩统计
  */
