@@ -43,144 +43,84 @@
   --theme-glow-2: rgba(0, 206, 201, 0.04);
 }
 
-/* 主题：晴空 */
+/* 主题：晴空 — 海洋蓝 */
 [data-theme="sky"] {
-  --bg: #0c1929;
-  --bg-card: #132744;
-  --bg-card-hover: #1a3358;
-  --bg-input: #0f2035;
-  --bg-overlay: rgba(12, 25, 41, 0.85);
-  --text: #e0f0ff;
-  --text-muted: #7eb8e0;
-  --text-dim: #4a8ab5;
+  --bg: #0a1628;
+  --bg-card: #12243d;
+  --bg-card-hover: #1a3355;
+  --bg-input: #0e1d32;
+  --bg-overlay: rgba(10, 22, 40, 0.88);
+  --text: #e8f4ff;
+  --text-muted: #7cb8e8;
+  --text-dim: #4a90c0;
   --border: #1e3a5f;
-  --border-light: #2a4a70;
+  --border-light: #2a5080;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.45);
-  --glass-bg: rgba(19, 39, 68, 0.8);
-  --glass-border: rgba(100, 180, 255, 0.1);
-  --theme-glow-1: rgba(56, 189, 248, 0.08);
-  --theme-glow-2: rgba(59, 130, 246, 0.06);
+  --glass-bg: rgba(18, 36, 61, 0.85);
+  --glass-border: rgba(100, 200, 255, 0.12);
+  --theme-glow-1: rgba(56, 189, 248, 0.1);
+  --theme-glow-2: rgba(99, 102, 241, 0.06);
 }
 
-/* 主题：樱落 */
+/* 主题：樱落 — 暗粉 */
 [data-theme="sakura"] {
-  --bg: #1a0f18;
-  --bg-card: #2a1a28;
-  --bg-card-hover: #35223a;
-  --bg-input: #221525;
-  --bg-overlay: rgba(26, 15, 24, 0.85);
-  --text: #fce4f0;
-  --text-muted: #d4a0b8;
-  --text-dim: #a06888;
-  --border: #4a2d45;
-  --border-light: #5a3a55;
+  --bg: #1a0e16;
+  --bg-card: #2a1828;
+  --bg-card-hover: #382238;
+  --bg-input: #201220;
+  --bg-overlay: rgba(26, 14, 22, 0.88);
+  --text: #fde8f4;
+  --text-muted: #e0a0c0;
+  --text-dim: #b07090;
+  --border: #4a2848;
+  --border-light: #603860;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.45);
-  --glass-bg: rgba(42, 26, 40, 0.8);
-  --glass-border: rgba(255, 150, 200, 0.1);
-  --theme-glow-1: rgba(244, 114, 182, 0.08);
-  --theme-glow-2: rgba(232, 121, 249, 0.06);
+  --glass-bg: rgba(42, 24, 40, 0.85);
+  --glass-border: rgba(255, 150, 200, 0.12);
+  --theme-glow-1: rgba(244, 114, 182, 0.1);
+  --theme-glow-2: rgba(236, 72, 153, 0.06);
 }
 
-/* 主题：极光 */
-[data-theme="aurora"] {
-  --bg: #120a20;
-  --bg-card: #1e1435;
-  --bg-card-hover: #281c48;
-  --bg-input: #170f2a;
-  --bg-overlay: rgba(18, 10, 32, 0.85);
-  --text: #ede4ff;
-  --text-muted: #b8a0e0;
-  --text-dim: #8060b0;
-  --border: #3a2860;
-  --border-light: #4a3870;
-  --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
-  --glass-bg: rgba(30, 20, 53, 0.8);
-  --glass-border: rgba(180, 140, 255, 0.1);
-  --theme-glow-1: rgba(168, 85, 247, 0.08);
-  --theme-glow-2: rgba(139, 92, 246, 0.06);
+/* 主题：Nord — 北欧冷调 */
+[data-theme="nord"] {
+  --bg: #242933;
+  --bg-card: #2e3440;
+  --bg-card-hover: #3b4252;
+  --bg-input: #272d38;
+  --bg-overlay: rgba(36, 41, 51, 0.9);
+  --text: #eceff4;
+  --text-muted: #a8b4c8;
+  --text-dim: #7888a0;
+  --border: #3e4859;
+  --border-light: #4e5a6e;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.45);
+  --glass-bg: rgba(46, 52, 64, 0.88);
+  --glass-border: rgba(136, 192, 208, 0.1);
+  --theme-glow-1: rgba(136, 192, 208, 0.08);
+  --theme-glow-2: rgba(163, 190, 140, 0.06);
 }
 
-/* 主题：雪境 */
+/* 主题：雪境 — 纯白 */
 [data-theme="snow"] {
   --bg: #f0f2f5;
   --bg-card: #ffffff;
   --bg-card-hover: #f8f9fb;
-  --bg-input: #f5f6f8;
-  --bg-overlay: rgba(240, 242, 245, 0.9);
+  --bg-input: #f3f4f6;
+  --bg-overlay: rgba(240, 242, 245, 0.92);
   --text: #1a1a2e;
-  --text-muted: #64748b;
-  --text-dim: #94a3b8;
-  --border: #e2e8f0;
-  --border-light: #cbd5e1;
-  --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.12);
-  --glass-bg: rgba(255, 255, 255, 0.85);
+  --text-muted: #5a6578;
+  --text-dim: #8896aa;
+  --border: #dde1e8;
+  --border-light: #ccd2da;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.1);
+  --glass-bg: rgba(255, 255, 255, 0.88);
   --glass-border: rgba(0, 0, 0, 0.06);
-  --theme-glow-1: rgba(108, 92, 231, 0.04);
-  --theme-glow-2: rgba(0, 206, 201, 0.03);
-}
-
-/* 主题：Dracula */
-[data-theme="dracula"] {
-  --bg: #1e1f29;
-  --bg-card: #282a36;
-  --bg-card-hover: #343746;
-  --bg-input: #21222c;
-  --bg-overlay: rgba(30, 31, 41, 0.9);
-  --text: #f8f8f2;
-  --text-muted: #bfbfbf;
-  --text-dim: #6272a4;
-  --border: #44475a;
-  --border-light: #565970;
-  --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
-  --glass-bg: rgba(40, 42, 54, 0.85);
-  --glass-border: rgba(255, 255, 255, 0.06);
-  --theme-glow-1: rgba(189, 147, 249, 0.06);
-  --theme-glow-2: rgba(255, 121, 198, 0.04);
-}
-
-/* 主题：Nord */
-[data-theme="nord"] {
-  --bg: #2e3440;
-  --bg-card: #3b4252;
-  --bg-card-hover: #434c5e;
-  --bg-input: #2e3440;
-  --bg-overlay: rgba(46, 52, 64, 0.9);
-  --text: #eceff4;
-  --text-muted: #a3b1c4;
-  --text-dim: #7b8da0;
-  --border: #4c566a;
-  --border-light: #5e6779;
-  --shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.45);
-  --glass-bg: rgba(59, 66, 82, 0.85);
-  --glass-border: rgba(255, 255, 255, 0.06);
-  --theme-glow-1: rgba(136, 192, 208, 0.06);
-  --theme-glow-2: rgba(163, 190, 140, 0.04);
-}
-
-/* 主题：Catppuccin */
-[data-theme="catppuccin"] {
-  --bg: #1e1e2e;
-  --bg-card: #292c3c;
-  --bg-card-hover: #313449;
-  --bg-input: #232536;
-  --bg-overlay: rgba(30, 30, 46, 0.9);
-  --text: #cdd6f4;
-  --text-muted: #9399b2;
-  --text-dim: #6c7086;
-  --border: #45475a;
-  --border-light: #585b70;
-  --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
-  --glass-bg: rgba(41, 44, 60, 0.85);
-  --glass-border: rgba(255, 255, 255, 0.06);
-  --theme-glow-1: rgba(203, 166, 247, 0.06);
-  --theme-glow-2: rgba(245, 194, 231, 0.04);
+  --theme-glow-1: rgba(99, 102, 241, 0.05);
+  --theme-glow-2: rgba(16, 185, 129, 0.04);
 }
 
 body {
@@ -519,14 +459,11 @@ input {
 }
 
 /* 主题色块 */
-.theme-opt-midnight { background: linear-gradient(135deg, #0f0f23, #6c5ce7); --option-glow: rgba(108,92,231,0.4); }
-.theme-opt-sky      { background: linear-gradient(135deg, #0c1929, #38bdf8); --option-glow: rgba(56,189,248,0.4); }
-.theme-opt-sakura   { background: linear-gradient(135deg, #1a0f18, #f472b6); --option-glow: rgba(244,114,182,0.4); }
-.theme-opt-aurora   { background: linear-gradient(135deg, #120a20, #a855f7); --option-glow: rgba(168,85,247,0.4); }
-.theme-opt-snow     { background: linear-gradient(135deg, #e2e8f0, #ffffff); --option-glow: rgba(255,255,255,0.3); border-color: rgba(0,0,0,0.1); }
-.theme-opt-dracula  { background: linear-gradient(135deg, #282a36, #bd93f9); --option-glow: rgba(189,147,249,0.4); }
-.theme-opt-nord     { background: linear-gradient(135deg, #2e3440, #88c0d0); --option-glow: rgba(136,192,208,0.4); }
-.theme-opt-catppuccin { background: linear-gradient(135deg, #292c3c, #cba6f7); --option-glow: rgba(203,166,247,0.4); }
+.theme-opt-midnight { background: linear-gradient(135deg, #0f0f23, #6c5ce7); --option-glow: rgba(108,92,231,0.45); }
+.theme-opt-sky      { background: linear-gradient(135deg, #0a1628, #38bdf8); --option-glow: rgba(56,189,248,0.45); }
+.theme-opt-sakura   { background: linear-gradient(135deg, #1a0e16, #ec4899); --option-glow: rgba(236,72,153,0.45); }
+.theme-opt-nord     { background: linear-gradient(135deg, #242933, #88c0d0); --option-glow: rgba(136,192,208,0.45); }
+.theme-opt-snow     { background: linear-gradient(135deg, #dde1e8, #ffffff); --option-glow: rgba(255,255,255,0.35); border-color: rgba(0,0,0,0.1); }
 
 /* ============================================
    大厅
