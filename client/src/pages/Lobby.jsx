@@ -12,11 +12,13 @@ const THEMES = [
   { id: 'snow',     label: '雪境',   className: 'theme-opt-snow' },
 ];
 
-// 扇形展开：左上半圆展开（-210° 到 -330°，避开右下角按钮区域）
+// 扇形展开：从右下角按钮向左上方展开
+// 角度：-90°(正上) → -180°(正左)，5个选项均匀分布
 function getFanStyle(index, total, isOpen) {
   const radius = 100;
-  const startAngle = -210;
-  const endAngle = -330;
+  // -90° = 正上方, -180° = 正左方
+  const startAngle = -90;
+  const endAngle = -180;
   const step = total > 1 ? (endAngle - startAngle) / (total - 1) : 0;
   const angle = startAngle + step * index;
   const rad = (angle * Math.PI) / 180;
