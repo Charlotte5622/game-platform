@@ -93,10 +93,11 @@ function registerExternalGameProxy(app, io, gameId) {
 
   const { baseUrl, wsPath } = game;
 
-  // HTTP 代理：前端资源
+  // HTTP 代理：前端资源 + WebSocket
   app.use(`/games/${gameId}`, createProxyMiddleware({
     target: baseUrl,
     changeOrigin: true,
+    ws: true,
     pathRewrite: { [`^/games/${gameId}`]: '' },
   }));
 
