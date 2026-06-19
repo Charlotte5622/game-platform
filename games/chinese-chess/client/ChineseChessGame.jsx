@@ -208,6 +208,11 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
   const [drawRequestFrom, setDrawRequestFrom] = useState(null);
   const [drawRequestSent, setDrawRequestSent] = useState(false);
   const [opponentDisconnected, setOpponentDisconnected] = useState(false);
+  // 计时器设置
+  const [timerEnabled, setTimerEnabled] = useState(true);
+  const [totalMinutes, setTotalMinutes] = useState(15);
+  const [stepSeconds, setStepSeconds] = useState(60);
+  const [timerSettingsSent, setTimerSettingsSent] = useState(false);
 
   useEffect(() => {
     if (!socket) return;
@@ -222,6 +227,14 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
     const handleDrawRejected = (data) => { setDrawRequestSent(false); setError(data.message); setTimeout(() => setError(''), 2500); };
     const handleOpponentDisconnected = (data) => { setOpponentDisconnected(true); setError(data.message); setTimeout(() => setError(''), 5000); };
     const handleOpponentReconnected = () => { setOpponentDisconnected(false); };
+    const handleTimerSettingsUpdated = (data) => {
+      if (data.settings) {
+        setTimerEnabled(data.settings.enabled);
+        setTotalMinutes(Math.round((data.settings.totalTime || 0) / 60000));
+        setStepSeconds(Math.round((data.settings.stepTime || 0) / 1000));
+        setTimerSettingsSent(true);
+      }
+    };
     socket.on('error', handleError);
     socket.on('rps_recorded', handleRpsRecorded);
     socket.on('rps_draw', handleRpsDraw);
@@ -233,6 +246,7 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
     socket.on('draw_rejected', handleDrawRejected);
     socket.on('opponent_disconnected', handleOpponentDisconnected);
     socket.on('opponent_reconnected', handleOpponentReconnected);
+    socket.on('timer_settings_updated', handleTimerSettingsUpdated);
     return () => {
       socket.off('error', handleError);
       socket.off('rps_recorded', handleRpsRecorded);
@@ -245,6 +259,7 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
       socket.off('draw_rejected', handleDrawRejected);
       socket.off('opponent_disconnected', handleOpponentDisconnected);
       socket.off('opponent_reconnected', handleOpponentReconnected);
+      socket.off('timer_settings_updated', handleTimerSettingsUpdated);
     };
   }, [socket]);
 

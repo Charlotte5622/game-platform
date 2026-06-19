@@ -327,6 +327,28 @@ class ChineseChessServer extends BaseGameServer {
     // 走棋成功，重置该玩家的连续超时计数
     state.timeoutCount[pid] = 0;
 
+    // 扣除已用时间
+    this.deductTurnTime(roomId, state, pid);
+
+    // 检查总时间是否耗尽
+    const settings = state.timerSettings;
+    if (settings?.enabled && settings.totalTime > 0 && (state.timeRemaining[pid] || 0) <= 0) {
+      const winnerPid = state.players.find(p => p !== pid);
+      state.phase = 'ended';
+      this.doBroadcast(roomId, {
+        type: 'game_over',
+        reason: 'timeout_loss',
+        winner: winnerPid,
+        loser: pid,
+        message: '总时间耗尽，判负',
+      });
+      if (this.onGameOver) {
+        this.onGameOver(roomId, { winners: [winnerPid], scores: { [winnerPid]: 10, [pid]: -10 } });
+      }
+      this.saveState(roomId, state);
+      return;
+    }
+
     // 切换走棋方
     const nextColor = state.turnColor === 'red' ? 'black' : 'red';
     state.turnColor = nextColor;
@@ -500,37 +522,70 @@ class ChineseChessServer extends BaseGameServer {
     // 清除旧计时器
     if (state._turnTimer) {
       clearTimeout(state._turnTimer);
+      state._turnTimer = null;
     }
 
-    const TURN_TIME = 60000; // 60秒
-    const MAX_TIMEOUTS = 3;  // 连续超时3次判负
-    state.turnDeadline = Date.now() + TURN_TIME;
+    const settings = state.timerSettings;
+    if (!settings || !settings.enabled) {
+      // 未启用计时器，只广播无 deadline
+      state.turnDeadline = null;
+      state.turnStartTime = null;
+      this.doBroadcast(roomId, {
+        type: 'turn_timer',
+        deadline: null,
+        currentTurn: state.currentTurn,
+        timeRemaining: state.timeRemaining,
+      });
+      return;
+    }
+
+    const currentPlayer = state.players[state.currentTurn];
+    const totalRemaining = state.timeRemaining[currentPlayer] || 0;
+    const stepTime = settings.stepTime || 0;
+
+    // 本步 deadline = min(步时, 剩余总时间)
+    let deadline = null;
+    if (stepTime > 0 && totalRemaining > 0) {
+      deadline = Date.now() + Math.min(stepTime, totalRemaining);
+    } else if (stepTime > 0) {
+      deadline = Date.now() + stepTime;
+    } else if (totalRemaining > 0) {
+      deadline = Date.now() + totalRemaining;
+    }
+
+    state.turnDeadline = deadline;
+    state.turnStartTime = Date.now();
     this.saveState(roomId, state);
 
     // 广播计时器
     this.doBroadcast(roomId, {
       type: 'turn_timer',
-      deadline: state.turnDeadline,
+      deadline,
       currentTurn: state.currentTurn,
+      timeRemaining: state.timeRemaining,
     });
 
-    // 捕获当前回合索引为局部变量，避免闭包引用被修改的 state
+    if (!deadline) return; // 无时间限制
+
     const capturedTurn = state.currentTurn;
+    const capturedStartTime = state.turnStartTime;
+
     state._turnTimer = setTimeout(() => {
       const currentState = this.getState(roomId);
       if (!currentState || currentState.phase !== 'playing') return;
-      // 确认还是同一个回合
       if (currentState.currentTurn !== capturedTurn) return;
 
-      const timeoutPlayer = currentState.players[currentState.currentTurn];
-      currentState.timeoutCount[timeoutPlayer] = (currentState.timeoutCount[timeoutPlayer] || 0) + 1;
-      const count = currentState.timeoutCount[timeoutPlayer];
+      // 计算实际经过时间
+      const elapsed = Date.now() - capturedStartTime;
 
-      console.log(`[Chess] 玩家 ${timeoutPlayer} 超时 ${count}/${MAX_TIMEOUTS}`);
+      // 扣除总时间
+      if (settings.totalTime > 0) {
+        currentState.timeRemaining[currentPlayer] = Math.max(0, (currentState.timeRemaining[currentPlayer] || 0) - elapsed);
+      }
 
-      if (count >= MAX_TIMEOUTS) {
-        // 连续超时3次，判负
-        const winnerPid = currentState.players.find(p => p !== timeoutPlayer);
+      // 检查总时间是否耗尽
+      if (settings.totalTime > 0 && currentState.timeRemaining[currentPlayer] <= 0) {
+        const winnerPid = currentState.players.find(p => p !== currentPlayer);
         currentState.phase = 'ended';
         this.saveState(roomId, currentState);
 
@@ -538,20 +593,22 @@ class ChineseChessServer extends BaseGameServer {
           type: 'game_over',
           reason: 'timeout_loss',
           winner: winnerPid,
-          loser: timeoutPlayer,
-          message: `超时${MAX_TIMEOUTS}次，判负`,
+          loser: currentPlayer,
+          message: '总时间耗尽，判负',
         });
 
         if (this.onGameOver) {
           this.onGameOver(roomId, {
             winners: [winnerPid],
-            scores: { [winnerPid]: 10, [timeoutPlayer]: -10 },
+            scores: { [winnerPid]: 10, [currentPlayer]: -10 },
           });
         }
         return;
       }
 
-      // 超时但未判负，跳过回合
+      // 步时超时，跳过回合
+      console.log(`[Chess] 玩家 ${currentPlayer} 步时超时，跳过`);
+
       const nextColor = currentState.turnColor === 'red' ? 'black' : 'red';
       currentState.turnColor = nextColor;
       currentState.currentTurn = currentState.players.findIndex(p => currentState.colorMap[p] === nextColor);
@@ -559,15 +616,26 @@ class ChineseChessServer extends BaseGameServer {
 
       this.doBroadcast(roomId, {
         type: 'turn_timeout',
-        timeoutPlayer,
-        timeoutCount: count,
-        maxTimeouts: MAX_TIMEOUTS,
-        message: `走棋超时(${count}/${MAX_TIMEOUTS})，轮到对方`,
+        timeoutPlayer: currentPlayer,
+        message: '走棋超时，轮到对方',
       });
 
       this.saveState(roomId, currentState);
       this.broadcastState(roomId, currentState);
-    }, TURN_TIME + 1000); // 多给1秒缓冲
+    }, (deadline - Date.now()) + 500); // 500ms 缓冲
+  }
+
+  /**
+   * 走棋时扣除已用时间
+   */
+  deductTurnTime(roomId, state, playerId) {
+    const settings = state.timerSettings;
+    if (!settings || !settings.enabled || !state.turnStartTime) return;
+
+    const elapsed = Date.now() - state.turnStartTime;
+    if (settings.totalTime > 0) {
+      state.timeRemaining[playerId] = Math.max(0, (state.timeRemaining[playerId] || 0) - elapsed);
+    }
   }
 
   // ========== 辅助 ==========
