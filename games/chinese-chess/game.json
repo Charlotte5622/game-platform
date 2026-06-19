@@ -4,6 +4,6 @@
   "description": "经典双人象棋，含猜拳选色",
   "minPlayers": 2,
   "maxPlayers": 2,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "game-platform"
 }

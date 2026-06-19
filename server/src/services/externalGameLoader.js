@@ -1,23 +1,16 @@
 /**
  * 外部游戏加载器
  *
- * 功能：
- * 1. 从 config/external-games.json 读取外部游戏配置
- * 2. 提供外部游戏元数据查询
- * 3. 为每个外部游戏创建代理中间件
- *
- * 外部游戏是独立运行的服务，平台只做反向代理。
- * 与内置游戏（games/ 目录下的插件）完全独立，互不影响。
+ * 支持两种代理模式：
+ * 1. proxy  - 全代理（HTTP + WebSocket），适合 Socket.IO 游戏
+ * 2. iframe - 仅代理 HTTP，游戏自行处理 WebSocket，适合大型独立项目
  */
 
 const fs = require('fs');
 const path = require('path');
 const { createProxyMiddleware } = require('http-proxy-middleware');
-const { io: socketIOClient } = require('socket.io-client');
 
 const CONFIG_PATH = path.join(__dirname, '../../../config/external-games.json');
-
-// 外部游戏注册表: gameId -> config
 const externalGames = new Map();
 
 /**
@@ -40,13 +33,14 @@ function loadExternalGames() {
         continue;
       }
 
+      const proxyMode = game.proxyMode || 'iframe'; // 默认 iframe 模式
       externalGames.set(game.id, {
         ...game,
-        type: 'external',
+        proxyMode,
         baseUrl: `http://${game.host || 'localhost'}:${game.port}`,
       });
 
-      console.log(`  ✅ ${game.name} (${game.id}) -> :${game.port}`);
+      console.log(`  ✅ ${game.name} (${game.id}) -> :${game.port} [${proxyMode}]`);
     }
 
     console.log(`🔌 共加载 ${externalGames.size} 个外部游戏\n`);
@@ -56,7 +50,7 @@ function loadExternalGames() {
 }
 
 /**
- * 获取所有外部游戏元数据（用于 API 返回）
+ * 获取所有外部游戏元数据
  */
 function getExternalGamesList() {
   return Array.from(externalGames.values()).map(g => ({
@@ -66,91 +60,49 @@ function getExternalGamesList() {
     minPlayers: g.minPlayers,
     maxPlayers: g.maxPlayers,
     type: 'external',
+    proxyMode: g.proxyMode,
   }));
 }
 
-/**
- * 获取单个外部游戏配置
- */
 function getExternalGame(gameId) {
   return externalGames.get(gameId) || null;
 }
 
-/**
- * 判断是否是外部游戏
- */
 function isExternalGame(gameId) {
   return externalGames.has(gameId);
 }
 
 /**
- * 为 Express 注册外部游戏代理
- * 前端资源代理 + WebSocket 代理
+ * 注册外部游戏代理
  */
 function registerExternalGameProxy(app, io, gameId) {
   const game = externalGames.get(gameId);
   if (!game) return;
 
-  const { baseUrl, wsPath } = game;
+  const { baseUrl, proxyMode } = game;
 
-  // HTTP 代理：前端资源 + WebSocket
-  app.use(`/games/${gameId}`, createProxyMiddleware({
-    target: baseUrl,
-    changeOrigin: true,
-    ws: true,
-    pathRewrite: { [`^/games/${gameId}`]: '' },
-  }));
-
-  // WebSocket 代理：游戏通信
-  const wsNamespace = `/external/${gameId}`;
-  const nsp = io.of(wsNamespace);
-
-  nsp.on('connection', (socket) => {
-    console.log(`🔌 [外部游戏 ${gameId}] 玩家连接: ${socket.id}`);
-
-    // 连接到外部游戏的 WebSocket
-    const externalSocket = socketIOClient(baseUrl + (wsPath || '/socket.io'), {
-      transports: ['websocket'],
-      reconnection: false,
-    });
-
-    externalSocket.on('connect', () => {
-      console.log(`  🔗 [${gameId}] 已连接外部游戏服务`);
-    });
-
-    externalSocket.on('connect_error', (err) => {
-      console.error(`  ❌ [${gameId}] 连接外部游戏失败: ${err.message}`);
-      socket.emit('error', { message: '外部游戏服务不可用' });
-      socket.disconnect();
-    });
-
-    // 双向转发
-    externalSocket.onAny((event, ...args) => {
-      socket.emit(event, ...args);
-    });
-
-    socket.onAny((event, ...args) => {
-      if (externalSocket.connected) {
-        externalSocket.emit(event, ...args);
-      }
-    });
-
-    socket.on('disconnect', () => {
-      externalSocket.disconnect();
-    });
-
-    externalSocket.on('disconnect', () => {
-      socket.disconnect();
-    });
-  });
-
-  console.log(`  🔗 代理已注册: /games/${gameId} -> ${baseUrl}`);
-  console.log(`  🔗 WebSocket: ${wsNamespace} -> ${wsPath}`);
+  if (proxyMode === 'iframe') {
+    // iframe 模式：只代理 HTTP，不处理 WebSocket
+    // 游戏自行管理 WebSocket 连接
+    app.use(`/games/${gameId}`, createProxyMiddleware({
+      target: baseUrl,
+      changeOrigin: true,
+      ws: false,
+      pathRewrite: { [`^/games/${gameId}`]: '' },
+    }));
+    console.log(`  🔗 HTTP代理: /games/${gameId} -> ${baseUrl} [iframe模式]`);
+  } else {
+    // proxy 模式：代理 HTTP + WebSocket
+    app.use(`/games/${gameId}`, createProxyMiddleware({
+      target: baseUrl,
+      changeOrigin: true,
+      ws: true,
+      pathRewrite: { [`^/games/${gameId}`]: '' },
+    }));
+    console.log(`  🔗 全代理: /games/${gameId} -> ${baseUrl} [proxy模式]`);
+  }
 }
 
-/**
- * 注册所有外部游戏的代理
- */
 function registerAllExternalProxies(app, io) {
   for (const [gameId] of externalGames) {
     registerExternalGameProxy(app, io, gameId);
