@@ -219,6 +219,7 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
   const [drawRequestFrom, setDrawRequestFrom] = useState(null);
   const [drawRequestSent, setDrawRequestSent] = useState(false);
   const [opponentDisconnected, setOpponentDisconnected] = useState(false);
+  const [gameResult, setGameResult] = useState(null); // { type, winner, loser, message, reason }
   // 计时器设置
   const [timerEnabled, setTimerEnabled] = useState(true);
   const [totalMinutes, setTotalMinutes] = useState(15);
@@ -238,6 +239,13 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
     const handleDrawRejected = (data) => { setDrawRequestSent(false); setError(data.message); setTimeout(() => setError(''), 2500); };
     const handleOpponentDisconnected = (data) => { setOpponentDisconnected(true); setError(data.message); setTimeout(() => setError(''), 5000); };
     const handleOpponentReconnected = () => { setOpponentDisconnected(false); };
+    // 绝杀/游戏结束
+    const handleCheckmate = (data) => {
+      setGameResult({ type: 'checkmate', winner: data.winner, loser: data.loser, message: data.message, winnerColor: data.winnerColor });
+    };
+    const handleGameOver = (data) => {
+      setGameResult({ type: data.reason || 'game_over', winner: data.winner, loser: data.loser, message: data.message, reason: data.reason });
+    };
     const handleTimerSettingsUpdated = (data) => {
       if (data.settings) {
         setTimerEnabled(data.settings.enabled);
@@ -258,6 +266,8 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
     socket.on('opponent_disconnected', handleOpponentDisconnected);
     socket.on('opponent_reconnected', handleOpponentReconnected);
     socket.on('timer_settings_updated', handleTimerSettingsUpdated);
+    socket.on('checkmate', handleCheckmate);
+    socket.on('game_over', handleGameOver);
     return () => {
       socket.off('error', handleError);
       socket.off('rps_recorded', handleRpsRecorded);
@@ -271,6 +281,8 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
       socket.off('opponent_disconnected', handleOpponentDisconnected);
       socket.off('opponent_reconnected', handleOpponentReconnected);
       socket.off('timer_settings_updated', handleTimerSettingsUpdated);
+      socket.off('checkmate', handleCheckmate);
+      socket.off('game_over', handleGameOver);
     };
   }, [socket]);
 
@@ -501,9 +513,32 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
 
         {error && <div className="chess-error">{error}</div>}
 
-        {phase === 'ended' && (
-          <div className="chess-result">
-            <h2>🏆 游戏结束</h2>
+        {/* 胜负弹窗 */}
+        {gameResult && (
+          <div className="chess-result-modal">
+            <div className="chess-result-modal-content">
+              <div className="chess-result-icon">
+                {String(gameResult.winner) === String(playerId) ? '🎉' : '😢'}
+              </div>
+              <h2 className="chess-result-title">
+                {String(gameResult.winner) === String(playerId)
+                  ? '你赢了！'
+                  : gameResult.reason === 'draw_agreed'
+                    ? '和棋'
+                    : '你输了'}
+              </h2>
+              <p className="chess-result-reason">{gameResult.message}</p>
+              <div className="chess-result-details">
+                {gameResult.reason === 'checkmate' && <span>绝杀</span>}
+                {gameResult.reason === 'resign' && <span>投降</span>}
+                {gameResult.reason === 'timeout_loss' && <span>超时判负</span>}
+                {gameResult.reason === 'draw_agreed' && <span>双方同意和棋</span>}
+                {gameResult.reason === 'player_disconnect' && <span>对方断线</span>}
+              </div>
+              <button className="chess-result-back-btn" onClick={() => window.location.href = '/lobby'}>
+                返回大厅
+              </button>
+            </div>
           </div>
         )}
       </div>
