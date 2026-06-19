@@ -63,24 +63,24 @@
   --theme-glow-2: rgba(99, 102, 241, 0.06);
 }
 
-/* 主题：樱落 — 暗粉 */
+/* 主题：樱落 — 少女粉 */
 [data-theme="sakura"] {
-  --bg: #1a0e16;
-  --bg-card: #2a1828;
-  --bg-card-hover: #382238;
-  --bg-input: #201220;
-  --bg-overlay: rgba(26, 14, 22, 0.88);
-  --text: #fde8f4;
-  --text-muted: #e0a0c0;
-  --text-dim: #b07090;
-  --border: #4a2848;
-  --border-light: #603860;
-  --shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.45);
-  --glass-bg: rgba(42, 24, 40, 0.85);
-  --glass-border: rgba(255, 150, 200, 0.12);
-  --theme-glow-1: rgba(244, 114, 182, 0.1);
-  --theme-glow-2: rgba(236, 72, 153, 0.06);
+  --bg: #1e1420;
+  --bg-card: #2d1e30;
+  --bg-card-hover: #3a2840;
+  --bg-input: #241828;
+  --bg-overlay: rgba(30, 20, 32, 0.9);
+  --text: #fce4f0;
+  --text-muted: #e8a8cc;
+  --text-dim: #c080a0;
+  --border: #4a2d50;
+  --border-light: #5c3a65;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.4);
+  --glass-bg: rgba(45, 30, 48, 0.88);
+  --glass-border: rgba(255, 180, 220, 0.12);
+  --theme-glow-1: rgba(255, 150, 200, 0.1);
+  --theme-glow-2: rgba(255, 100, 180, 0.06);
 }
 
 /* 主题：Nord — 北欧冷调 */
@@ -461,7 +461,7 @@ input {
 /* 主题色块 */
 .theme-opt-midnight { background: linear-gradient(135deg, #0f0f23, #6c5ce7); --option-glow: rgba(108,92,231,0.45); }
 .theme-opt-sky      { background: linear-gradient(135deg, #0a1628, #38bdf8); --option-glow: rgba(56,189,248,0.45); }
-.theme-opt-sakura   { background: linear-gradient(135deg, #1a0e16, #ec4899); --option-glow: rgba(236,72,153,0.45); }
+.theme-opt-sakura   { background: linear-gradient(135deg, #2d1e30, #ff8ec0); --option-glow: rgba(255,142,192,0.5); }
 .theme-opt-nord     { background: linear-gradient(135deg, #242933, #88c0d0); --option-glow: rgba(136,192,208,0.45); }
 .theme-opt-snow     { background: linear-gradient(135deg, #dde1e8, #ffffff); --option-glow: rgba(255,255,255,0.35); border-color: rgba(0,0,0,0.1); }
 
