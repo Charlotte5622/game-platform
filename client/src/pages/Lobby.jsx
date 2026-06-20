@@ -3,31 +3,28 @@ import api from '../services/api';
 import GameCard from '../components/GameCard';
 import { getSocket } from '../services/socket';
 
-// 主题配置（8 种）
+// 主题配置（5 种精选）
 const THEMES = [
-  { id: 'midnight',   label: '午夜',   className: 'theme-opt-midnight' },
-  { id: 'sky',        label: '晴空',   className: 'theme-opt-sky' },
-  { id: 'sakura',     label: '樱落',   className: 'theme-opt-sakura' },
-  { id: 'aurora',     label: '极光',   className: 'theme-opt-aurora' },
-  { id: 'dracula',    label: 'Dracula', className: 'theme-opt-dracula' },
-  { id: 'nord',       label: 'Nord',   className: 'theme-opt-nord' },
-  { id: 'catppuccin', label: 'Catppuccin', className: 'theme-opt-catppuccin' },
-  { id: 'snow',       label: '雪境',   className: 'theme-opt-snow' },
+  { id: 'midnight', label: '午夜',   className: 'theme-opt-midnight' },
+  { id: 'sky',      label: '晴空',   className: 'theme-opt-sky' },
+  { id: 'sakura',   label: '樱落',   className: 'theme-opt-sakura' },
+  { id: 'nord',     label: 'Nord',   className: 'theme-opt-nord' },
+  { id: 'snow',     label: '雪境',   className: 'theme-opt-snow' },
 ];
 
-// 扇形展开角度配置（向上半圆展开）
+// 扇形展开：左上半圆展开（-210° 到 -330°，避开右下角按钮区域）
 function getFanStyle(index, total, isOpen) {
-  const radius = 90; // 展开半径 px
-  const startAngle = -180; // 起始角度（正上方）
-  const endAngle = -0;   // 结束角度（正右方）
-  const step = (endAngle - startAngle) / (total - 1);
+  const radius = 100;
+  const startAngle = -210;
+  const endAngle = -330;
+  const step = total > 1 ? (endAngle - startAngle) / (total - 1) : 0;
   const angle = startAngle + step * index;
   const rad = (angle * Math.PI) / 180;
   const x = Math.round(Math.cos(rad) * radius);
   const y = Math.round(Math.sin(rad) * radius);
   return {
     '--fan-transform': `translate(${x}px, ${y}px) scale(1)`,
-    transitionDelay: isOpen ? `${index * 40}ms` : `${(total - 1 - index) * 30}ms`,
+    transitionDelay: isOpen ? `${index * 50}ms` : `${(total - 1 - index) * 30}ms`,
   };
 }
 
