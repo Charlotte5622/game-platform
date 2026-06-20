@@ -10,6 +10,7 @@ const { PrismaClient } = require('@prisma/client');
 const authRoutes = require('./routes/auth');
 const gamesRoutes = require('./routes/games');
 const externalGamesRoutes = require('./routes/externalGames');
+const leaderboardRoutes = require('./routes/leaderboard');
 const { setupSocketHandlers } = require('./services/socketHandler');
 const { loadAllGames } = require('./services/gameLoader');
 const { loadExternalGames, registerAllExternalProxies } = require('./services/externalGameLoader');
@@ -43,6 +44,7 @@ app.use('/games', express.static(path.join(__dirname, '../../games'), {
 app.use('/api/auth', authRoutes);
 app.use('/api/games', gamesRoutes);
 app.use('/api/external-games', externalGamesRoutes);
+app.use('/api/leaderboard', leaderboardRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {

@@ -150,6 +150,29 @@ router.get('/me', authMiddleware, async (req, res) => {
 });
 
 /**
+ * PUT /api/auth/avatar
+ * 更新用户头像
+ */
+router.put('/avatar', authMiddleware, async (req, res) => {
+  try {
+    const { avatar } = req.body;
+    if (!avatar || typeof avatar !== 'string' || avatar.length > 10) {
+      return res.status(400).json({ error: '头像格式不正确' });
+    }
+
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { avatar },
+    });
+
+    res.json({ ok: true, avatar });
+  } catch (err) {
+    console.error('更新头像失败:', err);
+    res.status(500).json({ error: '服务器错误' });
+  }
+});
+
+/**
  * GET /api/auth/stats
  * 获取当前用户的详细战绩统计
  */
