@@ -21,6 +21,7 @@ export default function Navbar() {
       <div className="navbar-right">
         {user ? (
           <>
+            <Link to="/stats" className="navbar-stats">📊 战绩</Link>
             <span className="navbar-nickname">{user.nickname}</span>
             <button onClick={handleLogout} className="navbar-logout">
               退出
