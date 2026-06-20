@@ -363,8 +363,8 @@ input {
 /* 扇形选项 */
 .theme-option {
   position: absolute;
-  bottom: 8px;
-  right: 8px;
+  bottom: 6px;
+  right: 6px;
   width: 44px;
   height: 44px;
   border-radius: 50%;
