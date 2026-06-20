@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useAuthStore } from '../stores/authStore';
+
+// 预设头像
+const AVATARS = ['😎', '🤠', '👻', '🦊', '🐱', '🐼', '🦁', '🐸', '👑', '🎭', '🤖', '👾'];
 
 // 游戏名映射
 const GAME_NAMES = {
@@ -23,12 +27,26 @@ function formatDuration(seconds) {
 export default function Stats() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const { user, setUser } = useAuthStore();
+
+  const currentAvatar = user?.avatar || AVATARS[(user?.id || 0) % AVATARS.length];
 
   useEffect(() => {
     api.get('/api/auth/stats')
       .then(res => { setStats(res.data); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
+
+  const handleSelectAvatar = async (avatar) => {
+    try {
+      await api.put('/api/auth/avatar', { avatar });
+      setUser({ ...user, avatar });
+      setShowAvatarPicker(false);
+    } catch {
+      // 静默失败
+    }
+  };
 
   if (loading) {
     return (
@@ -51,6 +69,28 @@ export default function Stats() {
 
   return (
     <div className="stats-page">
+      {/* 头像 */}
+      <div className="stats-avatar-section">
+        <div className="stats-avatar-display" onClick={() => setShowAvatarPicker(!showAvatarPicker)}>
+          <span className="stats-avatar-emoji">{currentAvatar}</span>
+          <span className="stats-avatar-edit">✏️</span>
+        </div>
+        <p className="stats-avatar-hint">点击更换头像</p>
+        {showAvatarPicker && (
+          <div className="stats-avatar-picker">
+            {AVATARS.map(a => (
+              <button
+                key={a}
+                className={`stats-avatar-option${a === currentAvatar ? ' stats-avatar-selected' : ''}`}
+                onClick={() => handleSelectAvatar(a)}
+              >
+                {a}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* 总览 */}
       <div className="stats-hero">
         <h1 className="stats-title">📊 我的战绩</h1>

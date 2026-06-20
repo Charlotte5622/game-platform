@@ -6,6 +6,7 @@ import Register from './pages/Register';
 import Lobby from './pages/Lobby';
 import GameRoom from './pages/GameRoom';
 import Stats from './pages/Stats';
+import Leaderboard from './pages/Leaderboard';
 
 function ProtectedRoute({ children }) {
   const token = useAuthStore((s) => s.token);
@@ -34,6 +35,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Stats />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/leaderboard"
+            element={
+              <ProtectedRoute>
+                <Leaderboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/leaderboard/:gameId"
+            element={
+              <ProtectedRoute>
+                <Leaderboard />
               </ProtectedRoute>
             }
           />

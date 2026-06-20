@@ -1,0 +1,124 @@
+import { useState, useEffect } from 'react';
+import api from '../services/api';
+
+const GAMES = [
+  { id: 'chinese-chess', name: '♟️ 中国象棋' },
+  { id: 'doudizhu', name: '🃏 斗地主' },
+  { id: 'mahjong', name: '🀄 四人麻将' },
+  { id: 'uno', name: '🃏 UNO' },
+];
+
+const PODIUM_COLORS = ['#c0c0c0', '#cd7f32', '#b87333']; // 金银铜
+const PODIUM_HEIGHTS = [140, 110, 80];
+const PODIUM_ICONS = ['👑', '🥈', '🥉'];
+
+// 预设头像列表
+const AVATARS = ['😎', '🤠', '👻', '🦊', '🐱', '🐼', '🦁', '🐸', '👑', '🎭', '🤖', '👾'];
+
+/**
+ * 从用户 ID 生成一个稳定的默认头像
+ */
+function getDefaultAvatar(userId) {
+  return AVATARS[(userId || 0) % AVATARS.length];
+}
+
+/**
+ * 领奖台单项
+ */
+function PodiumSlot({ player, rank, isFirst }) {
+  const avatar = player?.avatar || getDefaultAvatar(player?.userId);
+  return (
+    <div className={`lb-podium-item${isFirst ? ' lb-podium-first' : ''}`}>
+      <div className="lb-podium-avatar" style={{ borderColor: PODIUM_COLORS[rank] }}>
+        {player ? avatar : '❓'}
+      </div>
+      <div className="lb-podium-name">{player?.nickname || '虚位以待'}</div>
+      <div className="lb-podium-wins">{player ? `${player.wins}胜` : ''}</div>
+      <div className="lb-podium-pillar" style={{ height: PODIUM_HEIGHTS[rank], background: PODIUM_COLORS[rank] }}>
+        <span className="lb-podium-rank">{PODIUM_ICONS[rank]}</span>
+      </div>
+    </div>
+  );
+}
+
+export default function Leaderboard() {
+  const [selectedGame, setSelectedGame] = useState('chinese-chess');
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    api.get(`/api/leaderboard/${selectedGame}`)
+      .then(res => { setData(res.data); setLoading(false); })
+      .catch(() => { setData(null); setLoading(false); });
+  }, [selectedGame]);
+
+  const board = data?.leaderboard || [];
+  const top3 = board.slice(0, 3);
+  const rest = board.slice(3, 20);
+
+  return (
+    <div className="lb-page">
+      <h1 className="lb-title">🏆 排行榜</h1>
+
+      {/* 游戏切换 */}
+      <div className="lb-tabs">
+        {GAMES.map(g => (
+          <button
+            key={g.id}
+            className={`lb-tab${selectedGame === g.id ? ' lb-tab-active' : ''}`}
+            onClick={() => setSelectedGame(g.id)}
+          >
+            {g.name}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="lb-loading">加载中...</div>
+      ) : board.length === 0 ? (
+        <div className="lb-empty">
+          <div className="lb-empty-icon">🏆</div>
+          <p>暂无战绩记录</p>
+          <p className="lb-empty-hint">快去玩一局吧！</p>
+        </div>
+      ) : (
+        <>
+          {/* 领奖台 — 奥林匹克顺序：银左、金中（最高）、铜右 */}
+          <div className="lb-podium">
+            {/* 第二名（左） */}
+            <PodiumSlot player={top3[1]} rank={1} />
+
+            {/* 第一名（中，最高） */}
+            <PodiumSlot player={top3[0]} rank={0} isFirst />
+
+            {/* 第三名（右） */}
+            <PodiumSlot player={top3[2]} rank={2} />
+          </div>
+
+          {/* 4-20 名列表 */}
+          {rest.length > 0 && (
+            <div className="lb-list">
+              <div className="lb-list-header">
+                <span className="lb-list-rank">排名</span>
+                <span className="lb-list-name">玩家</span>
+                <span className="lb-list-stat">胜</span>
+                <span className="lb-list-stat">负</span>
+                <span className="lb-list-stat">胜率</span>
+              </div>
+              {rest.map(p => (
+                <div key={p.userId} className="lb-list-row">
+                  <span className="lb-list-rank">{p.rank}</span>
+                  <span className="lb-list-name">{p.nickname}</span>
+                  <span className="lb-list-stat lb-win">{p.wins}</span>
+                  <span className="lb-list-stat lb-lose">{p.losses}</span>
+                  <span className="lb-list-stat">{p.winRate}%</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
