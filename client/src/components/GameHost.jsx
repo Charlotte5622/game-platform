@@ -131,9 +131,9 @@ export default function GameHost({ gameId, GameComponent }) {
   const handleAddBots = useCallback(() => {
     if (!socket || !roomId) return;
     socket.emit('add_bots', { roomId }, (response) => {
-      if (response?.error) {
-        setError(response.error);
-      }
+      if (response?.error) return; // 静默忽略
+      if (response?.botsAdded === 0) return; // 已满，静默忽略
+      // botsAdded > 0: 机器人已添加，等待玩家准备
     });
   }, [socket, roomId]);
 

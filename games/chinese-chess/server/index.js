@@ -105,9 +105,12 @@ class ChineseChessServer extends BaseGameServer {
 
   onPlayerAction(roomId, pid, action) {
     const state = this.getState(roomId);
-    if (!state) return;
+    if (!state) {
+      console.warn(`[Chess] 状态为空: room=${roomId}`);
+      return;
+    }
 
-    console.log(`[Chess] 收到动作: ${action.type} from ${pid} in ${roomId}`);
+    console.log(`[Chess] 收到动作: ${action.type} from ${pid} phase=${state.phase} action=${JSON.stringify(action)}`);
 
     switch (action.type) {
       case 'rps':
@@ -141,9 +144,19 @@ class ChineseChessServer extends BaseGameServer {
 
   handleRPS(roomId, pid, choice) {
     const state = this.getState(roomId);
-    if (!state || state.phase !== 'rps') return;
-    if (!RPS_CHOICES[choice]) return;
-    if (state.rpsChoices[pid]) return; // 已出拳
+    console.log(`[Chess-RPS] handleRPS: pid=${pid} choice=${choice} phase=${state?.phase} rpsChoices=${JSON.stringify(state?.rpsChoices)}`);
+    if (!state || state.phase !== 'rps') {
+      console.warn(`[Chess-RPS] 拒绝: phase=${state?.phase}`);
+      return;
+    }
+    if (!RPS_CHOICES[choice]) {
+      console.warn(`[Chess-RPS] 拒绝: 无效选项 choice=${choice}, 有效值=${JSON.stringify(Object.keys(RPS_CHOICES))}`);
+      return;
+    }
+    if (state.rpsChoices[pid]) {
+      console.warn(`[Chess-RPS] 拒绝: 已出拳 pid=${pid}`);
+      return;
+    }
 
     console.log(`[RPS] 玩家 ${pid} 出拳: ${choice}, 房间 ${roomId}`);
     state.rpsChoices[pid] = { choice, time: Date.now() };
@@ -468,7 +481,7 @@ class ChineseChessServer extends BaseGameServer {
 
     this.doBroadcast(roomId, {
       type: 'game_over',
-      reason: 'opponent_disconnect',
+      reason: 'player_disconnect',
       winner: pid,
       loser: loserPid,
       message: '对方断线，你获胜',

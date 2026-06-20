@@ -86,6 +86,8 @@ function setupSocketHandlers(io, prisma) {
               id: p.id, nickname: p.nickname, ready: p.ready,
             })),
           });
+          // 通知对手已重连
+          socket.to(pending.roomId).emit('opponent_reconnected');
           // 同步当前游戏状态
           if (room.state === 'playing' && room.gameInstance) {
             const state = room.gameInstance.getState(room.id);
@@ -251,7 +253,7 @@ function setupSocketHandlers(io, prisma) {
       broadcastStatsDebounced(io);
     });
 
-    // ========== 添加机器人 ==========
+    // ========== 添加机器人（幂等：重复点击不会报错） ==========
     socket.on('add_bots', ({ roomId }, callback) => {
       const room = roomManager.getRoom(roomId);
       if (!room || room.state !== 'waiting') {
@@ -261,8 +263,9 @@ function setupSocketHandlers(io, prisma) {
       const maxPlayers = getGameMaxPlayers(room.gameId);
       const currentCount = room.players.length;
 
+      // 已满：返回成功但 botsAdded=0，不报错
       if (currentCount >= maxPlayers) {
-        return callback?.({ error: '房间已满' });
+        return callback?.({ ok: true, botsAdded: 0 });
       }
 
       // 添加机器人
@@ -304,9 +307,8 @@ function setupSocketHandlers(io, prisma) {
       console.log(`🚪 玩家主动离开: ${socket.user.username} (${socket.id})`);
 
       const result = roomManager.leaveRoom(socket.id);
+      roomManager.cleanupUser(socket.user.id); // 始终清理 user 映射
       if (result && !result.empty && result.room) {
-        roomManager.cleanupUser(socket.user.id);
-
         io.to(result.roomId).emit('room_update', {
           roomId: result.roomId,
           roomCode: result.room.roomCode,
@@ -378,8 +380,8 @@ function setupSocketHandlers(io, prisma) {
       } else {
         // 等待中：直接移除（不影响游戏）
         const result = roomManager.leaveRoom(socket.id);
+        roomManager.cleanupUser(socket.user.id); // 始终清理 user 映射
         if (result && !result.empty && result.room) {
-          roomManager.cleanupUser(socket.user.id);
           io.to(roomId).emit('room_update', {
             roomId,
             players: result.room.players.map(p => ({
@@ -485,7 +487,10 @@ function startGame(io, room, prisma) {
       (roomId, botId, action) => {
         const curRoom = roomManager.getRoom(roomId);
         if (curRoom?.gameInstance) {
+          console.log(`[Bot→Game] ${botId} → ${action.type} in ${roomId}`);
           curRoom.gameInstance.onPlayerAction(roomId, botId, action);
+        } else {
+          console.warn(`[Bot→Game] ${botId} 房间或游戏实例不存在: ${roomId}`);
         }
       }
     );

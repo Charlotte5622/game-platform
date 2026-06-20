@@ -54,6 +54,7 @@ function startBotDecisionLoop(roomId, gameId, botIds, getGameState, onAction) {
       try {
         const gameState = getGameState(roomId);
         if (!gameState || gameState.phase === 'ended') {
+          console.log(`[Bot] ${botId} 游戏已结束，停止`);
           stopBot(botId);
           return;
         }
@@ -66,13 +67,18 @@ function startBotDecisionLoop(roomId, gameId, botIds, getGameState, onAction) {
         const needsResponse = checkNeedsResponse(gameState, botId);
         if (!needsResponse && !isBotTurn) return;
 
+        console.log(`[Bot] ${botId} 轮到决策 phase=${gameState.phase} gameId=${gameId}`);
+
         // 调用 AI 获取决策
         const action = await getBotAction(gameId, gameState, botId);
         if (action) {
+          console.log(`[Bot] ${botId} 执行动作: ${JSON.stringify(action)}`);
           onAction(roomId, botId, action);
+        } else {
+          console.warn(`[Bot] ${botId} AI 未返回有效动作`);
         }
       } catch (err) {
-        console.error(`[Bot] ${botId} 决策出错:`, err.message);
+        console.error(`[Bot] ${botId} 决策出错:`, err.message, err.stack);
       }
     }, 2000 + Math.random() * 3000); // 2-5 秒随机间隔
 
@@ -96,8 +102,25 @@ function isPlayersTurn(gameState, botId, gameId) {
   }
 
   if (gameId === 'chinese-chess') {
-    const botColor = gameState.colorMap?.[botId];
-    return gameState.turnColor === botColor;
+    // 猜拳阶段：如果 bot 还没出拳，就是它的回合
+    if (gameState.phase === 'rps') {
+      const hasChosen = !!gameState.rpsChoices?.[botId];
+      console.log(`[Bot-Turn] ${botId} RPS: hasChosen=${hasChosen} rpsChoices=${JSON.stringify(gameState.rpsChoices)}`);
+      return !hasChosen;
+    }
+    // 选色阶段：如果 bot 是赢家且还没选色
+    if (gameState.phase === 'choosing') {
+      const isWinner = gameState.winner === botId;
+      console.log(`[Bot-Turn] ${botId} choosing: isWinner=${isWinner} winner=${gameState.winner}`);
+      return isWinner;
+    }
+    // 走棋阶段：检查颜色
+    if (gameState.phase === 'playing') {
+      const botColor = gameState.colorMap?.[String(botId)];
+      const isTurn = gameState.turnColor === botColor;
+      console.log(`[Bot-Turn] ${botId} playing: botColor=${botColor} turnColor=${gameState.turnColor} isTurn=${isTurn}`);
+      return isTurn;
+    }
   }
 
   return false;

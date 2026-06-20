@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import api from '../services/api';
 
 const GAMES = [
@@ -42,7 +43,8 @@ function PodiumSlot({ player, rank, isFirst }) {
 }
 
 export default function Leaderboard() {
-  const [selectedGame, setSelectedGame] = useState('chinese-chess');
+  const { gameId: urlGameId } = useParams();
+  const [selectedGame, setSelectedGame] = useState(urlGameId || 'chinese-chess');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
