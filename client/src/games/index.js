@@ -11,12 +11,14 @@
 import DoudizhuGame from '../../../games/doudizhu/client/DoudizhuGame';
 import MahjongGame from '../../../games/mahjong/client/MahjongGame';
 import ChineseChessGame from '../../../games/chinese-chess/client/ChineseChessGame';
+import UnoGame from '../../../games/uno/client/UnoGame';
 
 // 游戏注册表: gameId -> React Component
 const gameComponents = {
   'doudizhu': DoudizhuGame,
   'mahjong': MahjongGame,
   'chinese-chess': ChineseChessGame,
+  'uno': UnoGame,
 };
 
 /**

@@ -10,7 +10,7 @@
       "frontendPath": "/",
       "minPlayers": 2,
       "maxPlayers": 4,
-      "enabled": true
+      "enabled": false
     }
   ]
 }
