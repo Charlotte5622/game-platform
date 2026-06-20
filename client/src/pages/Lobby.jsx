@@ -1,7 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../services/api';
 import GameCard from '../components/GameCard';
 import { getSocket } from '../services/socket';
+
+// 安全解析 localStorage
+function safeGetUser() {
+  try {
+    return JSON.parse(localStorage.getItem('user') || 'null');
+  } catch {
+    return null;
+  }
+}
 
 // 主题配置（5 种精选）
 const THEMES = [
@@ -13,10 +22,8 @@ const THEMES = [
 ];
 
 // 扇形展开：从右下角按钮向左上方展开
-// 角度：-90°(正上) → -180°(正左)，5个选项均匀分布
 function getFanStyle(index, total, isOpen) {
   const radius = 100;
-  // -90° = 正上方, -180° = 正左方
   const startAngle = -90;
   const endAngle = -180;
   const step = total > 1 ? (endAngle - startAngle) / (total - 1) : 0;
@@ -37,7 +44,7 @@ export default function Lobby() {
   const [stats, setStats] = useState(null);
   const [theme, setTheme] = useState(() => localStorage.getItem('lobby-theme') || 'midnight');
   const [fanOpen, setFanOpen] = useState(false);
-  const user = JSON.parse(localStorage.getItem('user') || 'null');
+  const user = safeGetUser();
 
   // 应用主题到 body
   useEffect(() => {

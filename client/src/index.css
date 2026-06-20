@@ -1993,6 +1993,15 @@ input {
   color: #e2e8f0;
 }
 
+/* 吃牌选择器 */
+.mj-chow-picker {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  flex-wrap: wrap;
+}
+
 .mj-error {
   padding: 6px 16px;
   background: rgba(239,68,68,0.2);
@@ -2453,94 +2462,11 @@ input {
   font-weight: 600;
 }
 
-/* 操作按钮 */
-.chess-actions {
+/* 侧边面板基础样式 */
+.chess-side-panel {
   display: flex;
-  gap: 8px;
-}
-
-.chess-action-btn {
-  flex: 1;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.chess-action-draw {
-  background: var(--bg-input);
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-}
-
-.chess-action-draw:hover:not(:disabled) {
-  border-color: var(--secondary);
-  color: var(--secondary);
-}
-
-.chess-action-draw:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.chess-action-resign {
-  background: var(--bg-input);
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-}
-
-.chess-action-resign:hover {
-  border-color: var(--danger);
-  color: var(--danger);
-}
-
-/* 求和弹窗 */
-.chess-draw-modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-}
-
-.chess-draw-modal-content {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 28px;
-  text-align: center;
-  max-width: 300px;
-}
-
-.chess-draw-modal-content p {
-  font-size: 16px;
-  margin-bottom: 20px;
-}
-
-.chess-draw-modal-buttons {
-  display: flex;
+  flex-direction: column;
   gap: 12px;
-  justify-content: center;
-}
-
-.chess-draw-accept {
-  padding: 10px 24px;
-  background: var(--success);
-  color: white;
-  border-radius: 8px;
-  font-weight: 600;
-}
-
-.chess-draw-reject {
-  padding: 10px 24px;
-  background: var(--danger);
-  color: white;
-  border-radius: 8px;
-  font-weight: 600;
 }
 
 .chess-error {
@@ -3591,4 +3517,401 @@ input {
   background: rgba(251, 191, 36, 0.15);
   border-color: #fbbf24;
   color: #fbbf24;
+}
+
+/* ========== UNO ========== */
+.uno {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  min-height: calc(100vh - 64px);
+  animation: fadeIn 0.4s ease;
+}
+
+.uno-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 64px);
+  gap: 16px;
+  color: var(--text-muted);
+}
+
+.uno-loading-spinner {
+  font-size: 64px;
+  animation: float 2s ease-in-out infinite;
+}
+
+/* 顶部信息栏 */
+.uno-top-bar {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.uno-info-tag {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 6px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.uno-turn-tag {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 8px;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  transition: all 0.3s ease;
+}
+
+.uno-turn-mine {
+  color: #fff;
+  background: linear-gradient(135deg, var(--success), #00a884);
+  border-color: transparent;
+  box-shadow: 0 2px 12px var(--success-glow);
+}
+
+.uno-draw-stack {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  padding: 6px 14px;
+  background: linear-gradient(135deg, var(--danger), #c0392b);
+  border-radius: 8px;
+  animation: pulse 1s infinite;
+}
+
+/* 对手区域 */
+.uno-opponents {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.uno-opponent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  font-size: 13px;
+  transition: all 0.3s ease;
+}
+
+.uno-opponent-active {
+  border-color: var(--success);
+  box-shadow: 0 0 16px var(--success-glow);
+  background: rgba(0, 184, 148, 0.06);
+}
+
+.uno-opponent-name {
+  font-weight: 600;
+}
+
+.uno-opponent-count {
+  color: var(--text-dim);
+  background: var(--bg-input);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+/* 出牌区域 */
+.uno-play-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  min-height: 180px;
+  justify-content: center;
+  padding: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.uno-play-area::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(108, 92, 231, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.uno-top-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  z-index: 1;
+}
+
+.uno-current-color {
+  padding: 6px 20px;
+  border-radius: 20px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* 选色面板 */
+.uno-color-picker {
+  text-align: center;
+  z-index: 1;
+  animation: fadeIn 0.3s ease;
+}
+
+.uno-color-picker p {
+  font-size: 15px;
+  color: var(--text);
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.uno-color-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.uno-color-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 3px solid rgba(255,255,255,0.3);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.uno-color-btn:hover {
+  transform: scale(1.2);
+  border-color: #fff;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+
+/* 操作按钮 */
+.uno-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.uno-draw-btn {
+  padding: 12px 28px;
+  background: var(--bg-input);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.uno-draw-btn:hover {
+  border-color: var(--secondary);
+  color: var(--secondary);
+  box-shadow: 0 2px 12px var(--secondary-glow);
+}
+
+.uno-uno-btn {
+  padding: 12px 28px;
+  background: linear-gradient(135deg, var(--danger), #c0392b);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  animation: pulse 2s infinite;
+  box-shadow: 0 4px 16px var(--danger-glow);
+  transition: all 0.2s ease;
+}
+
+.uno-uno-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px var(--danger-glow);
+}
+
+.uno-error {
+  text-align: center;
+  font-size: 14px;
+  color: var(--danger);
+  padding: 10px 16px;
+  background: var(--danger-glow);
+  border-radius: 8px;
+  animation: fadeIn 0.2s ease;
+}
+
+/* 手牌区域 */
+.uno-hand {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 16px 0 8px;
+}
+
+.uno-hand-card-wrap {
+  transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.uno-hand-card-wrap:hover {
+  transform: translateY(-10px);
+}
+
+.uno-hand-hint {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-dim);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* ===== UNO 卡牌 ===== */
+.uno-card {
+  width: 60px;
+  height: 88px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: 800;
+  border: 2.5px solid rgba(255,255,255,0.2);
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.uno-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, transparent 40%);
+  pointer-events: none;
+  border-radius: 8px;
+}
+
+.uno-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  border-color: rgba(255,255,255,0.4);
+}
+
+.uno-card-sm {
+  width: 44px;
+  height: 62px;
+  cursor: default;
+  border-width: 2px;
+}
+
+.uno-card-sm:hover {
+  transform: none;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+}
+
+.uno-card-selected {
+  transform: translateY(-14px) !important;
+  border-color: var(--secondary) !important;
+  box-shadow: 0 8px 28px var(--secondary-glow) !important;
+}
+
+.uno-card-wild {
+  border-color: rgba(255,255,255,0.3);
+}
+
+.uno-card-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  position: relative;
+}
+
+.uno-card-value {
+  font-size: 22px;
+  line-height: 1;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.uno-card-sm .uno-card-value {
+  font-size: 15px;
+}
+
+.uno-card-color {
+  font-size: 10px;
+  margin-top: 3px;
+  opacity: 0.85;
+  font-weight: 600;
+}
+
+/* 卡牌椭圆装饰（UNO 经典白椭圆） */
+.uno-card-oval {
+  position: absolute;
+  width: 70%;
+  height: 55%;
+  border: 3px solid rgba(255,255,255,0.25);
+  border-radius: 50%;
+  transform: rotate(-30deg);
+  pointer-events: none;
+}
+
+.uno-card-sm .uno-card-oval {
+  display: none;
+}
+
+/* 结果 */
+.uno-result {
+  text-align: center;
+  padding: 60px 40px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.5s ease;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.uno-result-icon {
+  font-size: 80px;
+  margin-bottom: 20px;
+}
+
+.uno-result-title {
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 28px;
+}
+
+.uno-back-btn {
+  padding: 14px 40px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
 }
