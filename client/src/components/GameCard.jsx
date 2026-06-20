@@ -5,6 +5,7 @@ const GAME_ICONS = {
   doudizhu: '🃏',
   mahjong: '🀄',
   'chinese-chess': '♟️',
+  'uno-demo': '🎴',
 };
 
 // 游戏渐变色映射
@@ -21,11 +22,21 @@ export default function GameCard({ game, index = 0 }) {
   const navigate = useNavigate();
   const icon = GAME_ICONS[game.id] || '🎮';
   const gradient = GAME_GRADIENTS[index % GAME_GRADIENTS.length];
+  const isExternal = game.type === 'external';
+
+  const handleClick = () => {
+    if (isExternal) {
+      // 外部游戏：通过平台代理访问，新窗口打开
+      window.open(`/games/${game.id}/`, '_blank');
+    } else {
+      navigate(`/game/${game.id}`);
+    }
+  };
 
   return (
     <div
       className="game-card"
-      onClick={() => navigate(`/game/${game.id}`)}
+      onClick={handleClick}
       style={{ animationDelay: `${index * 0.08}s` }}
     >
       {/* 顶部渐变条 */}
@@ -41,6 +52,7 @@ export default function GameCard({ game, index = 0 }) {
         <div className="game-card-meta">
           <span className="game-card-tag">👥 {game.minPlayers}-{game.maxPlayers} 人</span>
           {game.version && <span className="game-card-tag">v{game.version}</span>}
+          {isExternal && <span className="game-card-tag" style={{background:'#e17055',color:'#fff'}}>外部</span>}
         </div>
 
         <button className="game-card-play" style={{ background: gradient }}>

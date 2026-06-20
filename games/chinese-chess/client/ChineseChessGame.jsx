@@ -514,7 +514,19 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
             →{gameState.lastMove.to.col},{gameState.lastMove.to.row}
             {gameState.lastMove.captured && ` 吃${gameState.lastMove.captured}`}
           </span>
-          {isMyTurn && <span className="chess-your-turn-hint">← 轮到你了</span>}
+          {isMyTurn && !check && <span className="chess-your-turn-hint">← 轮到你了</span>}
+        </div>
+      )}
+
+      {/* 将军警告横幅 */}
+      {check && isMyTurn && (
+        <div className="chess-check-banner">
+          ⚠️ 你正在被将军！必须解除将军才能走其他棋
+        </div>
+      )}
+      {check && !isMyTurn && (
+        <div className="chess-check-banner chess-check-banner-opponent">
+          ⚠️ 将军！等待对手应将
         </div>
       )}
       {/* 双方剩余总时间 */}
