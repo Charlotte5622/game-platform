@@ -3915,3 +3915,182 @@ input {
   font-weight: 700;
   cursor: pointer;
 }
+
+/* 战绩页面 */
+.stats-page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 32px 20px;
+  animation: fadeIn 0.5s ease;
+}
+
+.stats-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 64px);
+  color: var(--text-muted);
+  font-size: 16px;
+}
+
+/* Hero 总览 */
+.stats-hero {
+  text-align: center;
+  margin-bottom: 40px;
+  padding: 36px 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.stats-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary), var(--success));
+}
+
+.stats-title {
+  font-size: 30px;
+  font-weight: 800;
+  margin-bottom: 28px;
+  background: linear-gradient(135deg, var(--text) 0%, var(--secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.stats-summary {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.stats-summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 60px;
+}
+
+.stats-summary-num {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.stats-summary-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.stats-win { color: var(--success); }
+.stats-lose { color: var(--danger); }
+.stats-draw { color: var(--text-muted); }
+
+.stats-winrate {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--secondary);
+  padding: 8px 20px;
+  background: rgba(0, 206, 201, 0.1);
+  border-radius: 20px;
+  display: inline-block;
+}
+
+/* 各游戏卡片 */
+.stats-games {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stats-game-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  transition: all var(--transition);
+}
+
+.stats-game-card:hover {
+  border-color: var(--border-light);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.stats-game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.stats-game-name {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.stats-game-rate {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--secondary);
+  background: rgba(0, 206, 201, 0.1);
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.stats-game-bar {
+  height: 8px;
+  background: var(--bg-input);
+  border-radius: 4px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.stats-bar-win {
+  height: 100%;
+  background: linear-gradient(90deg, var(--success), var(--secondary));
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+.stats-game-detail {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+.stats-empty {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-muted);
+  animation: fadeIn 0.5s ease;
+}
+
+.stats-empty p {
+  font-size: 16px;
+}
+
+/* Navbar 战绩链接 */
+.navbar-stats {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--secondary);
+  text-decoration: none;
+}
+
+.navbar-stats:hover {
+  opacity: 0.8;
+}
