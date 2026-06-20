@@ -1,16 +1,35 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import GameCard from '../components/GameCard';
 import { getSocket } from '../services/socket';
 
-// 主题配置
+// 主题配置（8 种）
 const THEMES = [
-  { id: 'midnight', label: '午夜', className: 'theme-btn-midnight' },
-  { id: 'sky', label: '晴空', className: 'theme-btn-sky' },
-  { id: 'sakura', label: '樱落', className: 'theme-btn-sakura' },
-  { id: 'aurora', label: '极光', className: 'theme-btn-aurora' },
-  { id: 'snow', label: '雪境', className: 'theme-btn-snow' },
+  { id: 'midnight',   label: '午夜',   className: 'theme-opt-midnight' },
+  { id: 'sky',        label: '晴空',   className: 'theme-opt-sky' },
+  { id: 'sakura',     label: '樱落',   className: 'theme-opt-sakura' },
+  { id: 'aurora',     label: '极光',   className: 'theme-opt-aurora' },
+  { id: 'dracula',    label: 'Dracula', className: 'theme-opt-dracula' },
+  { id: 'nord',       label: 'Nord',   className: 'theme-opt-nord' },
+  { id: 'catppuccin', label: 'Catppuccin', className: 'theme-opt-catppuccin' },
+  { id: 'snow',       label: '雪境',   className: 'theme-opt-snow' },
 ];
+
+// 扇形展开角度配置（向上半圆展开）
+function getFanStyle(index, total, isOpen) {
+  const radius = 90; // 展开半径 px
+  const startAngle = -180; // 起始角度（正上方）
+  const endAngle = -0;   // 结束角度（正右方）
+  const step = (endAngle - startAngle) / (total - 1);
+  const angle = startAngle + step * index;
+  const rad = (angle * Math.PI) / 180;
+  const x = Math.round(Math.cos(rad) * radius);
+  const y = Math.round(Math.sin(rad) * radius);
+  return {
+    '--fan-transform': `translate(${x}px, ${y}px) scale(1)`,
+    transitionDelay: isOpen ? `${index * 40}ms` : `${(total - 1 - index) * 30}ms`,
+  };
+}
 
 export default function Lobby() {
   const [games, setGames] = useState([]);
@@ -18,6 +37,7 @@ export default function Lobby() {
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);
   const [theme, setTheme] = useState(() => localStorage.getItem('lobby-theme') || 'midnight');
+  const [fanOpen, setFanOpen] = useState(false);
   const user = JSON.parse(localStorage.getItem('user') || 'null');
 
   // 应用主题到 body
@@ -144,16 +164,32 @@ export default function Lobby() {
         <p>🎯 更多游戏即将上线，敬请期待</p>
       </div>
 
-      {/* 主题切换器 */}
+      {/* 主题切换器 — 扇形液体玻璃 */}
       <div className="theme-switcher">
-        {THEMES.map(t => (
-          <button
-            key={t.id}
-            className={`theme-btn ${t.className}${theme === t.id ? ' active' : ''}`}
-            onClick={() => setTheme(t.id)}
-            title={t.label}
-          />
-        ))}
+        {/* 点击遮罩关闭 */}
+        {fanOpen && <div className="theme-overlay" onClick={() => setFanOpen(false)} />}
+
+        {/* 扇形选项 */}
+        <div className={`theme-fan${fanOpen ? ' open' : ''}`}>
+          {THEMES.map((t, i) => (
+            <button
+              key={t.id}
+              className={`theme-option ${t.className}${theme === t.id ? ' active' : ''}`}
+              style={getFanStyle(i, THEMES.length, fanOpen)}
+              onClick={() => { setTheme(t.id); setFanOpen(false); }}
+            >
+              <span className="theme-option-label">{t.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* 触发按钮 */}
+        <button
+          className={`theme-trigger${fanOpen ? ' open' : ''}`}
+          onClick={() => setFanOpen(!fanOpen)}
+        >
+          <span className="theme-trigger-icon">🎨</span>
+        </button>
       </div>
     </div>
   );
