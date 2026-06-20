@@ -3,24 +3,49 @@ import api from '../services/api';
 import GameCard from '../components/GameCard';
 import { getSocket } from '../services/socket';
 
+// 主题配置
+const THEMES = [
+  { id: 'midnight', label: '午夜', className: 'theme-btn-midnight' },
+  { id: 'sky', label: '晴空', className: 'theme-btn-sky' },
+  { id: 'sakura', label: '樱落', className: 'theme-btn-sakura' },
+  { id: 'aurora', label: '极光', className: 'theme-btn-aurora' },
+  { id: 'snow', label: '雪境', className: 'theme-btn-snow' },
+];
+
 export default function Lobby() {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);
+  const [theme, setTheme] = useState(() => localStorage.getItem('lobby-theme') || 'midnight');
   const user = JSON.parse(localStorage.getItem('user') || 'null');
 
+  // 应用主题到 body
   useEffect(() => {
-    api
-      .get('/api/games')
-      .then((res) => {
-        setGames(res.data.games);
-        setLoading(false);
-      })
-      .catch(() => {
-        setError('加载游戏列表失败');
-        setLoading(false);
-      });
+    if (theme === 'midnight') {
+      document.body.removeAttribute('data-theme');
+    } else {
+      document.body.setAttribute('data-theme', theme);
+    }
+    localStorage.setItem('lobby-theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    // 同时获取内置游戏和外部游戏
+    Promise.all([
+      api.get('/api/games').catch(() => ({ data: { games: [] } })),
+      api.get('/api/external-games').catch(() => ({ data: { games: [] } })),
+    ]).then(([builtIn, external]) => {
+      const allGames = [
+        ...builtIn.data.games,
+        ...external.data.games,
+      ];
+      setGames(allGames);
+      setLoading(false);
+    }).catch(() => {
+      setError('加载游戏列表失败');
+      setLoading(false);
+    });
 
     // 获取在线统计 + 监听实时更新
     try {
@@ -117,6 +142,18 @@ export default function Lobby() {
       {/* 底部装饰 */}
       <div className="lobby-footer">
         <p>🎯 更多游戏即将上线，敬请期待</p>
+      </div>
+
+      {/* 主题切换器 */}
+      <div className="theme-switcher">
+        {THEMES.map(t => (
+          <button
+            key={t.id}
+            className={`theme-btn ${t.className}${theme === t.id ? ' active' : ''}`}
+            onClick={() => setTheme(t.id)}
+            title={t.label}
+          />
+        ))}
       </div>
     </div>
   );
