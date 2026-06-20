@@ -221,10 +221,13 @@ class UnoServer extends BaseGameServer {
       });
 
       if (this.onGameOver) {
-        const loser = state.players.find(p => p !== pid);
+        const scores = {};
+        for (const p of state.players) {
+          scores[p] = p === pid ? 10 : -10;
+        }
         this.onGameOver(roomId, {
           winners: [pid],
-          scores: { [pid]: 10, [loser]: -10 },
+          scores,
         });
       }
       state.phase = 'ended';

@@ -128,6 +128,15 @@ export default function GameHost({ gameId, GameComponent }) {
     }
   }, [socket, roomId]);
 
+  const handleAddBots = useCallback(() => {
+    if (!socket || !roomId) return;
+    socket.emit('add_bots', { roomId }, (response) => {
+      if (response?.error) {
+        setError(response.error);
+      }
+    });
+  }, [socket, roomId]);
+
   const handleUnready = useCallback(() => {
     if (socket && roomId) {
       socket.emit('player_ready', { roomId, ready: false });
@@ -273,11 +282,30 @@ export default function GameHost({ gameId, GameComponent }) {
             需要 {effectiveMaxPlayers} 位玩家才能开始
           </p>
 
-          {!isReady ? (
-            <button className="waiting-ready-btn" onClick={handleReady}>
-              准备
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+            {!isReady && (
+              <button className="waiting-ready-btn" onClick={handleReady} style={{ flex: 1 }}>
+                准备
+              </button>
+            )}
+            <button
+              onClick={handleAddBots}
+              style={{
+                flex: 1,
+                padding: '12px',
+                background: 'var(--warning)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 'var(--radius)',
+                fontWeight: '600',
+                cursor: 'pointer',
+              }}
+            >
+              🤖 填充机器人
             </button>
-          ) : (
+          </div>
+
+          {isReady && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
               <p style={{ color: 'var(--success)', fontWeight: '600' }}>
                 ✅ 你已准备，等待其他玩家...

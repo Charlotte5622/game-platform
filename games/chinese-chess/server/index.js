@@ -125,6 +125,9 @@ class ChineseChessServer extends BaseGameServer {
       case 'resign':
         this.handleResign(roomId, pid);
         break;
+      case 'claim_win':
+        this.handleClaimWin(roomId, pid);
+        break;
       case 'draw_request':
         this.handleDrawRequest(roomId, pid);
         break;
@@ -260,10 +263,10 @@ class ChineseChessServer extends BaseGameServer {
     this.startTurnTimer(roomId, state);
 
     // 向每个玩家发送完整的 game_start（包含 colorMap 和棋盘）
-    for (const pid of state.players) {
-      this.doBroadcastTo(roomId, pid, {
+    for (const p of state.players) {
+      this.doBroadcastTo(roomId, p, {
         type: 'game_start',
-        state: this.getVisibleState(state, pid),
+        state: this.getVisibleState(state, p),
       });
     }
   }
@@ -391,9 +394,9 @@ class ChineseChessServer extends BaseGameServer {
         // 绝杀，游戏结束（不启动计时器）
         state.phase = 'ended';
         const winnerColor = state.turnColor === 'red' ? 'black' : 'red';
-        const winnerPid = Object.entries(state.colorMap).find(([, c]) => c === winnerColor)[0];
-
-        const loserPid = state.players.find(p => p !== winnerPid);
+        // 从 players 中找（保持原始数字类型），不用 Object.entries 的字符串 key
+        const winnerPid = state.players.find(p => state.colorMap[String(p)] === winnerColor);
+        const loserPid = state.players.find(p => String(p) !== String(winnerPid));
         // 发送不同的消息给胜负双方
         this.doBroadcastTo(roomId, winnerPid, {
           type: 'checkmate',
@@ -430,7 +433,7 @@ class ChineseChessServer extends BaseGameServer {
         if (this.onGameOver) {
           this.onGameOver(roomId, {
             winners: [winnerPid],
-            scores: { [winnerPid]: 10, [state.players.find(p => p !== winnerPid)]: -10 },
+            scores: { [winnerPid]: 10, [loserPid]: -10 },
           });
         }
         this.saveState(roomId, state);
@@ -449,6 +452,34 @@ class ChineseChessServer extends BaseGameServer {
 
     this.saveState(roomId, state);
     this.broadcastState(roomId, state);
+  }
+
+  // ========== 对方断线认负 ==========
+
+  handleClaimWin(roomId, pid) {
+    const state = this.getState(roomId);
+    if (!state || state.phase !== 'playing') return;
+
+    // 发起者获胜，对方判负
+    const loserPid = state.players.find(p => String(p) !== String(pid));
+
+    state.phase = 'ended';
+    this.saveState(roomId, state);
+
+    this.doBroadcast(roomId, {
+      type: 'game_over',
+      reason: 'opponent_disconnect',
+      winner: pid,
+      loser: loserPid,
+      message: '对方断线，你获胜',
+    });
+
+    if (this.onGameOver) {
+      this.onGameOver(roomId, {
+        winners: [pid],
+        scores: { [pid]: 10, [loserPid]: -10 },
+      });
+    }
   }
 
   // ========== 计时器设置 ==========

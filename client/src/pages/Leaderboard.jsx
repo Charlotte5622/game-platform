@@ -8,7 +8,7 @@ const GAMES = [
   { id: 'uno', name: '🃏 UNO' },
 ];
 
-const PODIUM_COLORS = ['#c0c0c0', '#cd7f32', '#b87333']; // 金银铜
+const PODIUM_COLORS = ['#ffd700', '#c0c0c0', '#cd7f33']; // 金 银 铜
 const PODIUM_HEIGHTS = [140, 110, 80];
 const PODIUM_ICONS = ['👑', '🥈', '🥉'];
 
