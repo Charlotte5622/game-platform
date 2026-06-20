@@ -149,4 +149,56 @@ router.get('/me', authMiddleware, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/auth/stats
+ * 获取当前用户的详细战绩统计
+ */
+router.get('/stats', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // 获取所有游戏记录
+    const records = await prisma.gameRecord.findMany({
+      where: { userId },
+      select: { gameId: true, result: true, score: true, duration: true, createdAt: true },
+    });
+
+    // 总计
+    let totalGames = records.length;
+    let totalWins = 0;
+    let totalLosses = 0;
+    let totalDraws = 0;
+    let totalDuration = 0;
+
+    // 按游戏分组
+    const byGame = {};
+
+    for (const r of records) {
+      if (r.result === 'win') totalWins++;
+      else if (r.result === 'lose') totalLosses++;
+      else totalDraws++;
+      if (r.duration) totalDuration += r.duration;
+
+      if (!byGame[r.gameId]) {
+        byGame[r.gameId] = { wins: 0, losses: 0, draws: 0, totalDuration: 0, games: 0, totalScore: 0 };
+      }
+      const g = byGame[r.gameId];
+      g.games++;
+      g.totalScore += r.score || 0;
+      if (r.duration) g.totalDuration += r.duration;
+      if (r.result === 'win') g.wins++;
+      else if (r.result === 'lose') g.losses++;
+      else g.draws++;
+    }
+
+    res.json({
+      summary: { totalGames, totalWins, totalLosses, totalDraws, totalDuration },
+      byGame,
+    });
+  } catch (err) {
+    console.error('获取战绩失败:', err);
+    res.status(500).json({ error: '服务器错误' });
+  }
+});
+
 module.exports = router;

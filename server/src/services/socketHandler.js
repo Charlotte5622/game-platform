@@ -371,6 +371,7 @@ function startGame(io, room, prisma) {
   room.gameInstance = gameInstance;
 
   roomManager.setRoomState(room.id, 'playing');
+  room.startTime = Date.now(); // 记录游戏开始时间
 
   const playerIds = room.players.map(p => p.id);
   const gameState = gameInstance.initGameState(playerIds);
@@ -399,17 +400,27 @@ function startGame(io, room, prisma) {
     try {
       const curRoom = roomManager.getRoom(roomId);
       if (!curRoom) return;
+
+      // 计算游戏时长（秒）
+      const duration = curRoom.startTime ? Math.round((Date.now() - curRoom.startTime) / 1000) : null;
+
       for (const player of curRoom.players) {
-        const playerResult = result.winners?.includes(player.id) ? 'win' : 'lose';
+        let playerResult = 'draw';
+        if (result.winners && result.winners.length > 0) {
+          playerResult = result.winners.includes(player.id) ? 'win' : 'lose';
+        }
+
         await prisma.gameRecord.create({
           data: {
             userId: player.id,
             gameId: curRoom.gameId,
             result: playerResult,
             score: result.scores?.[player.id] || 0,
+            duration,
           },
         });
       }
+      console.log(`📊 战绩已记录: ${curRoom.gameId}, 时长=${duration}s`);
     } catch (err) {
       console.error('记录战绩失败:', err);
     }
