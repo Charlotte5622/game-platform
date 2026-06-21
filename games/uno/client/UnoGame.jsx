@@ -124,12 +124,14 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
       return;
     }
 
+    playSound('uno', 'play_card');
     emitAction({ type: 'play_card', cardIndex: index });
     setSelectedCard(null);
   };
 
   const handleColorChoice = (color) => {
     if (pendingWildIndex !== null) {
+      playSound('uno', 'play_card');
       emitAction({ type: 'play_card', cardIndex: pendingWildIndex, chosenColor: color });
       setPendingWildIndex(null);
       setShowColorPicker(false);
@@ -139,10 +141,12 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
 
   const handleDraw = () => {
     if (!isMyTurn) return;
+    playSound('uno', 'draw_card');
     emitAction({ type: 'draw_card' });
   };
 
   const handleUno = () => {
+    playSound('uno', 'uno');
     emitAction({ type: 'uno' });
   };
 

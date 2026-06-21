@@ -262,6 +262,16 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
           {highestBid > 0 && <span className="dz-bid-tag">底分: {highestBid}</span>}
         </div>
 
+        {/* 底牌 - 牌桌最上方 */}
+        {phase === 'playing' && kitty && (
+          <div className="dz-kitty-bar">
+            <span className="dz-kitty-label">底牌</span>
+            <div className="dz-kitty-cards">
+              {kitty.map((c) => <Card key={c.id} card={c} small />)}
+            </div>
+          </div>
+        )}
+
         {/* 三个玩家区域 */}
         <div className="dz-table-body">
           <div className="dz-seat-left">
@@ -269,16 +279,6 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
           </div>
 
           <div className="dz-center">
-            {/* 底牌 */}
-            {phase === 'playing' && kitty && (
-              <div className="dz-kitty-bar">
-                <span className="dz-kitty-label">底牌</span>
-                <div className="dz-kitty-cards">
-                  {kitty.map((c) => <Card key={c.id} card={c} small />)}
-                </div>
-              </div>
-            )}
-
             {/* 叫分阶段 */}
             {phase === 'bidding' && (
               <BiddingPanel

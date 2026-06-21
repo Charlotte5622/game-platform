@@ -8,7 +8,12 @@ export default function Navbar() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
 
-  const [muted, setMuted] = useState(() => localStorage.getItem('muted') === 'true');
+  const [muted, setMuted] = useState(() => {
+    const stored = localStorage.getItem('muted') === 'true';
+    // 初始化时立即设置音量
+    setVolume(stored ? 0 : 0.5);
+    return stored;
+  });
   const toggleMute = () => {
     const next = !muted;
     setMuted(next);
