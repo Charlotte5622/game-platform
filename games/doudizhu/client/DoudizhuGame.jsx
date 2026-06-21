@@ -56,16 +56,18 @@ function Card({ card, selected, onClick, small, faceDown }) {
 /**
  * 玩家信息面板
  */
-function PlayerPanel({ player, bid, isPassing }) {
+function PlayerPanel({ player, bid, isPassing, isBot }) {
   return (
     <div
       className={`dz-panel${player.isCurrent ? ' dz-panel-active' : ''}${player.isLandlord ? ' dz-panel-landlord' : ''}`}
     >
       <div className="dz-panel-avatar">
-        {player.avatar ? (
+        {isBot ? (
+          <span className="dz-bot-avatar">🤖</span>
+        ) : player.avatar ? (
           <img src={player.avatar} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
         ) : (
-          player.isLandlord ? '👑' : '👤'
+          <span className="dz-user-avatar">{player.isLandlord ? '👑' : '👤'}</span>
         )}
       </div>
       <div className="dz-panel-name">{player.nickname}</div>
@@ -178,6 +180,7 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
       id: pid,
       nickname: p?.nickname || `玩家${idx + 1}`,
       avatar: p?.avatar || null,
+      isBot: p?.isBot || false,
       cardCount: playerCardCounts?.[pid] || 0,
       isLandlord: pid === landlord,
       isCurrent: currentTurn === idx,
@@ -262,7 +265,7 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
         {/* 三个玩家区域 */}
         <div className="dz-table-body">
           <div className="dz-seat-left">
-            <PlayerPanel player={left} bid={bids?.[left.id]} isPassing={passAnimation === left.id} />
+            <PlayerPanel player={left} bid={bids?.[left.id]} isPassing={passAnimation === left.id} isBot={left.isBot} />
           </div>
 
           <div className="dz-center">
@@ -307,7 +310,7 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
           </div>
 
           <div className="dz-seat-right">
-            <PlayerPanel player={right} bid={bids?.[right.id]} isPassing={passAnimation === right.id} />
+            <PlayerPanel player={right} bid={bids?.[right.id]} isPassing={passAnimation === right.id} isBot={right.isBot} />
           </div>
         </div>
 

@@ -201,21 +201,28 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
           const placementEmoji = { 1: '🥇', 2: '🥈', 3: '🥉' };
           if (pid === playerId) return null;
           const avatar = getAvatar(pid);
+          const isBot = players.find(p => p.id === pid)?.isBot;
+          const isActive = playerIds[currentTurn] === pid;
           return (
-            <div key={pid} className={`uno-opponent${playerIds[currentTurn] === pid ? ' uno-opponent-active' : ''}${isDone ? ' uno-opponent-done' : ''}`}>
-              {avatar ? (
-                <img src={avatar} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
-              ) : (
-                <span style={{ width: 28, height: 28, borderRadius: '50%', background: '#6366f1', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 600 }}>
-                  {getNickname(pid).charAt(0)}
+            <div key={pid} className={`uno-opponent${isActive ? ' uno-opponent-active' : ''}${isDone ? ' uno-opponent-done' : ''}`}>
+              <div className="uno-opponent-avatar">
+                {isBot ? (
+                  <span className="uno-bot-avatar">🤖</span>
+                ) : avatar ? (
+                  <img src={avatar} alt="" className="uno-avatar-img" />
+                ) : (
+                  <span className="uno-user-avatar">{getNickname(pid).charAt(0)}</span>
+                )}
+              </div>
+              <div className="uno-opponent-info">
+                <span className="uno-opponent-name">
+                  {getNickname(pid)}
+                  {winInfo && <span style={{marginLeft:4}}>{placementEmoji[winInfo.placement] || `#${winInfo.placement}`}</span>}
+                  {isDone && !winInfo && <span style={{marginLeft:4}}>✅</span>}
                 </span>
-              )}
-              <span className="uno-opponent-name">
-                {getNickname(pid)}
-                {winInfo && <span style={{marginLeft:4}}>{placementEmoji[winInfo.placement] || `#${winInfo.placement}`}</span>}
-                {isDone && !winInfo && <span style={{marginLeft:4}}>✅</span>}
-              </span>
-              <span className="uno-opponent-count">{isDone ? '已出完' : `${handCounts?.[pid] || 0} 张`}</span>
+                <span className="uno-opponent-count">{isDone ? '已出完' : `${handCounts?.[pid] || 0} 张`}</span>
+              </div>
+              {isActive && <div className="uno-turn-indicator">⏳</div>}
             </div>
           );
         })}

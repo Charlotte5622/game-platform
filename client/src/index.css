@@ -1896,7 +1896,14 @@ input {
 
 .dz-panel-active {
   border-color: #fbbf24;
-  box-shadow: 0 0 12px rgba(251,191,36,0.3);
+  box-shadow: 0 0 16px rgba(251,191,36,0.4);
+  background: rgba(251,191,36,0.08);
+  animation: dz-pulse-glow 1.5s ease-in-out infinite;
+}
+
+@keyframes dz-pulse-glow {
+  0%, 100% { box-shadow: 0 0 16px rgba(251,191,36,0.4); }
+  50% { box-shadow: 0 0 24px rgba(251,191,36,0.6); }
 }
 
 .dz-panel-landlord {
@@ -1922,6 +1929,32 @@ input {
 
 .dz-panel-avatar {
   font-size: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dz-bot-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  font-size: 22px;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+}
+
+.dz-user-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #334155, #475569);
+  font-size: 20px;
 }
 
 .dz-panel-name {
@@ -3162,10 +3195,10 @@ input {
     flex-wrap: wrap;
   }
 
-  /* 移动端：牌桌纵向布局 */
+  /* 移动端：牌桌保持左右布局（业界标准斗地主布局） */
   .dz-table-body {
-    flex-direction: column;
-    gap: 8px;
+    flex-direction: row;
+    gap: 4px;
     min-height: auto;
     padding: 0;
   }
@@ -3173,16 +3206,18 @@ input {
   /* 对手横向排列在顶部 */
   .dz-seat-left,
   .dz-seat-right {
-    width: 100%;
+    width: 80px;
+    flex-shrink: 0;
     justify-content: center;
   }
 
   .dz-panel {
-    flex-direction: row;
+    flex-direction: column;
     width: auto;
-    gap: 10px;
-    padding: 8px 14px;
+    gap: 4px;
+    padding: 6px 8px;
     border-radius: 10px;
+    min-width: 60px;
   }
 
   .dz-panel-avatar {
@@ -3190,8 +3225,12 @@ input {
   }
 
   .dz-panel-name {
-    max-width: 100px;
-    font-size: 13px;
+    max-width: 60px;
+    font-size: 11px;
+  }
+
+  .dz-panel-count {
+    font-size: 10px;
   }
 
   .dz-center {
@@ -4071,6 +4110,61 @@ input {
   border-color: var(--success);
   box-shadow: 0 0 16px var(--success-glow);
   background: rgba(0, 184, 148, 0.06);
+  animation: uno-pulse-glow 1.5s ease-in-out infinite;
+}
+
+@keyframes uno-pulse-glow {
+  0%, 100% { box-shadow: 0 0 16px var(--success-glow); }
+  50% { box-shadow: 0 0 24px rgba(0, 184, 148, 0.5); }
+}
+
+.uno-opponent-avatar {
+  flex-shrink: 0;
+}
+
+.uno-bot-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  font-size: 20px;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+}
+
+.uno-avatar-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.uno-user-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.uno-opponent-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.uno-turn-indicator {
+  font-size: 16px;
+  animation: pulse 1s infinite;
+  flex-shrink: 0;
 }
 
 .uno-opponent-name {
