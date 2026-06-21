@@ -2124,42 +2124,38 @@ input {
   animation: float 2s ease-in-out infinite;
 }
 
-/* 竖屏旋转提示 */
-.mj-rotate-hint {
+/* 竖屏紧凑对手栏 — 默认隐藏，竖屏media query显示 */
+.mj-opp-compact {
+  display: none;
+}
+
+.mj-opp-compact-item {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  text-align: center;
-  animation: pulse 2s ease-in-out infinite;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(15,23,42,0.6);
+  border: 1px solid #334155;
+  border-radius: 8px;
+  font-size: 12px;
+  transition: all 0.2s;
 }
 
-.mj-rotate-icon {
-  font-size: 48px;
-  margin-bottom: 12px;
-  animation: rotate-hint 2s ease-in-out infinite;
+.mj-opp-compact-item.active {
+  border-color: #06b6d4;
+  box-shadow: 0 0 8px rgba(6,182,212,0.3);
 }
 
-@keyframes rotate-hint {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(20deg); }
-}
-
-.mj-rotate-hint p {
-  font-size: 16px;
+.mj-opp-compact-icon { font-size: 14px; }
+.mj-opp-compact-name {
   font-weight: 600;
-  color: var(--text);
-  margin-bottom: 8px;
+  color: #e2e8f0;
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-
-.mj-rotate-hint span {
-  font-size: 13px;
-  color: var(--text-muted);
-}
+.mj-opp-compact-count { color: #94a3b8; font-size: 11px; }
 
 /* 牌桌 */
 .mj-table {
@@ -2193,8 +2189,8 @@ input {
 .mj-board {
   flex: 1;
   display: grid;
-  grid-template-columns: 140px 1fr 140px;
-  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 120px 1fr 120px;
+  grid-template-rows: auto 1fr;
   gap: 8px;
   min-height: 300px;
 }
@@ -2208,24 +2204,27 @@ input {
 
 .mj-seat-left {
   grid-column: 1;
-  grid-row: 2;
+  grid-row: 1 / 3;
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
 .mj-seat-right {
   grid-column: 3;
-  grid-row: 2;
+  grid-row: 1 / 3;
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
 .mj-center {
   grid-column: 2;
   grid-row: 2;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+  overflow-y: auto;
 }
 
 /* 对手面板 */
@@ -2285,14 +2284,31 @@ input {
 
 /* 弃牌池 */
 .mj-discard-pool {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  max-height: 100%;
+  overflow-y: auto;
 }
 
-.mj-my-discards {
+.mj-discard-row {
   display: flex;
-  gap: 3px;
+  align-items: center;
+  gap: 2px;
   flex-wrap: wrap;
-  justify-content: center;
+}
+
+.mj-discard-label {
+  font-size: 10px;
+  color: #6ee7b7;
+  font-weight: 600;
+  min-width: 32px;
+  flex-shrink: 0;
+}
+
+.mj-discard-mine .mj-discard-label {
+  color: #fbbf24;
 }
 
 /* 明牌 */
@@ -3744,22 +3760,177 @@ input {
 }
 
 /* ============================================
-   麻将横屏模式 (手机横屏)
+   麻将竖屏模式 (手机竖屏) — 核心修复
    ============================================ */
-@media (max-width: 768px) and (orientation: landscape) {
-  .mj-rotate-hint {
+@media (max-width: 768px) and (orientation: portrait) {
+  .mj {
+    padding: 6px;
+    min-height: calc(100vh - 64px);
+    min-height: calc(100dvh - 64px);
+    gap: 6px;
+  }
+
+  .mj-table {
+    padding: 8px;
+    gap: 6px;
+    border-radius: 12px;
+  }
+
+  .mj-top-bar {
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+
+  .mj-info-tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    white-space: nowrap;
+  }
+
+  /* 竖屏显示紧凑对手栏 */
+  .mj-opp-compact {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: nowrap;
+  }
+
+  /* 竖屏隐藏左右对手面板 */
+  .mj-seat-left,
+  .mj-seat-right {
     display: none;
   }
 
+  /* 竖屏board改为单列 */
+  .mj-board {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 4px;
+    min-height: 200px;
+  }
+
+  .mj-seat-top {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .mj-center {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  /* 对面对手紧凑 */
+  .mj-opponent {
+    min-width: auto;
+    padding: 6px 8px;
+  }
+
+  .mj-opponent-name {
+    max-width: 80px;
+  }
+
+  .mj-opponent-discards {
+    display: none; /* 竖屏不显示对手弃牌（在中央池显示） */
+  }
+
+  /* 弃牌池紧凑 */
+  .mj-discard-pool {
+    padding: 4px;
+    gap: 4px;
+  }
+
+  .mj-discard-label {
+    font-size: 9px;
+    min-width: 24px;
+  }
+
+  /* 牌缩小 */
+  .mj-tile {
+    width: 34px;
+    height: 46px;
+  }
+
+  .mj-tile-text {
+    font-size: 14px;
+  }
+
+  .mj-tile-suit {
+    font-size: 9px;
+  }
+
+  .mj-tile-sm {
+    width: 24px;
+    height: 32px;
+  }
+
+  .mj-tile-sm .mj-tile-text {
+    font-size: 9px;
+  }
+
+  .mj-tile-sm .mj-tile-suit {
+    font-size: 7px;
+  }
+
+  /* 手牌重叠显示以节省空间 */
+  .mj-hand {
+    padding: 4px 0 8px;
+    gap: 4px;
+  }
+
+  .mj-hand-tiles {
+    gap: 0;
+  }
+
+  .mj-hand-wrap {
+    margin-right: -10px;
+  }
+
+  .mj-hand-wrap:last-child {
+    margin-right: 0;
+  }
+
+  /* 明牌紧凑 */
+  .mj-my-melds {
+    padding: 4px 8px;
+    gap: 4px;
+  }
+
+  /* 按钮紧凑 */
+  .mj-actions {
+    gap: 6px;
+    padding: 4px;
+  }
+
+  .mj-action-btn {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+}
+
+/* ============================================
+   麻将横屏模式 (手机横屏)
+   ============================================ */
+@media (max-width: 768px) and (orientation: landscape) {
   .mj {
     padding: 4px;
     height: 100vh;
     height: 100dvh;
+    gap: 4px;
+  }
+
+  .mj-table {
+    padding: 6px;
+    gap: 4px;
+  }
+
+  /* 横屏隐藏紧凑对手栏 */
+  .mj-opp-compact {
+    display: none;
   }
 
   .mj-board {
-    grid-template-columns: 100px 1fr 100px;
-    grid-template-rows: auto 1fr auto;
+    grid-template-columns: 80px 1fr 80px;
+    grid-template-rows: auto 1fr;
     gap: 4px;
     min-height: 0;
     flex: 1;
@@ -3774,7 +3945,7 @@ input {
 
   .mj-seat-left {
     grid-column: 1;
-    grid-row: 2;
+    grid-row: 1 / 3;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3782,7 +3953,7 @@ input {
 
   .mj-seat-right {
     grid-column: 3;
-    grid-row: 2;
+    grid-row: 1 / 3;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3797,93 +3968,108 @@ input {
   }
 
   .mj-opponent {
-    min-width: 80px;
-    padding: 6px 8px;
-    font-size: 11px;
+    min-width: 70px;
+    padding: 4px 6px;
+    font-size: 10px;
   }
 
   .mj-opponent-header {
-    gap: 4px;
-    margin-bottom: 4px;
-  }
-
-  .mj-opponent-icon {
-    font-size: 14px;
-  }
-
-  .mj-opponent-name {
-    max-width: 50px;
-    font-size: 11px;
-  }
-
-  .mj-opponent-count {
-    font-size: 10px;
-  }
-
-  .mj-opponent-melds {
-    display: flex;
-    gap: 2px;
+    gap: 3px;
     margin-bottom: 2px;
   }
 
-  .mj-opponent-discards {
-    display: flex;
+  .mj-opponent-icon {
+    font-size: 12px;
+  }
+
+  .mj-opponent-name {
+    max-width: 40px;
+    font-size: 10px;
+  }
+
+  .mj-opponent-count {
+    font-size: 9px;
+  }
+
+  .mj-opponent-melds {
     gap: 1px;
-    flex-wrap: wrap;
+    margin-bottom: 1px;
+  }
+
+  .mj-opponent-discards {
+    display: none;
   }
 
   .mj-tile {
-    width: 30px;
-    height: 40px;
+    width: 28px;
+    height: 38px;
   }
 
   .mj-tile-text {
-    font-size: 12px;
-  }
-
-  .mj-tile-suit {
-    font-size: 8px;
-  }
-
-  .mj-tile-sm {
-    width: 20px;
-    height: 28px;
-  }
-
-  .mj-tile-sm .mj-tile-text {
-    font-size: 8px;
-  }
-
-  .mj-hand {
-    padding: 4px;
-  }
-
-  .mj-hand-tiles {
-    gap: 2px;
-  }
-
-  .mj-hand-wrap {
-    margin-right: -8px;
-  }
-
-  .mj-top-bar {
-    gap: 6px;
     font-size: 11px;
   }
 
-  .mj-info-tag {
+  .mj-tile-suit {
+    font-size: 7px;
+  }
+
+  .mj-tile-sm {
+    width: 18px;
+    height: 26px;
+  }
+
+  .mj-tile-sm .mj-tile-text {
+    font-size: 7px;
+  }
+
+  .mj-tile-sm .mj-tile-suit {
+    font-size: 5px;
+  }
+
+  .mj-hand {
+    padding: 2px 0 4px;
+  }
+
+  .mj-hand-tiles {
+    gap: 1px;
+  }
+
+  .mj-hand-wrap {
+    margin-right: -6px;
+  }
+
+  .mj-hand-wrap:last-child {
+    margin-right: 0;
+  }
+
+  .mj-top-bar {
+    gap: 4px;
     font-size: 10px;
-    padding: 2px 8px;
+  }
+
+  .mj-info-tag {
+    font-size: 9px;
+    padding: 2px 6px;
   }
 
   .mj-actions {
-    gap: 6px;
-    padding: 4px;
+    gap: 4px;
+    padding: 2px;
   }
 
   .mj-action-btn {
-    padding: 6px 12px;
-    font-size: 12px;
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .mj-discard-pool {
+    padding: 4px;
+    gap: 3px;
+  }
+
+  .mj-discard-label {
+    font-size: 8px;
+    min-width: 20px;
   }
 }
 

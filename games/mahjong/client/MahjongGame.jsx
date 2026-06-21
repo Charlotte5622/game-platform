@@ -1,25 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 
-// 检测是否为手机竖屏
-function useIsPortraitMobile() {
-  const [isPortrait, setIsPortrait] = useState(false);
-  useEffect(() => {
-    const check = () => {
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth <= 768;
-      const isPortraitMode = window.innerHeight > window.innerWidth;
-      setIsPortrait(isMobile && isPortraitMode);
-    };
-    check();
-    window.addEventListener('resize', check);
-    window.addEventListener('orientationchange', check);
-    return () => {
-      window.removeEventListener('resize', check);
-      window.removeEventListener('orientationchange', check);
-    };
-  }, []);
-  return isPortrait;
-}
-
 // 花色颜色
 const SUIT_COLORS = {
   wan: '#dc2626',   // 万 - 红
@@ -145,7 +125,6 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
   // BUG-2 修复：响应动作 + 吃牌选项
   const [responseData, setResponseData] = useState(null); // { actions, chowOptions }
   const [showChowPicker, setShowChowPicker] = useState(false);
-  const isPortraitMobile = useIsPortraitMobile();
 
   // 监听 action_hint + action_required
   useEffect(() => {
@@ -243,17 +222,11 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
   const hasDrawAction = actionHint && actionHint.actions?.some(a => a !== 'discard');
   const showActions = hasResponse || hasDrawAction;
 
+  // 竖屏紧凑对手信息（CSS控制显隐）
+  const compactOpponents = [top, left, right];
+
   return (
     <div className="mj">
-      {/* 竖屏旋转提示 */}
-      {isPortraitMobile && (
-        <div className="mj-rotate-hint">
-          <div className="mj-rotate-icon">📱↻</div>
-          <p>请旋转手机以获得最佳麻将体验</p>
-          <span>横屏模式下可看到所有4位玩家</span>
-        </div>
-      )}
-
       {/* 牌桌 */}
       <div className="mj-table">
         {/* 顶部信息 */}
@@ -267,6 +240,17 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
           <span className="mj-info-tag">
             {isMyTurn ? '🟢 轮到你' : `⏳ ${players.find(p => p.id === gameState.players[currentTurn])?.nickname || ''}`}
           </span>
+        </div>
+
+        {/* 竖屏紧凑对手栏 — CSS控制：竖屏显示，横屏/桌面隐藏 */}
+        <div className="mj-opp-compact">
+          {compactOpponents.map((opp, i) => (
+            <div key={opp.id} className={`mj-opp-compact-item${opp.isCurrent ? ' active' : ''}`}>
+              <span className="mj-opp-compact-icon">{opp.isDealer ? '🅰️' : '👤'}</span>
+              <span className="mj-opp-compact-name">{opp.nickname}</span>
+              <span className="mj-opp-compact-count">{opp.cardCount}张</span>
+            </div>
+          ))}
         </div>
 
         {/* 牌桌主体 - 4个方位 */}
@@ -296,10 +280,22 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
           {/* 中央 - 弃牌池 */}
           <div className="mj-center">
             <div className="mj-discard-pool">
+              {/* 对手弃牌 */}
+              {[top, left, right].map((opp) => (
+                discards?.[opp.id] && discards[opp.id].length > 0 && (
+                  <div key={opp.id} className="mj-discard-row">
+                    <span className="mj-discard-label">{opp.nickname}:</span>
+                    {discards[opp.id].slice(-8).map((t, i) => (
+                      <MjTile key={t.id || i} tile={t} small />
+                    ))}
+                  </div>
+                )
+              ))}
               {/* 自己的弃牌 */}
               {discards?.[playerId] && discards[playerId].length > 0 && (
-                <div className="mj-my-discards">
-                  {discards[playerId].slice(-10).map((t, i) => (
+                <div className="mj-discard-row mj-discard-mine">
+                  <span className="mj-discard-label">我:</span>
+                  {discards[playerId].slice(-8).map((t, i) => (
                     <MjTile key={t.id || i} tile={t} small />
                   ))}
                 </div>
