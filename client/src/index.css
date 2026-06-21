@@ -3255,12 +3255,29 @@ input {
     flex-direction: row;
     gap: 12px;
     padding: 12px 16px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: center;
   }
 
   .lobby-stat-divider {
     display: none;
+  }
+
+  .lobby-stat {
+    min-width: 0;
+    gap: 1px;
+  }
+
+  .lobby-stat-num {
+    font-size: 18px;
+  }
+
+  .lobby-stat-icon {
+    font-size: 16px;
+  }
+
+  .lobby-stat-label {
+    font-size: 10px;
   }
 
   .lobby-grid {
@@ -3425,12 +3442,22 @@ input {
     font-size: 22px;
   }
 
+  .lobby-hero {
+    padding: 20px 12px 16px;
+    margin: 12px 12px 24px;
+  }
+
   .lobby-stats {
-    padding: 10px 12px;
+    padding: 10px 10px;
+    gap: 6px;
+  }
+
+  .lobby-stat-icon {
+    display: none;
   }
 
   .lobby-stat-num {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   .dz-card {

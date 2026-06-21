@@ -11,22 +11,22 @@ const CATEGORY_COLORS = {
 };
 
 const ANSWER_COLORS = {
-  '\u662f': { bg: '#27ae60', icon: '\u2705' },
-  '\u4e0d\u662f': { bg: '#e74c3c', icon: '\u274c' },
-  '\u662f\u4e5f\u4e0d\u662f': { bg: '#f39c12', icon: '\u26a0\ufe0f' },
-  '\u4e0d\u76f8\u5173': { bg: '#95a5a6', icon: '\u2753' },
+  '是': { bg: '#27ae60', icon: '✅' },
+  '不是': { bg: '#e74c3c', icon: '❌' },
+  '也不是': { bg: '#f39c12', icon: '⚠️' },
+  '不相关': { bg: '#95a5a6', icon: '❓' },
 };
 
 function getAnswerStyle(answer) {
-  if (!answer) return { bg: '#95a5a6', icon: '\u23f3' };
+  if (!answer) return { bg: '#95a5a6', icon: '⏳' };
   for (const [key, val] of Object.entries(ANSWER_COLORS)) {
     if (answer.includes(key)) return val;
   }
-  return { bg: '#3498db', icon: '\ud83d\udcac' };
+  return { bg: '#3498db', icon: '💬' };
 }
 
 /**
- * \u6d77\u9f9f\u6c64\u6e38\u620f\u4e3b\u7ec4\u4ef6
+ * 海龟汤游戏主组件
  */
 export default function TurtleSoupGame({ socket, roomId, playerId, gameState, onAction, players, onLeaveRoom }) {
   const [questionInput, setQuestionInput] = useState('');
@@ -43,26 +43,26 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
   useEffect(() => {
     if (!socket) return;
 
-    const getNickname = (pid) => players.find(p => p.id === pid)?.nickname || '\u73a9\u5bb6';
+    const getNickname = (pid) => players.find(p => p.id === pid)?.nickname || '玩家';
 
     const handlers = {
       error: (data) => { setError(data.message); setTimeout(() => setError(''), 3000); },
-      ai_thinking: () => { setNotification('\ud83e\udd16 AI\u6b63\u5728\u601d\u8003...'); },
+      ai_thinking: () => { setNotification('🤖 AI正在思考...'); },
       question_answered: () => { setNotification(''); },
-      ai_judging_guess: () => { setNotification('\ud83e\udd16 AI\u6b63\u5728\u5224\u5b9a...'); },
+      ai_judging_guess: () => { setNotification('🤖 AI正在判定...'); },
       guess_result: (data) => {
         setNotification('');
         if (data.correct) {
-          setNotification('\ud83c\udf89 ' + getNickname(data.pid) + ' \u731c\u5bf9\u4e86\uff01');
+          setNotification('🎉 ' + getNickname(data.pid) + ' 猜对了！');
         }
       },
       player_skipped: (data) => {
-        setNotification(getNickname(data.pid) + ' \u8df3\u8fc7\u4e86\u56de\u5408');
+        setNotification(getNickname(data.pid) + ' 跳过了回合');
         setTimeout(() => setNotification(''), 2000);
       },
       turn_changed: (data) => {
         if (data.currentTurnPlayer === playerId) {
-          setNotification('\ud83d\udce1 \u8f6e\u5230\u4f60\u63d0\u95ee\u4e86\uff01');
+          setNotification('📨 轮到你提问了！');
           setTimeout(() => setNotification(''), 3000);
         }
       },
@@ -81,8 +81,8 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
   if (!gameState) {
     return (
       <div className="ts-loading">
-        <div className="ts-loading-icon">\ud83d\udc22</div>
-        <p>\u7b49\u5f85\u6e38\u620f\u6570\u636e...</p>
+        <div className="ts-loading-icon">🐢</div>
+        <p>等待游戏数据...</p>
       </div>
     );
   }
@@ -92,7 +92,7 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
   const currentTurnPlayer = gameState.players?.[currentTurn];
   const myScore = scores?.[playerId] || 0;
 
-  const getNickname = (pid) => players.find(p => p.id === pid)?.nickname || '\u73a9\u5bb6';
+  const getNickname = (pid) => players.find(p => p.id === pid)?.nickname || '玩家';
   const getScore = (pid) => scores?.[pid] || 0;
 
   const emitAction = (action) => {
@@ -134,27 +134,27 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
     return (
       <div className="ts">
         <div className="ts-result">
-          <div className="ts-result-icon">{winner === playerId ? '\ud83c\udf89' : '\ud83d\udc22'}</div>
+          <div className="ts-result-icon">{winner === playerId ? '🎉' : '🐢'}</div>
           <h2 className="ts-result-title">
-            {winner ? getNickname(winner) + ' \u731c\u5bf9\u4e86\u771f\u76f8\uff01' : '\u6e38\u620f\u7ed3\u675f'}
+            {winner ? getNickname(winner) + ' 猜对了真相！' : '游戏结束'}
           </h2>
           {puzzle && (
             <div className="ts-reveal">
-              <div className="ts-reveal-label">\u771f\u76f8\u662f...</div>
+              <div className="ts-reveal-label">真相是...</div>
               <div className="ts-reveal-answer">{puzzle.answer}</div>
             </div>
           )}
           <div className="ts-scores">
-            <h3>\ud83d\udcca \u6700\u7ec8\u5f97\u5206</h3>
+            <h3>📊 最终得分</h3>
             {gameState.players?.map(pid => (
               <div key={pid} className={"ts-score-row" + (pid === winner ? " ts-score-winner" : "")}>
                 <span className="ts-score-name">{getNickname(pid)}</span>
-                <span className="ts-score-value">{getScore(pid)} \u5206</span>
+                <span className="ts-score-value">{getScore(pid)} 分</span>
               </div>
             ))}
           </div>
           <button className="ts-back-btn" onClick={onLeaveRoom || (() => window.location.href = '/lobby')}>
-            \u8fd4\u56de\u5927\u5385
+            返回大厅
           </button>
         </div>
       </div>
@@ -178,8 +178,8 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
     return (
       <div className="ts">
         <div className="ts-header">
-          <h2 className="ts-title">\ud83d\udc22 \u6d77\u9f9f\u6c64</h2>
-          <p className="ts-subtitle">\u9009\u62e9\u4f60\u60f3\u73a9\u7684\u8c1c\u9898\u7c7b\u578b</p>
+          <h2 className="ts-title">🐢 海龟汤</h2>
+          <p className="ts-subtitle">选择你想玩的谜题类型</p>
         </div>
         <div className="ts-vote-grid">
           {categories?.map(cat => {
@@ -202,22 +202,22 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
               >
                 <div className="ts-vote-icon">{cat.icon}</div>
                 <div className="ts-vote-name">{cat.name}</div>
-                <div className="ts-vote-count">{count} \u7968</div>
-                {isSelected && <div className="ts-vote-check">\u2713</div>}
+                <div className="ts-vote-count">{count} 票</div>
+                {isSelected && <div className="ts-vote-check">✓</div>}
               </button>
             );
           })}
         </div>
         <div className="ts-vote-status">
           {myVote
-            ? "\u2705 \u5df2\u6295\u7968\uff0c\u7b49\u5f85\u5176\u4ed6\u73a9\u5bb6... (" + Object.keys(votes || {}).length + "/" + gameState.players?.length + ")"
-            : '\u8bf7\u9009\u62e9\u4e00\u4e2a\u7c7b\u578b'
+            ? "✅ 已投票，等待其他玩家... (" + Object.keys(votes || {}).length + "/" + gameState.players?.length + ")"
+            : '请选择一个类型'
           }
         </div>
         <div className="ts-players-bar">
           {gameState.players?.map(pid => (
             <div key={pid} className={"ts-player-tag" + (votes?.[pid] ? " ts-player-voted" : "")}>
-              {getNickname(pid)} {votes?.[pid] ? '\u2705' : '\u23f3'}
+              {getNickname(pid)} {votes?.[pid] ? '✅' : '⏳'}
             </div>
           ))}
         </div>
@@ -229,12 +229,12 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
     <div className="ts">
       <div className="ts-top-bar">
         <div className="ts-info-tags">
-          <span className="ts-tag">\u2753 \u5269\u4f59 {gameState.maxQuestions - (questions?.length || 0)} \u95ee</span>
-          <span className="ts-tag">\ud83c\udfaf \u7b2c {gameState.roundNumber || 1} \u8f6e</span>
-          <span className="ts-tag">\u2b50 {myScore} \u5206</span>
+          <span className="ts-tag">❓ 剩余 {gameState.maxQuestions - (questions?.length || 0)} 问</span>
+          <span className="ts-tag">🎯 第 {gameState.roundNumber || 1} 轮</span>
+          <span className="ts-tag">⭐ {myScore} 分</span>
         </div>
         <div className={"ts-turn-tag" + (isMyTurn ? " ts-turn-mine" : "")}>
-          {isMyTurn ? '\ud83d\udfe2 \u8f6e\u5230\u4f60\u63d0\u95ee' : "\u23f3 " + getNickname(currentTurnPlayer)}
+          {isMyTurn ? '🟢 轮到你提问' : "⏳ " + getNickname(currentTurnPlayer)}
         </div>
       </div>
 
@@ -251,8 +251,8 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
       <div className="ts-chat">
         {questions?.length === 0 && guesses?.length === 0 && (
           <div className="ts-chat-empty">
-            <div className="ts-chat-empty-icon">\ud83d\udcac</div>
-            <p>\u5f00\u59cb\u63d0\u95ee\u5427\uff01\u53ea\u80fd\u95ee"\u662f/\u4e0d\u662f"\u7c7b\u578b\u7684\u95ee\u9898</p>
+            <div className="ts-chat-empty-icon">💬</div>
+            <p>开始提问吧！只能问"是/不是"类型的问题</p>
           </div>
         )}
 
@@ -266,14 +266,14 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
                   {new Date(q.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
-              <div className="ts-chat-question">\u2753 {q.question}</div>
+              <div className="ts-chat-question">❓ {q.question}</div>
               {q.answer ? (
                 <div className="ts-chat-answer" style={{ borderLeftColor: answerStyle.bg }}>
                   <span className="ts-chat-answer-icon">{answerStyle.icon}</span>
                   <span>{q.answer}</span>
                 </div>
               ) : (
-                <div className="ts-chat-answer ts-chat-thinking">\ud83e\udd16 AI\u601d\u8003\u4e2d...</div>
+                <div className="ts-chat-answer ts-chat-thinking">🤖 AI思考中...</div>
               )}
             </div>
           );
@@ -283,15 +283,15 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
           <div key={"g-" + i} className={"ts-chat-msg ts-chat-guess" + (g.pid === playerId ? " ts-chat-mine" : "")}>
             <div className="ts-chat-header">
               <span className="ts-chat-name">{getNickname(g.pid)}</span>
-              <span className="ts-chat-badge">\ud83c\udfaf \u731c\u6d4b</span>
+              <span className="ts-chat-badge">🎯 猜测</span>
             </div>
             <div className="ts-chat-guess-text">{g.guess}</div>
             {g.result ? (
               <div className={"ts-chat-guess-result" + (g.correct ? " ts-guess-correct" : "")}>
-                {g.correct ? '\ud83c\udf89 ' : '\ud83e\udd14 '}{g.result}
+                {g.correct ? '🎉 ' : '🤔 '}{g.result}
               </div>
             ) : (
-              <div className="ts-chat-guess-result">\ud83e\udd16 AI\u5224\u5b9a\u4e2d...</div>
+              <div className="ts-chat-guess-result">🤖 AI判定中...</div>
             )}
           </div>
         ))}
@@ -307,7 +307,7 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
           <input
             className="ts-input"
             type="text"
-            placeholder={isMyTurn ? '\u8f93\u5165\u4f60\u7684\u95ee\u9898\uff08\u662f/\u5426\u7c7b\u578b\uff09...' : '\u7b49\u5f85\u5176\u4ed6\u73a9\u5bb6\u63d0\u95ee...'}
+            placeholder={isMyTurn ? '输入你的问题（是/否类型）...' : '等待其他玩家提问...'}
             value={questionInput}
             onChange={e => setQuestionInput(e.target.value)}
             onKeyDown={e => handleKeyPress(e, 'ask')}
@@ -319,11 +319,11 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
             onClick={handleAsk}
             disabled={!isMyTurn || !questionInput.trim()}
           >
-            \u63d0\u95ee
+            提问
           </button>
           {isMyTurn && (
-            <button className="ts-skip-btn" onClick={handleSkip} title="\u8df3\u8fc7\u56de\u5408">
-              \u23ed\ufe0f
+            <button className="ts-skip-btn" onClick={handleSkip} title="跳过回合">
+              ⏭️
             </button>
           )}
         </div>
@@ -332,18 +332,18 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
           className="ts-guess-toggle-btn"
           onClick={() => setShowGuessPanel(!showGuessPanel)}
         >
-          \ud83c\udfaf \u63d0\u4ea4\u731c\u6d4b
+          🎯 提交猜测
         </button>
 
         {showGuessPanel && (
           <div className="ts-guess-panel">
             <div className="ts-guess-panel-header">
-              <span>\ud83c\udfaf \u63d0\u4ea4\u4f60\u7684\u6700\u7ec8\u731c\u6d4b</span>
-              <button className="ts-guess-close" onClick={() => setShowGuessPanel(false)}>\u2715</button>
+              <span>🎯 提交你的最终猜测</span>
+              <button className="ts-guess-close" onClick={() => setShowGuessPanel(false)}>✕</button>
             </div>
             <textarea
               className="ts-guess-input"
-              placeholder="\u8f93\u5165\u4f60\u5bf9\u8fd9\u4e2a\u8c1c\u9898\u7684\u5b8c\u6574\u731c\u6d4b..."
+              placeholder="输入你对这个谜题的完整猜测..."
               value={guessInput}
               onChange={e => setGuessInput(e.target.value)}
               onKeyDown={e => handleKeyPress(e, 'guess')}
@@ -355,7 +355,7 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
               onClick={handleGuess}
               disabled={!guessInput.trim()}
             >
-              \u63d0\u4ea4\u731c\u6d4b
+              提交猜测
             </button>
           </div>
         )}
@@ -365,7 +365,7 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
         {gameState.players?.filter(pid => pid !== playerId).map(pid => (
           <div key={pid} className={"ts-opponent" + (currentTurnPlayer === pid ? " ts-opponent-active" : "")}>
             <span className="ts-opponent-name">{getNickname(pid)}</span>
-            <span className="ts-opponent-score">{getScore(pid)}\u5206</span>
+            <span className="ts-opponent-score">{getScore(pid)}分</span>
           </div>
         ))}
       </div>
