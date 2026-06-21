@@ -25,6 +25,7 @@ export default function Navbar() {
     <nav className="navbar">
       <Link to="/lobby" className="navbar-logo">
         🎮 联机游戏平台
+        <span style={{ fontSize: '10px', opacity: 0.6, marginLeft: '4px' }}>v1.1.0</span>
       </Link>
 
       <div className="navbar-right">

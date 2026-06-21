@@ -5709,3 +5709,45 @@ input {
     padding: 12px 20px;
   }
 }
+
+/* ===== 手机端按钮防换行修复 ===== */
+@media (max-width: 480px) {
+  /* 返回大厅/返回房间按钮防换行 */
+  .back-btn {
+    white-space: nowrap;
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+  
+  /* 象棋返回按钮防换行 */
+  .chess-result-back-btn {
+    white-space: nowrap;
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+  
+  /* UNO返回按钮防换行 */
+  .uno-back-btn {
+    white-space: nowrap;
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+  
+  /* 海龟汤返回按钮防换行 */
+  .ts-back-btn {
+    white-space: nowrap;
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+  
+  /* 游戏内所有按钮防换行 */
+  .game-host button {
+    white-space: nowrap;
+  }
+  
+  /* 大厅统计栏标签防换行 */
+  .lobby-stat-label {
+    white-space: nowrap;
+    font-size: 10px;
+  }
+}

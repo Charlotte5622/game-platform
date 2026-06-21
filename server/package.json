@@ -1,6 +1,6 @@
 {
   "name": "game-platform-server",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "联机游戏平台后端",
   "main": "src/index.js",
   "scripts": {
