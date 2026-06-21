@@ -387,8 +387,9 @@ class TurtleSoupServer extends BaseGameServer {
 
     } catch (err) {
       console.error(`[TurtleSoup] AI判别失败:`, err.message);
-      // AI失败：移除问题（不罚提问次数），恢复并发标记
-      state.questions.pop();
+      // AI失败：移除该问题（不罚提问次数），恢复并发标记
+      const idx = state.questions.indexOf(questionEntry);
+      if (idx !== -1) state.questions.splice(idx, 1);
       state.answeringInProgress = false;
       this.saveState(roomId, state);
 
@@ -587,14 +588,18 @@ class TurtleSoupServer extends BaseGameServer {
 
     // 判断是否进入下一轮
     if (roundNum < (state.totalRounds || 5)) {
-      // 120秒后自动进入下一轮（如果所有人已读则提前进入）
+      // 中间轮次：120秒后自动进入下一轮（如果所有人已读则提前进入）
       state.revealTimer = setTimeout(() => {
         this.advanceToNextRound(roomId, roundNum);
       }, 120000);
       this.saveState(roomId, state);
     } else {
-      // 所有轮次结束
-      this.endGame(roomId, state);
+      // 最后一轮：也要先展示汤底，120秒后（或全员已读）再结束游戏
+      state.revealTimer = setTimeout(() => {
+        this.endGame(roomId, this.getState(roomId));
+      }, 120000);
+      state._isFinalReveal = true;
+      this.saveState(roomId, state);
     }
   }
 
@@ -657,19 +662,30 @@ class TurtleSoupServer extends BaseGameServer {
 
     // 检查是否所有人都已读
     if (Object.keys(state.acknowledgedPlayers).length >= state.players.length) {
-      // 清除倒计时，立即进入下一轮
+      // 清除倒计时
       if (state.revealTimer) {
         clearTimeout(state.revealTimer);
         state.revealTimer = null;
       }
-      this.advanceToNextRound(roomId, state.roundNumber);
+      if (state._isFinalReveal) {
+        // 最后一轮：全员已读，结束游戏
+        state._isFinalReveal = false;
+        this.saveState(roomId, state);
+        this.endGame(roomId, state);
+      } else {
+        // 中间轮次：全员已读，进入下一轮
+        this.advanceToNextRound(roomId, state.roundNumber);
+      }
     }
   }
 
-  /** 进入下一轮投票 */
+  /** 进入下一轮投票（带竞态防护） */
   advanceToNextRound(roomId, currentRound) {
     const currentState = this.getState(roomId);
     if (!currentState || currentState.phase === 'ended') return;
+    // 竞态防护：防止被调用两次导致 roundNumber 递增两次
+    if (currentState._advancing) return;
+    currentState._advancing = true;
 
     currentState.roundNumber = currentRound + 1;
     currentState.phase = 'voting';
@@ -686,6 +702,7 @@ class TurtleSoupServer extends BaseGameServer {
     currentState.voteTimer = null;
     if (currentState.revealTimer) clearTimeout(currentState.revealTimer);
     currentState.revealTimer = null;
+    currentState._advancing = false; // 重置锁
     this.saveState(roomId, currentState);
     this.syncState(roomId);
     this.doBroadcast(roomId, {

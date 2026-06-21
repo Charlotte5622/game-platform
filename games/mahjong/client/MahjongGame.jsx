@@ -136,9 +136,13 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
   // 监听 action_hint + action_required
   useEffect(() => {
     if (!socket) return;
-    const handleHint = (data) => setActionHint(data);
+    const handleHint = (data) => {
+      setActionHint(data);
+      setResponseData(null); // 互斥：新提示清除旧响应
+    };
     const handleActionRequired = (data) => {
       setResponseData({ actions: data.actions, chowOptions: data.chowOptions || null });
+      setActionHint(null); // 互斥：新响应清除旧提示
     };
     const handleError = (data) => {
       setError(data.message);
