@@ -732,6 +732,9 @@ function startGame(io, room, prisma) {
       const duration = curRoom.startTime ? Math.round((Date.now() - curRoom.startTime) / 1000) : null;
 
       for (const player of curRoom.players) {
+        // 跳过机器人（ID是字符串如 "bot_1_xxx"，Prisma要求Int）
+        if (String(player.id).startsWith('bot_')) continue;
+
         let playerResult = 'draw';
         if (result.winners && result.winners.length > 0) {
           playerResult = result.winners.includes(player.id) ? 'win' : 'lose';
