@@ -34,7 +34,6 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
   const [showGuessPanel, setShowGuessPanel] = useState(false);
   const [error, setError] = useState('');
   const [notification, setNotification] = useState('');
-  const [hasGuessed, setHasGuessed] = useState(false);
   const [roundResults, setRoundResults] = useState(null);
   const chatEndRef = useRef(null);
 
@@ -63,7 +62,6 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
       new_round: (data) => {
         setNotification('🔄 第' + data.roundNumber + '轮开始！请选择题材');
         setRoundResults(null);
-        setHasGuessed(false);
         setTimeout(() => setNotification(''), 3000);
       },
       player_skipped: (data) => {
@@ -135,7 +133,6 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
     emitAction({ type: 'guess', guess: guessInput.trim() });
     setGuessInput('');
     setShowGuessPanel(false);
-    setHasGuessed(true);
   };
 
   const handleSkip = () => {
