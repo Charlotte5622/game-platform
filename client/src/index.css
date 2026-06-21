@@ -240,6 +240,29 @@ input {
   display: flex;
   align-items: center;
   gap: 16px;
+  white-space: nowrap;
+}
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.navbar-icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0.7;
+  transition: opacity var(--transition);
+}
+
+.navbar-icon-btn:hover {
+  opacity: 1;
 }
 
 .navbar-nickname {
@@ -2806,12 +2829,25 @@ input {
 @media (max-width: 768px) {
   /* 导航栏 */
   .navbar {
-    padding: 0 16px;
-    height: 56px;
+    padding: 0 12px;
+    height: 52px;
+    gap: 8px;
   }
 
   .navbar-logo {
-    font-size: 17px;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+
+  .navbar-right {
+    gap: 10px;
+    min-width: 0;
+    flex-shrink: 1;
+  }
+
+  .navbar-stats {
+    font-size: 12px;
+    padding: 0;
   }
 
   .navbar-nickname {
@@ -2819,8 +2855,18 @@ input {
   }
 
   .navbar-logout {
-    padding: 8px 12px;
+    padding: 6px 10px;
     font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .navbar-icon-btn {
+    font-size: 16px;
+    padding: 2px;
+  }
+
+  .navbar-actions {
+    gap: 6px;
   }
 
   .main-content {
@@ -4449,6 +4495,7 @@ input {
   color: var(--secondary);
   text-decoration: none;
   transition: opacity 0.2s;
+  white-space: nowrap;
 }
 
 .navbar-stats:hover {

@@ -34,12 +34,14 @@ export default function Navbar() {
             <Link to="/leaderboard" className="navbar-stats">🏆 排行榜</Link>
             <Link to="/stats" className="navbar-stats">📊 战绩</Link>
             <span className="navbar-nickname">{user.nickname}</span>
-            <button onClick={toggleMute} className="navbar-logout" style={{marginRight: '8px', opacity: 0.7}} title={muted ? '开启音效' : '关闭音效'}>
-              {muted ? '🔇' : '🔊'}
-            </button>
-            <button onClick={handleLogout} className="navbar-logout">
-              退出
-            </button>
+            <span className="navbar-actions">
+              <button onClick={toggleMute} className="navbar-icon-btn" title={muted ? '开启音效' : '关闭音效'}>
+                {muted ? '🔇' : '🔊'}
+              </button>
+              <button onClick={handleLogout} className="navbar-logout">
+                退出
+              </button>
+            </span>
           </>
         ) : (
           <Link to="/login" className="navbar-login">
