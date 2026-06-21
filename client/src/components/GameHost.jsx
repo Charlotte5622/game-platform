@@ -282,7 +282,7 @@ export default function GameHost({ gameId, GameComponent }) {
         <div className="error-box">
           <span style={{ fontSize: '48px', display: 'block', marginBottom: '16px' }}>⚠️</span>
           <h2>{error}</h2>
-          <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+          <div className="error-box-actions">
             <button className="back-btn" onClick={() => { setError(null); setPhase('choosing'); }}>重试</button>
             <button className="back-btn" onClick={handleLeaveRoom}>返回大厅</button>
           </div>
@@ -405,36 +405,12 @@ export default function GameHost({ gameId, GameComponent }) {
               </button>
             )}
             {allowBots !== false && (
-              <button
-                onClick={handleAddBots}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  background: 'var(--warning)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 'var(--radius)',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                }}
-              >
+              <button className="waiting-bot-btn" onClick={handleAddBots}>
                 🤖 填充机器人
               </button>
             )}
             {isHost && isVariablePlayers && players.length >= effectiveMinPlayers && players.every(p => p.ready) && (
-              <button
-                onClick={handleStartGame}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  background: 'var(--success)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 'var(--radius)',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                }}
-              >
+              <button className="waiting-start-btn" onClick={handleStartGame}>
                 🎮 开始游戏
               </button>
             )}
@@ -499,7 +475,7 @@ export default function GameHost({ gameId, GameComponent }) {
               })}
             </div>
           )}
-          <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+          <div className="error-box-actions">
             <button className="back-btn" onClick={() => (window.location.href = '/lobby')}>
               返回大厅
             </button>

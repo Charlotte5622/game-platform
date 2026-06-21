@@ -980,6 +980,17 @@ input {
   box-shadow: 0 8px 32px var(--secondary-glow);
 }
 
+.choosing-btn.create-code {
+  background: linear-gradient(135deg, #e17055 0%, #fab1a0 100%);
+  color: #fff;
+  font-weight: 700;
+}
+
+.choosing-btn.create-code:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(225, 112, 85, 0.35);
+}
+
 .choosing-divider {
   color: var(--text-dim);
   font-size: 13px;
@@ -1259,6 +1270,41 @@ input {
   font-size: 20px;
   margin-bottom: 8px;
   color: var(--text);
+}
+
+.error-box-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.error-box-actions .back-btn {
+  padding: 10px 28px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  transition: all 0.25s;
+}
+
+.error-box-actions .back-btn:first-child {
+  background: linear-gradient(135deg, var(--primary) 0%, #a29bfe 100%);
+  color: #fff;
+  border: none;
+}
+
+.error-box-actions .back-btn:first-child:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px var(--primary-glow);
+}
+
+.error-box-actions .back-btn:last-child:hover {
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 /* 结果 */
@@ -2774,6 +2820,7 @@ input {
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .chess-draw-reject {
@@ -2785,6 +2832,7 @@ input {
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 /* 主内容区域（为固定导航栏留出空间） */
@@ -3381,10 +3429,13 @@ input {
 
   .choosing-code-input {
     flex-direction: column;
+    gap: 8px;
   }
 
   .choosing-code-input .choosing-btn {
     max-width: 100%;
+    padding: 14px 20px;
+    font-size: 14px;
   }
 
   .waiting-box {
