@@ -28,7 +28,7 @@ function authMiddleware(req, res, next) {
  */
 function generateToken(user) {
   return jwt.sign(
-    { id: user.id, username: user.username },
+    { id: user.id, username: user.username, avatar: user.avatar || null },
     JWT_SECRET,
     { expiresIn: '7d' }
   );

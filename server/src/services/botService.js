@@ -256,6 +256,61 @@ function chooseColor(hand, gameState, enemyDanger) {
 }
 
 /**
+ * 海龟汤 AI 决策（代码逻辑，不依赖 LLM）
+ * - 投票阶段：随机选一个分类
+ * - 提问阶段：轮到 bot 时随机提问
+ * - 猜谜阶段：bot 随机决定是否猜测
+ */
+function decideTurtleSoup(gameState, botId) {
+  const { CATEGORIES } = require('../../../games/turtle-soup/server/puzzles');
+
+  // 投票阶段：随机选一个分类
+  if (gameState.phase === 'voting') {
+    if (gameState.votes?.[botId]) return null; // 已投票
+    const availableCategories = (gameState.categories || CATEGORIES).filter(
+      c => !(gameState.usedCategories || []).includes(c.id)
+    );
+    const cats = availableCategories.length > 0 ? availableCategories : (gameState.categories || CATEGORIES);
+    const chosen = cats[Math.floor(Math.random() * cats.length)];
+    return { type: 'vote', categoryId: chosen.id };
+  }
+
+  // 提问阶段
+  if (gameState.phase === 'playing') {
+    // 已提交猜测，等待其他人
+    if (gameState.guessedPlayers?.[botId]) return null;
+
+    // 轮到 bot 提问
+    const currentTurnPlayer = gameState.players?.[gameState.currentTurn];
+    if (currentTurnPlayer === botId) {
+      // 30% 概率提交猜测，70% 概率提问
+      if (Math.random() < 0.3) {
+        const guesses = [
+          '我觉得真相是这样的',
+          '我有一个猜测',
+          '让我试试看',
+        ];
+        return { type: 'guess', guess: guesses[Math.floor(Math.random() * guesses.length)] };
+      }
+      // 提问
+      const questions = [
+        '这个人是自愿来到这里的吗？',
+        '这件事涉及到死亡吗？',
+        '有其他人知道这件事吗？',
+        '这个场景发生在室内还是室外？',
+        '这个人之前来过这里吗？',
+        '有什么东西被隐藏了吗？',
+        '时间（白天/夜晚）重要吗？',
+        '这个人认识在场的其他人吗？',
+      ];
+      return { type: 'ask', question: questions[Math.floor(Math.random() * questions.length)] };
+    }
+  }
+
+  return null;
+}
+
+/**
  * 斗地主 AI 决策（代码逻辑，不依赖 LLM）
  */
 function decideDoudizhu(gameState, botId) {
@@ -543,6 +598,9 @@ async function getBotAction(gameId, gameState, botId) {
       break;
     case 'uno':
       action = decideUno(gameState, botId);
+      break;
+    case 'turtle-soup':
+      action = decideTurtleSoup(gameState, botId);
       break;
   }
 

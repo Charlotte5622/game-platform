@@ -144,6 +144,19 @@ function isPlayersTurn(gameState, botId, gameId) {
     }
   }
 
+  if (gameId === 'turtle-soup') {
+    // 投票阶段：如果 bot 还没投票，需要投票
+    if (gameState.phase === 'voting') {
+      return !gameState.votes?.[botId];
+    }
+    // 提问阶段：如果轮到 bot 且还没提交猜测
+    if (gameState.phase === 'playing') {
+      const isBotTurn = gameState.players?.[gameState.currentTurn] === botId;
+      const hasGuessed = gameState.guessedPlayers?.[botId];
+      return isBotTurn && !hasGuessed;
+    }
+  }
+
   return false;
 }
 
