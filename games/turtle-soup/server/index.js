@@ -88,6 +88,9 @@ class TurtleSoupServer extends BaseGameServer {
       answeringInProgress: false,
       pendingGuesses: {},
       guessedPlayers: {},
+      answerRevealed: false,       // 汤底是否已揭示
+      acknowledgedPlayers: {},     // pid -> true 已读玩家
+      revealTimer: null,           // 汤底展示计时器
     };
   }
 
@@ -106,8 +109,8 @@ class TurtleSoupServer extends BaseGameServer {
       totalRounds: gs.totalRounds || 5,
     };
 
-    // 隐藏谜底（除非游戏结束）
-    if (visible.phase !== 'ended' && visible.puzzle) {
+    // 隐藏谜底（除非游戏结束或汤底已揭示）
+    if (visible.phase !== 'ended' && !visible.answerRevealed && visible.puzzle) {
       visible.puzzle = {
         id: visible.puzzle.id,
         category: visible.puzzle.category,
@@ -166,6 +169,9 @@ class TurtleSoupServer extends BaseGameServer {
         break;
       case 'skip':
         this.handleSkip(roomId, pid);
+        break;
+      case 'acknowledge_answer':
+        this.handleAcknowledge(roomId, pid);
         break;
     }
   }
@@ -563,9 +569,11 @@ class TurtleSoupServer extends BaseGameServer {
 
     state.pendingGuesses = {};
     state.guessedPlayers = {};
+    state.answerRevealed = true;
+    state.acknowledgedPlayers = {};
     this.saveState(roomId, state);
 
-    // 广播本轮结果
+    // 广播本轮结果（含汤底）
     this.doBroadcast(roomId, {
       type: 'round_results',
       roundNumber: roundNum,
@@ -573,35 +581,17 @@ class TurtleSoupServer extends BaseGameServer {
       scores: { ...state.scores },
       roundScores: { ...state.roundScores[roundNum] },
       puzzle: state.puzzle,
+      revealDuration: 120,
     });
     this.syncState(roomId);
 
     // 判断是否进入下一轮
     if (roundNum < (state.totalRounds || 5)) {
-      // 进入下一轮投票
-      setTimeout(() => {
-        const currentState = this.getState(roomId);
-        if (!currentState || currentState.phase === 'ended') return;
-        currentState.roundNumber = roundNum + 1;
-        currentState.phase = 'voting';
-        currentState.votes = {};
-        currentState.puzzle = null;
-        currentState.questions = [];
-        currentState.guesses = [];
-        currentState.currentTurn = 0;
-        currentState.pendingGuesses = {};
-        currentState.guessedPlayers = {};
-        if (currentState.voteTimer) clearTimeout(currentState.voteTimer);
-        currentState.voteTimer = null;
-        this.saveState(roomId, currentState);
-        this.syncState(roomId);
-        this.doBroadcast(roomId, {
-          type: 'new_round',
-          roundNumber: roundNum + 1,
-          totalRounds: currentState.totalRounds || 5,
-          usedCategories: currentState.usedCategories || [],
-        });
-      }, 5000); // 5秒后进入下一轮
+      // 120秒后自动进入下一轮（如果所有人已读则提前进入）
+      state.revealTimer = setTimeout(() => {
+        this.advanceToNextRound(roomId, roundNum);
+      }, 120000);
+      this.saveState(roomId, state);
     } else {
       // 所有轮次结束
       this.endGame(roomId, state);
@@ -642,6 +632,68 @@ class TurtleSoupServer extends BaseGameServer {
 
     this.advanceTurn(roomId, state);
     this.syncState(roomId);
+  }
+
+  // ========== 汤底已读 ==========
+
+  handleAcknowledge(roomId, pid) {
+    const state = this.getState(roomId);
+    if (!state || !state.answerRevealed) return;
+
+    // 已经点过已读
+    if (state.acknowledgedPlayers[pid]) return;
+
+    state.acknowledgedPlayers[pid] = true;
+    this.saveState(roomId, state);
+
+    // 广播已读状态更新
+    this.doBroadcast(roomId, {
+      type: 'answer_ack_update',
+      pid,
+      acknowledgedPlayers: { ...state.acknowledgedPlayers },
+      totalPlayers: state.players.length,
+    });
+    this.syncState(roomId);
+
+    // 检查是否所有人都已读
+    if (Object.keys(state.acknowledgedPlayers).length >= state.players.length) {
+      // 清除倒计时，立即进入下一轮
+      if (state.revealTimer) {
+        clearTimeout(state.revealTimer);
+        state.revealTimer = null;
+      }
+      this.advanceToNextRound(roomId, state.roundNumber);
+    }
+  }
+
+  /** 进入下一轮投票 */
+  advanceToNextRound(roomId, currentRound) {
+    const currentState = this.getState(roomId);
+    if (!currentState || currentState.phase === 'ended') return;
+
+    currentState.roundNumber = currentRound + 1;
+    currentState.phase = 'voting';
+    currentState.votes = {};
+    currentState.puzzle = null;
+    currentState.questions = [];
+    currentState.guesses = [];
+    currentState.currentTurn = 0;
+    currentState.pendingGuesses = {};
+    currentState.guessedPlayers = {};
+    currentState.answerRevealed = false;
+    currentState.acknowledgedPlayers = {};
+    if (currentState.voteTimer) clearTimeout(currentState.voteTimer);
+    currentState.voteTimer = null;
+    if (currentState.revealTimer) clearTimeout(currentState.revealTimer);
+    currentState.revealTimer = null;
+    this.saveState(roomId, currentState);
+    this.syncState(roomId);
+    this.doBroadcast(roomId, {
+      type: 'new_round',
+      roundNumber: currentRound + 1,
+      totalRounds: currentState.totalRounds || 5,
+      usedCategories: currentState.usedCategories || [],
+    });
   }
 
   // ========== 游戏结束 ==========

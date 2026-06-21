@@ -35,11 +35,25 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
   const [error, setError] = useState('');
   const [notification, setNotification] = useState('');
   const [roundResults, setRoundResults] = useState(null);
+  const [acknowledgedPlayers, setAcknowledgedPlayers] = useState({});
+  const [revealCountdown, setRevealCountdown] = useState(null);
   const chatEndRef = useRef(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [gameState?.questions?.length, gameState?.guesses?.length]);
+
+  // 倒计时 effect
+  useEffect(() => {
+    if (revealCountdown === null || revealCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setRevealCountdown(prev => {
+        if (prev <= 1) { clearInterval(timer); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [revealCountdown > 0]);
 
   useEffect(() => {
     if (!socket) return;
@@ -56,12 +70,23 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
         setNotification('📝 ' + getNickname(data.pid) + ' 提交了猜测 (' + data.guessCount + '/' + data.totalPlayers + ')');
       },
       round_results: (data) => {
-        setNotification('📊 第' + data.roundNumber + '轮结果已出！');
+        setNotification('📊 第' + data.roundNumber + '轮结果已出！汤底已揭示');
         setRoundResults(data);
+        setAcknowledgedPlayers({});
+        setRevealCountdown(data.revealDuration || 120);
+      },
+      answer_ack_update: (data) => {
+        setAcknowledgedPlayers(data.acknowledgedPlayers || {});
+        const ackCount = Object.keys(data.acknowledgedPlayers || {}).length;
+        if (ackCount < data.totalPlayers) {
+          setNotification('👁️ ' + getNickname(data.pid) + ' 已读汤底 (' + ackCount + '/' + data.totalPlayers + ')');
+        }
       },
       new_round: (data) => {
         setNotification('🔄 第' + data.roundNumber + '轮开始！请选择题材');
         setRoundResults(null);
+        setAcknowledgedPlayers({});
+        setRevealCountdown(null);
         setTimeout(() => setNotification(''), 3000);
       },
       player_skipped: (data) => {
@@ -148,6 +173,10 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
 
   const handleSkip = () => {
     emitAction({ type: 'skip' });
+  };
+
+  const handleAcknowledge = () => {
+    emitAction({ type: 'acknowledge_answer' });
   };
 
   const handleKeyPress = (e, type) => {
@@ -355,19 +384,53 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
       {notification && <div className="ts-notification">{notification}</div>}
       {roundResults && (
         <div className="ts-round-results">
+          {/* 评分区域 — 始终可见不被遮挡 */}
           <h4>📊 第{roundResults.roundNumber}轮结果</h4>
-          {roundResults.results?.map(r => (
-            <div key={r.pid} className="ts-round-result-row">
-              <span>{getNickname(r.pid)}</span>
-              <span style={{fontWeight:'600', color: r.score >= 70 ? 'var(--success)' : r.score >= 40 ? 'var(--warning)' : 'var(--danger)'}}>
-                {r.score}分
-              </span>
-            </div>
-          ))}
-          {roundResults.puzzle && (
-            <div className="ts-reveal" style={{marginTop:'8px'}}>
-              <div className="ts-reveal-label">真相</div>
-              <div className="ts-reveal-answer">{roundResults.puzzle.answer}</div>
+          <div className="ts-round-scores">
+            {roundResults.results?.map(r => (
+              <div key={r.pid} className="ts-round-result-row">
+                <span className="ts-round-result-name">{getNickname(r.pid)}</span>
+                <span className="ts-round-result-score" style={{fontWeight:'600', color: r.score >= 70 ? 'var(--success)' : r.score >= 40 ? 'var(--warning)' : 'var(--danger)'}}>
+                  {r.score}分
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* 汤底卡片 — 不遮挡评分 */}
+          {roundResults.puzzle?.answer && (
+            <div className="ts-answer-card">
+              <div className="ts-answer-header">
+                <span className="ts-answer-icon">🍜</span>
+                <span className="ts-answer-title">汤底（真相）</span>
+              </div>
+              <div className="ts-answer-text">{roundResults.puzzle.answer}</div>
+
+              {/* 已读按钮 */}
+              <div className="ts-answer-actions">
+                {acknowledgedPlayers[playerId] ? (
+                  <div className="ts-ack-status ts-ack-done">✅ 已读，等待其他玩家...</div>
+                ) : (
+                  <button className="ts-ack-btn" onClick={handleAcknowledge}>
+                    👁️ 已读
+                  </button>
+                )}
+                {/* 已读进度 */}
+                <div className="ts-ack-progress">
+                  {gameState.players?.map(pid => (
+                    <span key={pid} className={`ts-ack-player${acknowledgedPlayers[pid] ? ' ts-ack-player-done' : ''}`}>
+                      {getNickname(pid)} {acknowledgedPlayers[pid] ? '✅' : '⏳'}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* 倒计时 */}
+              {revealCountdown > 0 && (
+                <div className="ts-answer-timer">
+                  ⏱️ 自动进入下一轮: {Math.floor(revealCountdown / 60)}:{String(revealCountdown % 60).padStart(2, '0')}
+                </div>
+              )}
             </div>
           )}
         </div>
