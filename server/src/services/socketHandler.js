@@ -318,13 +318,8 @@ function setupSocketHandlers(io, prisma) {
         state: updatedRoom.state,
       });
 
-      // 固定人数游戏：所有人准备后自动开始
-      // 自由人数游戏：不自动开始，等房主手动开始
-      const maxPlayers = getGameMaxPlayers(updatedRoom.gameId);
-      const isVariable = isVariablePlayers(updatedRoom.gameId);
-      if (!isVariable && roomManager.allPlayersReady(roomId, maxPlayers)) {
-        startGame(io, updatedRoom, prisma);
-      }
+      // 所有游戏都不自动开始，等房主手动开始
+      // （之前固定人数游戏会自动开始，现在统一由房主控制）
 
       broadcastStatsDebounced(io);
     });
@@ -373,11 +368,7 @@ function setupSocketHandlers(io, prisma) {
 
       callback?.({ ok: true, botsAdded: bot ? 1 : 0 });
 
-      // 固定人数游戏：检查是否可以自动开始
-      const isVariable = isVariablePlayers(room.gameId);
-      if (!isVariable && roomManager.allPlayersReady(roomId, maxPlayers)) {
-        startGame(io, room, prisma);
-      }
+      // 所有游戏都不自动开始，等房主手动开始
     });
 
     // ========== 创建房间 ==========
