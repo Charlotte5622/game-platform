@@ -53,7 +53,7 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [revealCountdown > 0]);
+  }, [revealCountdown]);
 
   useEffect(() => {
     if (!socket) return;
@@ -311,93 +311,26 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
         </div>
       )}
 
-      <div className="ts-chat">
-        {questions?.length === 0 && guesses?.length === 0 && (
-          <div className="ts-chat-empty">
-            <div className="ts-chat-empty-icon">💬</div>
-            <p>开始提问吧！只能问"是/不是"类型的问题</p>
-          </div>
-        )}
-
-        {questions?.map((q, i) => {
-          const answerStyle = getAnswerStyle(q.answer);
-          const nickname = getNickname(q.pid);
-          const isMine = q.pid === playerId;
-          return (
-            <div key={"q-" + i} className={"ts-chat-msg" + (isMine ? " ts-chat-mine" : " ts-chat-other")}>
-              <div className="ts-chat-avatar" style={{ background: getAvatarColor(nickname) }}>
-                <AvatarImg pid={q.pid} size={32} />
-              </div>
-              <div className="ts-chat-body">
-                <div className="ts-chat-header">
-                  <span className="ts-chat-name">{nickname}</span>
-                  <span className="ts-chat-time">
-                    {new Date(q.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+      {/* 主内容区域：聊天 或 汤底揭示 */}
+      {roundResults ? (
+        /* 汤底揭示 — 占据主区域，不被裁剪 */
+        <div className="ts-reveal-main">
+          {/* 评分区域 */}
+          <div className="ts-round-scores">
+            <h4>📊 第{roundResults.roundNumber}轮评分</h4>
+            <div className="ts-round-scores-grid">
+              {roundResults.results?.map(r => (
+                <div key={r.pid} className="ts-round-result-row">
+                  <span className="ts-round-result-name">{getNickname(r.pid)}</span>
+                  <span className="ts-round-result-score" style={{fontWeight:'700', color: r.score >= 70 ? 'var(--success)' : r.score >= 40 ? 'var(--warning)' : 'var(--danger)'}}>
+                    {r.score}分
                   </span>
                 </div>
-                <div className="ts-chat-bubble">
-                  <div className="ts-chat-question">❓ {q.question}</div>
-                  {q.answer ? (
-                    <div className="ts-chat-answer" style={{ borderLeftColor: answerStyle.bg }}>
-                      <span className="ts-chat-answer-icon">{answerStyle.icon}</span>
-                      <span>{q.answer}</span>
-                    </div>
-                  ) : (
-                    <div className="ts-chat-answer ts-chat-thinking">🤖 AI思考中...</div>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-        {guesses?.map((g, i) => {
-          const nickname = getNickname(g.pid);
-          const isMine = g.pid === playerId;
-          return (
-          <div key={"g-" + i} className={"ts-chat-msg ts-chat-guess" + (isMine ? " ts-chat-mine" : " ts-chat-other")}>
-            <div className="ts-chat-avatar" style={{ background: getAvatarColor(nickname) }}>
-              <AvatarImg pid={g.pid} size={32} />
-            </div>
-            <div className="ts-chat-body">
-              <div className="ts-chat-header">
-                <span className="ts-chat-name">{nickname}</span>
-                <span className="ts-chat-badge">🎯 猜测</span>
-              </div>
-              <div className="ts-chat-bubble">
-                <div className="ts-chat-guess-text">{g.guess}</div>
-                {g.result ? (
-                  <div className={"ts-chat-guess-result" + (g.correct ? " ts-guess-correct" : "")}>
-                    {g.correct ? '🎉 ' : '🤔 '}{g.result}
-                  </div>
-                ) : (
-                  <div className="ts-chat-guess-result">🤖 AI判定中...</div>
-                )}
-              </div>
+              ))}
             </div>
           </div>
-          );
-        })}
 
-        <div ref={chatEndRef} />
-      </div>
-
-      {notification && <div className="ts-notification">{notification}</div>}
-      {roundResults && (
-        <div className="ts-round-results">
-          {/* 评分区域 — 始终可见不被遮挡 */}
-          <h4>📊 第{roundResults.roundNumber}轮结果</h4>
-          <div className="ts-round-scores">
-            {roundResults.results?.map(r => (
-              <div key={r.pid} className="ts-round-result-row">
-                <span className="ts-round-result-name">{getNickname(r.pid)}</span>
-                <span className="ts-round-result-score" style={{fontWeight:'600', color: r.score >= 70 ? 'var(--success)' : r.score >= 40 ? 'var(--warning)' : 'var(--danger)'}}>
-                  {r.score}分
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* 汤底卡片 — 不遮挡评分 */}
+          {/* 汤底卡片 */}
           {roundResults.puzzle?.answer && (
             <div className="ts-answer-card">
               <div className="ts-answer-header">
@@ -434,9 +367,84 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
             </div>
           )}
         </div>
+      ) : (
+        /* 正常聊天区域 */
+        <div className="ts-chat">
+          {questions?.length === 0 && guesses?.length === 0 && (
+            <div className="ts-chat-empty">
+              <div className="ts-chat-empty-icon">💬</div>
+              <p>开始提问吧！只能问"是/不是"类型的问题</p>
+            </div>
+          )}
+
+          {questions?.map((q, i) => {
+            const answerStyle = getAnswerStyle(q.answer);
+            const nickname = getNickname(q.pid);
+            const isMine = q.pid === playerId;
+            return (
+              <div key={"q-" + i} className={"ts-chat-msg" + (isMine ? " ts-chat-mine" : " ts-chat-other")}>
+                <div className="ts-chat-avatar" style={{ background: getAvatarColor(nickname) }}>
+                  <AvatarImg pid={q.pid} size={32} />
+                </div>
+                <div className="ts-chat-body">
+                  <div className="ts-chat-header">
+                    <span className="ts-chat-name">{nickname}</span>
+                    <span className="ts-chat-time">
+                      {new Date(q.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <div className="ts-chat-bubble">
+                    <div className="ts-chat-question">❓ {q.question}</div>
+                    {q.answer ? (
+                      <div className="ts-chat-answer" style={{ borderLeftColor: answerStyle.bg }}>
+                        <span className="ts-chat-answer-icon">{answerStyle.icon}</span>
+                        <span>{q.answer}</span>
+                      </div>
+                    ) : (
+                      <div className="ts-chat-answer ts-chat-thinking">🤖 AI思考中...</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {guesses?.map((g, i) => {
+            const nickname = getNickname(g.pid);
+            const isMine = g.pid === playerId;
+            return (
+            <div key={"g-" + i} className={"ts-chat-msg ts-chat-guess" + (isMine ? " ts-chat-mine" : " ts-chat-other")}>
+              <div className="ts-chat-avatar" style={{ background: getAvatarColor(nickname) }}>
+                <AvatarImg pid={g.pid} size={32} />
+              </div>
+              <div className="ts-chat-body">
+                <div className="ts-chat-header">
+                  <span className="ts-chat-name">{nickname}</span>
+                  <span className="ts-chat-badge">🎯 猜测</span>
+                </div>
+                <div className="ts-chat-bubble">
+                  <div className="ts-chat-guess-text">{g.guess}</div>
+                  {g.result ? (
+                    <div className={"ts-chat-guess-result" + (g.correct ? " ts-guess-correct" : "")}>
+                      {g.correct ? '🎉 ' : '🤔 '}{g.result}
+                    </div>
+                  ) : (
+                    <div className="ts-chat-guess-result">🤖 AI判定中...</div>
+                  )}
+                </div>
+              </div>
+            </div>
+            );
+          })}
+
+          <div ref={chatEndRef} />
+        </div>
       )}
+
+      {notification && <div className="ts-notification">{notification}</div>}
       {error && <div className="ts-error">{error}</div>}
 
+      {/* 操作栏 — 汤底揭示时隐藏 */}
+      {!roundResults && (
       <div className="ts-actions">
         {hasGuessed ? (
           <div className="ts-guessed-waiting">
@@ -504,6 +512,7 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
           </>
         )}
       </div>
+      )}
 
       <div className="ts-opponents">
         {gameState.players?.filter(pid => pid !== playerId).map(pid => (

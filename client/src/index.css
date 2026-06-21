@@ -6508,27 +6508,33 @@ input {
 }
 
 /* --- Round Results + Answer Card --- */
-.ts-round-results {
-  padding: 12px 16px;
-  background: rgba(108, 92, 231, 0.04);
-  border-top: 1px solid rgba(108, 92, 231, 0.15);
-  border-bottom: 1px solid rgba(108, 92, 231, 0.15);
+.ts-reveal-main {
+  flex: 1;
   overflow-y: auto;
-  flex-shrink: 0;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: ts-slide-up 0.3s ease;
 }
 
-.ts-round-results h4 {
+.ts-round-scores {
+  background: var(--bg-card, #1a1c25);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.ts-round-scores h4 {
   margin: 0 0 10px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text, #e8e6e3);
 }
 
-.ts-round-scores {
+.ts-round-scores-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 12px;
 }
 
 .ts-round-result-row {
