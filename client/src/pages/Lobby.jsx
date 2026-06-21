@@ -90,9 +90,12 @@ export default function Lobby() {
       <div className="lobby">
         <div className="lobby-hero">
           <div className="lobby-hero-bg" />
+          <div className="lobby-hero-glass" />
           <div className="lobby-hero-content">
-            <h1 className="lobby-hero-title">🎮 游戏大厅</h1>
-            <p className="lobby-hero-sub">加载中...</p>
+            <div className="lobby-hero-top">
+              <h1 className="lobby-hero-title">🎮 游戏大厅</h1>
+              <p className="lobby-hero-sub">加载中...</p>
+            </div>
           </div>
         </div>
       </div>
@@ -104,9 +107,12 @@ export default function Lobby() {
       <div className="lobby">
         <div className="lobby-hero">
           <div className="lobby-hero-bg" />
+          <div className="lobby-hero-glass" />
           <div className="lobby-hero-content">
-            <h1 className="lobby-hero-title">🎮 游戏大厅</h1>
-            <p className="lobby-hero-sub lobby-hero-error">{error}</p>
+            <div className="lobby-hero-top">
+              <h1 className="lobby-hero-title">🎮 游戏大厅</h1>
+              <p className="lobby-hero-sub lobby-hero-error">{error}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -118,24 +124,30 @@ export default function Lobby() {
       {/* Hero 区域 */}
       <div className="lobby-hero">
         <div className="lobby-hero-bg" />
+        <div className="lobby-hero-glass" />
         <div className="lobby-hero-content">
-          <h1 className="lobby-hero-title">🎮 游戏大厅</h1>
-          <p className="lobby-hero-sub">
-            {user ? `${user.nickname}，选择你喜欢的游戏开始匹配` : '选择你喜欢的游戏，开始匹配对战'}
-          </p>
+          <div className="lobby-hero-top">
+            <h1 className="lobby-hero-title">🎮 游戏大厅</h1>
+            <p className="lobby-hero-sub">
+              {user ? `${user.nickname}，选择你喜欢的游戏开始匹配` : '选择你喜欢的游戏，开始匹配对战'}
+            </p>
+          </div>
 
           <div className="lobby-stats">
             <div className="lobby-stat">
+              <span className="lobby-stat-icon">👥</span>
               <span className="lobby-stat-num">{stats?.onlinePlayers || '—'}</span>
               <span className="lobby-stat-label">在线玩家</span>
             </div>
             <div className="lobby-stat-divider" />
             <div className="lobby-stat">
+              <span className="lobby-stat-icon">⚔️</span>
               <span className="lobby-stat-num">{stats?.playingRooms || '—'}</span>
               <span className="lobby-stat-label">进行中</span>
             </div>
             <div className="lobby-stat-divider" />
             <div className="lobby-stat">
+              <span className="lobby-stat-icon">⏳</span>
               <span className="lobby-stat-num">{stats?.waitingRooms || '—'}</span>
               <span className="lobby-stat-label">等待中</span>
             </div>

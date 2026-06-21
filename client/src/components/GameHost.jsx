@@ -289,7 +289,7 @@ export default function GameHost({ gameId, GameComponent }) {
             <div className="choosing-code-input">
               <input
                 type="text"
-                placeholder="输入1-6位房间号"
+                placeholder="输入房间号加入，或留空创建新房间"
                 maxLength={6}
                 pattern="\d*"
                 id="room-code-input"
@@ -307,7 +307,14 @@ export default function GameHost({ gameId, GameComponent }) {
                 className="choosing-btn create-code"
                 onClick={() => {
                   const input = document.getElementById('room-code-input');
-                  handleCreateRoom(input?.value);
+                  const val = input?.value?.trim();
+                  // 留空则生成随机房间号，有值则用自定义房间号
+                  if (!val) {
+                    const randomCode = String(Math.floor(100000 + Math.random() * 900000));
+                    handleCreateRoom(randomCode);
+                  } else {
+                    handleCreateRoom(val);
+                  }
                 }}
               >
                 🏠 创建房间
@@ -362,7 +369,7 @@ export default function GameHost({ gameId, GameComponent }) {
                 )}
               </div>
             ))}
-            {Array.from({ length: Math.max(0, effectiveMaxPlayers - players.length) }).map((_, i) => (
+            {!isVariablePlayers && Array.from({ length: Math.max(0, effectiveMaxPlayers - players.length) }).map((_, i) => (
               <div key={`empty-${i}`} className="waiting-empty-slot">
                 等待玩家加入...
               </div>
@@ -437,9 +444,29 @@ export default function GameHost({ gameId, GameComponent }) {
       <div className="game-host">
         <div className="result-box">
           <span style={{ fontSize: '72px', display: 'block', marginBottom: '16px' }}>
-            {result?.winners?.includes(playerId) ? '🎉' : '😢'}
+            {(() => {
+              const isWin = result?.winners?.includes(playerId) || String(result?.winner) === String(playerId);
+              const isDraw = result?.draw || (!isWin && !result?.winners?.length && !result?.winner);
+              if (isDraw) return '🤝';
+              if (isWin) {
+                return ['🎉', '🏆', '🥳'][Math.floor(Math.random() * 3)];
+              }
+              return ['😢', '😭', '🥺'][Math.floor(Math.random() * 3)];
+            })()}
           </span>
-          <h2>{result?.message || '游戏结束'}</h2>
+          <h2>{(() => {
+            // 象棋等游戏：区分绝杀/超时结果
+            if (gameId === 'chess' && result?.reason) {
+              const isWin = result?.winners?.includes(playerId) || String(result?.winner) === String(playerId);
+              if (result.reason === 'checkmate') {
+                return isWin ? '🏆 绝杀！你赢了！' : '😭 被绝杀，你输了';
+              }
+              if (result.reason === 'timeout') {
+                return isWin ? '⏰ 对方超时，你赢了！' : '⏰ 超时判负';
+              }
+            }
+            return result?.message || '游戏结束';
+          })()}</h2>
           {result?.scores && (
             <div className="result-scores">
               {Object.entries(result.scores).map(([pid, score]) => {
