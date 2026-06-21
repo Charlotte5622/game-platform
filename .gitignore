@@ -23,3 +23,13 @@ logs/
 # 系统文件
 .DS_Store
 Thumbs.db
+
+# 构建输出
+client/dist/
+client/build/
+
+# 外部游戏demo
+external-games/
+
+# PM2
+dump.pm2

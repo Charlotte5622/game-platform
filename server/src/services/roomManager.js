@@ -20,27 +20,55 @@ const codeToRoom = new Map();
 let roomCounter = 0;
 
 /**
- * 生成唯一的3位房间号
+ * 生成唯一的随机房间号
  */
 function generateRoomCode() {
   let code;
   do {
-    code = String(Math.floor(100 + Math.random() * 900)); // 100-999
+    code = String(Math.floor(100 + Math.random() * 900));
   } while (codeToRoom.has(code));
   return code;
 }
 
 /**
- * 创建新房间
+ * 校验房间号格式（3-6位数字或字母）
  */
-function createRoom(gameId, creatorSocketId, creatorInfo) {
+function isValidRoomCode(code) {
+  return typeof code === 'string' && /^\d{1,6}$/.test(code);
+}
+
+/**
+ * 检查房间号是否已被占用
+ */
+function isRoomCodeTaken(code) {
+  return codeToRoom.has(code);
+}
+
+/**
+ * 创建新房间
+ * @param {string} [customCode] - 自定义房间号（可选，不传则自动生成）
+ */
+function createRoom(gameId, creatorSocketId, creatorInfo, customCode) {
   const roomId = `room_${++roomCounter}_${Date.now()}`;
-  const roomCode = generateRoomCode();
+
+  let roomCode;
+  if (customCode) {
+    if (!isValidRoomCode(customCode)) {
+      return { error: '房间号格式无效（3-6位数字或字母）' };
+    }
+    if (codeToRoom.has(customCode)) {
+      return { error: '房间号已被占用' };
+    }
+    roomCode = customCode;
+  } else {
+    roomCode = generateRoomCode();
+  }
 
   const room = {
     id: roomId,
     roomCode,
     gameId,
+    hostId: creatorInfo.id,  // 房主 = 创建者
     players: [{
       id: creatorInfo.id,
       socketId: creatorSocketId,
@@ -57,7 +85,7 @@ function createRoom(gameId, creatorSocketId, creatorInfo) {
   playerRooms.set(creatorSocketId, roomId);
   userRooms.set(creatorInfo.id, roomId);
 
-  return room;
+  return { room };
 }
 
 /**
@@ -105,12 +133,17 @@ function joinRoom(roomId, socketId, userInfo, maxPlayers) {
 
 /**
  * 快速匹配：加入已有等待中的房间，或创建新房间
+ * 跳过有机器人的房间（避免进入"死"房间）
  * @param {number} [maxPlayers] - 房间最大人数
  */
 function quickMatch(gameId, socketId, userInfo, maxPlayers) {
-  // 查找等待中的房间
+  // 查找等待中的房间（显式检查人数，跳过有机器人的房间）
   for (const [roomId, room] of rooms) {
-    if (room.gameId === gameId && room.state === 'waiting') {
+    if (room.gameId === gameId && room.state === 'waiting' && room.players.length < maxPlayers) {
+      // 跳过有机器人的房间
+      const hasBots = room.players.some(p => p.isBot);
+      if (hasBots) continue;
+
       const result = joinRoom(roomId, socketId, userInfo, maxPlayers);
       if (!result.error) {
         return { room: result.room, isNew: false };
@@ -119,8 +152,9 @@ function quickMatch(gameId, socketId, userInfo, maxPlayers) {
   }
 
   // 没有可用房间，创建新房间
-  const room = createRoom(gameId, socketId, userInfo);
-  return { room, isNew: true };
+  const result = createRoom(gameId, socketId, userInfo);
+  if (result.error) return { error: result.error };
+  return { room: result.room, isNew: true };
 }
 
 /**
@@ -140,13 +174,13 @@ function setPlayerReady(roomId, socketId, ready = true) {
 
 /**
  * 检查房间内所有玩家是否都已准备
- * @param {number} [requiredPlayers] - 需要的人数上限（默认 2，兼容旧调用）
+ * @param {number} [requiredCount] - 需要的玩家人数（默认 2）
  */
-function allPlayersReady(roomId, requiredPlayers) {
+function allPlayersReady(roomId, requiredCount) {
   const room = rooms.get(roomId);
   if (!room) return false;
-  const minPlayers = requiredPlayers || 2;
-  return room.players.length >= minPlayers && room.players.every(p => p.ready);
+  const needed = requiredCount || 2;
+  return room.players.length >= needed && room.players.every(p => p.ready);
 }
 
 /**
@@ -175,11 +209,10 @@ function getRoom(roomId) {
 }
 
 /**
- * 获取玩家所在房间（通过 socketId）
+ * 获取玩家所在房间ID（通过 socketId）
  */
 function getPlayerRoom(socketId) {
-  const roomId = playerRooms.get(socketId);
-  return roomId ? rooms.get(roomId) : null;
+  return playerRooms.get(socketId) || null;
 }
 
 /**
@@ -215,6 +248,11 @@ function leaveRoom(socketId) {
     codeToRoom.delete(room.roomCode);
     rooms.delete(roomId);
     return { room: null, roomId, empty: true };
+  }
+
+  // 如果离开的是房主，转移房主给第一个玩家
+  if (leavingPlayer && room.hostId === leavingPlayer.id) {
+    room.hostId = room.players[0].id;
   }
 
   return { room, roomId, empty: false };
@@ -270,6 +308,38 @@ function cleanupUser(userId) {
 }
 
 /**
+ * 清理玩家的所有映射（踢人时调用）
+ */
+function cleanupPlayer(socketId, userId) {
+  if (socketId) playerRooms.delete(socketId);
+  if (userId) userRooms.delete(userId);
+}
+
+/**
+ * 彻底销毁房间（人类全部离开后清理残留机器人房间）
+ * 从所有 Map 中移除，返回被销毁的房间信息
+ */
+function destroyRoom(roomId) {
+  const room = rooms.get(roomId);
+  if (!room) return null;
+
+  // 清理所有玩家的映射
+  for (const player of room.players) {
+    if (player.socketId) playerRooms.delete(player.socketId);
+    if (player.id) userRooms.delete(player.id);
+  }
+
+  // 清理房间号映射
+  codeToRoom.delete(room.roomCode);
+
+  // 删除房间
+  rooms.delete(roomId);
+
+  console.log(`🗑️ 房间已销毁: ${room.roomCode} (${roomId})`);
+  return room;
+}
+
+/**
  * 更新玩家的 socketId（重连场景）
  */
 function updatePlayerSocket(userId, newSocketId) {
@@ -315,7 +385,11 @@ module.exports = {
   getPlayerRoom,
   getUserRoom,
   leaveRoom,
+  destroyRoom,
   cleanupUser,
+  cleanupPlayer,
   updatePlayerSocket,
+  isValidRoomCode,
+  isRoomCodeTaken,
   getStats,
 };

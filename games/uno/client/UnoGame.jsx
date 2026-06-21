@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { playSound } from '../../../client/src/services/sounds';
 
 // 花色颜色
 const COLORS = ['red', 'green', 'blue', 'yellow'];
@@ -143,6 +144,11 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
     emitAction({ type: 'uno' });
   };
 
+  const handleLeaveRoom = () => {
+    if (socket) socket.emit('leave_room');
+    window.location.href = '/lobby';
+  };
+
   const getNickname = (pid) => players.find(p => p.id === pid)?.nickname || '玩家';
 
   // 游戏结束
@@ -153,7 +159,7 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
         <div className="uno-result">
           <div className="uno-result-icon">{isWinner ? '🎉' : '😢'}</div>
           <h2 className="uno-result-title">{isWinner ? '你赢了！' : `${getNickname(winner)} 获胜`}</h2>
-          <button className="uno-back-btn" onClick={() => window.location.href = '/lobby'}>返回大厅</button>
+          <button className="uno-back-btn" onClick={handleLeaveRoom}>返回大厅</button>
         </div>
       </div>
     );

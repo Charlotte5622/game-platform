@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { playSound } from '../../../client/src/services/sounds';
 
 // 猜拳图标
 const RPS_ICONS = { rock: '✊', scissors: '✌️', paper: '🖐' };
@@ -26,7 +27,7 @@ function ChessBoard({ pieces, flipped, selected, onCellClick, lastMove }) {
   // 棋子颜色
   const PIECE_COLORS = {
     red:   { bg: '#fef2f2', border: '#dc2626', text: '#dc2626' },
-    black: { bg: '#e2e8f0', border: '#1e293b', text: '#1e293b' },
+    black: { bg: '#e2e8f0', border: '#334155', text: '#334155' },
   };
 
   // 坐标标注

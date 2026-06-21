@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { getSocket } from '../services/socket';
+import { playSound } from '../services/sounds';
 
 /**
  * 安全解析 localStorage 中的用户信息
@@ -27,7 +28,13 @@ export default function GameHost({ gameId, GameComponent }) {
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
   const [maxPlayers, setMaxPlayers] = useState(null); // 从API获取
+  const [hostId, setHostId] = useState(null);
+  const [allowBots, setAllowBots] = useState(true); // 默认允许，从API获取
+  const [gameName, setGameName] = useState(''); // 游戏名称
+  const [minPlayers, setMinPlayers] = useState(null);
   const effectiveMaxPlayers = maxPlayers || 2; // 兜底2人
+  const effectiveMinPlayers = minPlayers || 2;
+  const isVariablePlayers = effectiveMinPlayers !== effectiveMaxPlayers;
 
   const playerId = useMemo(getPlayerId, []);
 
@@ -37,6 +44,9 @@ export default function GameHost({ gameId, GameComponent }) {
       .then(res => res.json())
       .then(data => {
         if (data.game?.maxPlayers) setMaxPlayers(data.game.maxPlayers);
+        if (data.game?.allowBots === false) setAllowBots(false);
+        if (data.game?.name) setGameName(data.game.name);
+        if (data.game?.minPlayers) setMinPlayers(data.game.minPlayers);
       })
       .catch(() => {});
   }, [gameId]);
@@ -55,6 +65,7 @@ export default function GameHost({ gameId, GameComponent }) {
       setRoomId(data.roomId);
       setRoomCode(data.roomCode);
       setPlayers(data.players);
+      if (data.hostId) setHostId(data.hostId);
       if (data.state === 'waiting') setPhase('waiting');
     });
 
@@ -76,6 +87,8 @@ export default function GameHost({ gameId, GameComponent }) {
     s.on('game_over', (data) => {
       setResult(data);
       setPhase('finished');
+      const won = data?.winners?.includes(playerId) || String(data?.winner) === String(playerId);
+      playSound(gameId, won ? 'win' : 'lose');
     });
 
     return () => {
@@ -88,26 +101,51 @@ export default function GameHost({ gameId, GameComponent }) {
   }, [gameId]);
 
   // 快速匹配
-  const handleQuickMatch = useCallback(() => {
+  const handleCreateRoom = useCallback((customCode) => {
     if (!socket) return;
+    setError(null);
     setPhase('matching');
-    socket.emit('quick_match', { gameId }, (response) => {
-      if (response.error) {
-        setError(response.error);
+    // 如果提供了自定义房间号，使用 create_room 事件
+    if (customCode) {
+      if (!/^\d{1,6}$/.test(customCode)) {
+        setError('请输入1-6位数字房间号');
+        setPhase('choosing');
         return;
       }
-      setRoomId(response.roomId);
-      setRoomCode(response.roomCode);
-      setPlayers(response.players);
-      setPhase('waiting');
-    });
+      socket.emit('create_room', { gameId, roomCode: customCode }, (response) => {
+        if (response.error) {
+          setError(response.error);
+          setPhase('choosing');
+          return;
+        }
+        setRoomId(response.roomId);
+        setRoomCode(response.roomCode);
+        setPlayers(response.players);
+        if (response.hostId) setHostId(response.hostId);
+        setPhase('waiting');
+      });
+    } else {
+      // 快速匹配（自动创建或加入房间）
+      socket.emit('quick_match', { gameId }, (response) => {
+        if (response.error) {
+          setError(response.error);
+          setPhase('choosing');
+          return;
+        }
+        setRoomId(response.roomId);
+        setRoomCode(response.roomCode);
+        setPlayers(response.players);
+        if (response.hostId) setHostId(response.hostId);
+        setPhase('waiting');
+      });
+    }
   }, [socket, gameId]);
 
   // 通过房间号加入
   const handleJoinByCode = useCallback((code) => {
     if (!socket) return;
-    if (!code || !/^\d{3}$/.test(code)) {
-      setError('请输入3位数字房间号');
+    if (!code || !/^\d{1,6}$/.test(code)) {
+      setError('请输入1-6位数字房间号');
       return;
     }
     socket.emit('join_by_code', { code, gameId }, (response) => {
@@ -118,6 +156,7 @@ export default function GameHost({ gameId, GameComponent }) {
       setRoomId(response.roomId);
       setRoomCode(response.roomCode);
       setPlayers(response.players);
+      if (response.hostId) setHostId(response.hostId);
       setPhase('waiting');
     });
   }, [socket, gameId]);
@@ -142,6 +181,37 @@ export default function GameHost({ gameId, GameComponent }) {
       socket.emit('player_ready', { roomId, ready: false });
     }
   }, [socket, roomId]);
+
+  // 踢出玩家（仅房主）
+  const handleKickPlayer = useCallback((targetId) => {
+    if (!socket || !roomId) return;
+    socket.emit('kick_player', { roomId, targetId }, (response) => {
+      if (response?.error) {
+        setError(response.error);
+      }
+    });
+  }, [socket, roomId]);
+
+  // 房主直接开始游戏（可变人数游戏）
+  const handleStartGame = useCallback(() => {
+    if (!socket || !roomId) return;
+    socket.emit('host_start_game', { roomId }, (response) => {
+      if (response?.error) {
+        setError(response.error);
+      }
+    });
+  }, [socket, roomId]);
+
+  // 快速匹配（无自定义房间号）
+  const handleQuickMatch = useCallback(() => {
+    handleCreateRoom();
+  }, [handleCreateRoom]);
+
+  // 返回大厅
+  const handleLeaveRoom = useCallback(() => {
+    if (socket) socket.emit('leave_room');
+    window.location.href = '/lobby';
+  }, [socket]);
 
   const handleAction = useCallback(
     (action) => {
@@ -196,9 +266,10 @@ export default function GameHost({ gameId, GameComponent }) {
         <div className="error-box">
           <span style={{ fontSize: '48px', display: 'block', marginBottom: '16px' }}>⚠️</span>
           <h2>{error}</h2>
-          <button className="back-btn" onClick={() => (window.location.href = '/lobby')}>
-            返回大厅
-          </button>
+          <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+            <button className="back-btn" onClick={() => { setError(null); setPhase('choosing'); }}>重试</button>
+            <button className="back-btn" onClick={handleLeaveRoom}>返回大厅</button>
+          </div>
         </div>
       </div>
     );
@@ -218,8 +289,8 @@ export default function GameHost({ gameId, GameComponent }) {
             <div className="choosing-code-input">
               <input
                 type="text"
-                placeholder="输入3位房间号"
-                maxLength={3}
+                placeholder="输入1-6位房间号"
+                maxLength={6}
                 pattern="\d*"
                 id="room-code-input"
               />
@@ -231,6 +302,15 @@ export default function GameHost({ gameId, GameComponent }) {
                 }}
               >
                 🚪 加入房间
+              </button>
+              <button
+                className="choosing-btn create-code"
+                onClick={() => {
+                  const input = document.getElementById('room-code-input');
+                  handleCreateRoom(input?.value);
+                }}
+              >
+                🏠 创建房间
               </button>
             </div>
           </div>
@@ -254,10 +334,11 @@ export default function GameHost({ gameId, GameComponent }) {
 
   if (phase === 'waiting') {
     const isReady = players.find((p) => p.id === playerId)?.ready;
+    const isHost = hostId === playerId;
     return (
       <div className="game-host">
         <div className="waiting-box">
-          <h2 className="waiting-title">🎮 等待玩家加入</h2>
+          <h2 className="waiting-title">🎮 {gameName || '等待玩家加入'}</h2>
           <div className="waiting-room-id">房间号: {roomCode || roomId}</div>
 
           <div className="waiting-players">
@@ -265,10 +346,20 @@ export default function GameHost({ gameId, GameComponent }) {
               <div key={p.id} className={`waiting-player${p.ready ? ' ready' : ''}`}>
                 <span className="waiting-player-name">
                   {p.id === playerId ? `${p.nickname}（你）` : p.nickname}
+                  {p.isBot ? ' 🤖' : ''}
                 </span>
                 <span className={`waiting-player-status${p.ready ? ' ready' : ''}`}>
                   {p.ready ? '✅ 已准备' : '⏳ 等待中'}
                 </span>
+                {isHost && p.id !== playerId && (
+                  <button
+                    className="kick-btn"
+                    onClick={() => handleKickPlayer(p.id)}
+                    title={p.isBot ? '移除机器人' : '踢出玩家'}
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
             ))}
             {Array.from({ length: Math.max(0, effectiveMaxPlayers - players.length) }).map((_, i) => (
@@ -279,7 +370,9 @@ export default function GameHost({ gameId, GameComponent }) {
           </div>
 
           <p style={{ color: 'var(--text-dim)', fontSize: '13px', marginBottom: '16px' }}>
-            需要 {effectiveMaxPlayers} 位玩家才能开始
+            {isVariablePlayers
+              ? `至少需要 ${effectiveMinPlayers} 人，当前 ${players.length} 人`
+              : `需要 ${effectiveMaxPlayers} 位玩家才能开始`}
           </p>
 
           <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
@@ -288,21 +381,40 @@ export default function GameHost({ gameId, GameComponent }) {
                 准备
               </button>
             )}
-            <button
-              onClick={handleAddBots}
-              style={{
-                flex: 1,
-                padding: '12px',
-                background: 'var(--warning)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 'var(--radius)',
-                fontWeight: '600',
-                cursor: 'pointer',
-              }}
-            >
-              🤖 填充机器人
-            </button>
+            {allowBots !== false && (
+              <button
+                onClick={handleAddBots}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: 'var(--warning)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 'var(--radius)',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                }}
+              >
+                🤖 填充机器人
+              </button>
+            )}
+            {isHost && isVariablePlayers && players.length >= effectiveMinPlayers && players.every(p => p.ready) && (
+              <button
+                onClick={handleStartGame}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: 'var(--success)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 'var(--radius)',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                }}
+              >
+                🎮 开始游戏
+              </button>
+            )}
           </div>
 
           {isReady && (

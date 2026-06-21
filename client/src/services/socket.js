@@ -34,6 +34,18 @@ export function getSocket() {
     console.error('🔌 Socket.IO 连接错误:', err.message);
   });
 
+  // 手机端后台切换守护：页面恢复可见时确保 socket 连接，不做页面刷新
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && socket) {
+        if (!socket.connected) {
+          console.log('📱 页面恢复可见，Socket 断开，尝试重连...');
+          socket.connect();
+        }
+      }
+    });
+  }
+
   return socket;
 }
 

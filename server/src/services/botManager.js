@@ -19,7 +19,8 @@ let botCounter = 0;
  */
 function createBot(roomId, gameId) {
   botCounter++;
-  const botId = `bot_${botCounter}`;
+  // 使用字符串前缀 ID 避免与真实用户 ID 碰撞
+  const botId = `bot_${botCounter}_${Date.now()}`;
   return {
     id: botId,
     nickname: `AI-${['小明', '小红', '小刚', '小丽', '小华', '小芳'][botCounter % 6]}`,
@@ -30,7 +31,17 @@ function createBot(roomId, gameId) {
 }
 
 /**
- * 为房间填充机器人到指定人数
+ * 为房间添加一个机器人（单个）
+ */
+function addOneBot(room, gameId) {
+  if (!room || !room.players) return null;
+  const bot = createBot(room.id, gameId);
+  room.players.push(bot);
+  return bot;
+}
+
+/**
+ * 为房间填充机器人到指定人数（保留兼容）
  */
 function fillRoomWithBots(room, gameId, targetCount) {
   const bots = [];
@@ -50,6 +61,8 @@ function fillRoomWithBots(room, gameId, targetCount) {
  */
 function startBotDecisionLoop(roomId, gameId, botIds, getGameState, onAction) {
   for (const botId of botIds) {
+    let failCount = 0; // 连续失败计数，用于退避
+
     const timer = setInterval(async () => {
       try {
         const gameState = getGameState(roomId);
@@ -63,22 +76,25 @@ function startBotDecisionLoop(roomId, gameId, botIds, getGameState, onAction) {
         const isBotTurn = isPlayersTurn(gameState, botId, gameId);
         if (!isBotTurn) return;
 
-        // 检查是否有待响应的动作
-        const needsResponse = checkNeedsResponse(gameState, botId);
-        if (!needsResponse && !isBotTurn) return;
-
         console.log(`[Bot] ${botId} 轮到决策 phase=${gameState.phase} gameId=${gameId}`);
 
         // 调用 AI 获取决策
         const action = await getBotAction(gameId, gameState, botId);
         if (action) {
-          console.log(`[Bot] ${botId} 执行动作: ${JSON.stringify(action)}`);
-          onAction(roomId, botId, action);
+          failCount = 0;
+          // 支持返回动作数组（如 UNO + 出牌）
+          const actions = Array.isArray(action) ? action : [action];
+          console.log(`[Bot] ${botId} 执行 ${actions.length} 个动作: ${JSON.stringify(actions)}`);
+          for (const act of actions) {
+            onAction(roomId, botId, act);
+          }
         } else {
-          console.warn(`[Bot] ${botId} AI 未返回有效动作`);
+          failCount++;
+          console.warn(`[Bot] ${botId} AI 未返回有效动作 (连续失败${failCount}次)`);
         }
       } catch (err) {
-        console.error(`[Bot] ${botId} 决策出错:`, err.message, err.stack);
+        failCount++;
+        console.error(`[Bot] ${botId} 决策出错 (连续失败${failCount}次):`, err.message);
       }
     }, 2000 + Math.random() * 3000); // 2-5 秒随机间隔
 
@@ -98,6 +114,10 @@ function isPlayersTurn(gameState, botId, gameId) {
   }
 
   if (gameId === 'mahjong') {
+    return gameState.players[gameState.currentTurn] === botId;
+  }
+
+  if (gameId === 'uno') {
     return gameState.players[gameState.currentTurn] === botId;
   }
 
@@ -170,6 +190,7 @@ function getBotCount(roomId) {
 
 module.exports = {
   createBot,
+  addOneBot,
   fillRoomWithBots,
   startBotDecisionLoop,
   stopBot,

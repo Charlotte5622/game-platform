@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { playSound } from '../../../client/src/services/sounds';
 
 // 牌型中文名
 const CARD_TYPE_NAMES = {
@@ -135,6 +136,16 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
     return () => socket.off('pass_update', handlePass);
   }, [socket]);
 
+  // 报警音效：当任意玩家剩余1张牌时播放警告音
+  useEffect(() => {
+    if (!gameState?.playerCardCounts) return;
+    const counts = gameState.playerCardCounts;
+    const hasAlert = Object.values(counts).some((count) => count === 1);
+    if (hasAlert) {
+      playSound('doudizhu', 'alert');
+    }
+  }, [gameState?.playerCardCounts]);
+
   useEffect(() => {
     setSelectedCards(new Set());
   }, [gameState?.currentTurn, gameState?.phase]);
@@ -191,7 +202,7 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
     [isMyTurn, phase]
   );
 
-  const handleBid = useCallback((score) => onAction({ type: 'bid', score }), [onAction]);
+  const handleBid = useCallback((score) => { playSound('doudizhu', 'bid'); onAction({ type: 'bid', score }); }, [onAction]);
 
   const handlePlay = useCallback(() => {
     if (selectedCards.size === 0) {
@@ -199,10 +210,16 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
       setTimeout(() => setError(''), 2000);
       return;
     }
-    onAction({ type: 'play', cards: myHand.filter((c) => selectedCards.has(c.id)) });
+    const cards = myHand.filter((c) => selectedCards.has(c.id));
+    const isBomb = cards.length === 4 && new Set(cards.map(c => c.rank)).size === 1;
+    const isRocket = cards.length === 2 && cards.every(c => c.rank === 'JOKER_S' || c.rank === 'JOKER_B');
+    if (isRocket) playSound('doudizhu', 'rocket');
+    else if (isBomb) playSound('doudizhu', 'bomb');
+    else playSound('doudizhu', 'play_card');
+    onAction({ type: 'play', cards });
   }, [selectedCards, myHand, onAction]);
 
-  const handlePass = useCallback(() => onAction({ type: 'pass' }), [onAction]);
+  const handlePass = useCallback(() => { playSound('doudizhu', 'pass'); onAction({ type: 'pass' }); }, [onAction]);
 
   const canPass = isMyTurn && lastPlayedBy && lastPlayedBy !== playerId;
 

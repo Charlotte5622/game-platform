@@ -1,0 +1,10 @@
+{
+  "id": "turtle-soup",
+  "name": "海龟汤",
+  "description": "经典推理游戏，通过提问还原真相！支持1-10人，AI智能判别",
+  "minPlayers": 1,
+  "maxPlayers": 10,
+  "allowBots": false,
+  "version": "1.0.0",
+  "author": "game-platform"
+}

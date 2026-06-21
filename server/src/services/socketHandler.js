@@ -1,5 +1,5 @@
 const { verifySocketToken } = require('../middleware/auth');
-const { createGameInstance, getGameMaxPlayers, gameExists } = require('./gameLoader');
+const { createGameInstance, getGameMaxPlayers, getGameMinPlayers, gameExists, isVariablePlayers, gameAllowsBots } = require('./gameLoader');
 const roomManager = require('./roomManager');
 const botManager = require('./botManager');
 
@@ -45,6 +45,44 @@ function setupSocketHandlers(io, prisma) {
     next();
   });
 
+  /**
+   * 离开当前房间（切换游戏时自动清理旧房间）
+   * 核心原则：一个用户同一时刻只能在一个房间，切换游戏必须先离开旧房间
+   */
+  function leaveCurrentRoom(socket) {
+    const userId = socket.user.id;
+    const socketId = socket.id;
+    const roomId = roomManager.getPlayerRoom(socketId) || roomManager.getUserRoom(userId)?.roomId;
+    if (!roomId) return null;
+    const room = roomManager.getRoom(roomId);
+    if (!room) { roomManager.cleanupUser(userId); return null; }
+
+    console.log(`🔄 用户 ${socket.user.username} 切换游戏，离开旧房间 ${room.roomCode} (${room.gameId})`);
+
+    botManager.stopRoomBots(roomId);
+    const result = roomManager.leaveRoom(socketId);
+    roomManager.cleanupUser(userId);
+    socket.leave(roomId);
+
+    if (result && !result.empty && result.room) {
+      const remainingHumans = result.room.players.filter(p => !p.isBot);
+      if (remainingHumans.length === 0) {
+        roomManager.destroyRoom(roomId);
+      } else if (result.room.state === 'playing') {
+        io.to(roomId).emit('game_over', { type: 'game_over', reason: 'player_leave', message: '有玩家离开房间，游戏结束' });
+        roomManager.destroyRoom(roomId);
+      } else {
+        io.to(roomId).emit('room_update', {
+          roomId, roomCode: result.room.roomCode, hostId: result.room.hostId,
+          players: result.room.players.map(p => ({ id: p.id, nickname: p.nickname, ready: p.ready })),
+          state: result.room.state,
+        });
+      }
+    }
+    broadcastStatsDebounced(io);
+    return roomId;
+  }
+
   io.on('connection', (socket) => {
     console.log(`🔌 玩家连接: ${socket.user.username} (${socket.id})`);
 
@@ -78,58 +116,78 @@ function setupSocketHandlers(io, prisma) {
 
         const room = roomManager.getRoom(pending.roomId);
         if (room) {
-          callback({
-            roomId: room.id,
-            roomCode: room.roomCode,
-            isNew: false,
-            players: room.players.map(p => ({
-              id: p.id, nickname: p.nickname, ready: p.ready,
-            })),
-          });
+          // 如果游戏已在进行中，直接标记为 playing 避免 UI 闪跳
+          if (room.state === 'playing') {
+            callback({
+              roomId: room.id,
+              roomCode: room.roomCode,
+              isNew: false,
+              hostId: room.hostId,
+              state: 'playing',
+              players: room.players.map(p => ({
+                id: p.id, nickname: p.nickname, ready: p.ready,
+              })),
+            });
+            // 同步当前游戏状态
+            if (room.gameInstance) {
+              const state = room.gameInstance.getState(room.id);
+              if (state) {
+                socket.emit('game_start', {
+                  roomId: room.id,
+                  state: room.gameInstance.getVisibleState(state, socket.user.id),
+                });
+              }
+            }
+          } else {
+            callback({
+              roomId: room.id,
+              roomCode: room.roomCode,
+              isNew: false,
+              hostId: room.hostId,
+              players: room.players.map(p => ({
+                id: p.id, nickname: p.nickname, ready: p.ready,
+              })),
+            });
+          }
           // 通知对手已重连
           socket.to(pending.roomId).emit('opponent_reconnected');
-          // 同步当前游戏状态
-          if (room.state === 'playing' && room.gameInstance) {
-            const state = room.gameInstance.getState(room.id);
-            if (state) {
-              socket.emit('game_start', {
-                roomId: room.id,
-                state: room.gameInstance.getVisibleState(state, socket.user.id),
-              });
-            }
-          }
         }
         return;
       }
 
-      // 检查用户是否已在房间中（新 tab 场景）
+      // 检查用户是否已在房间中
       const existing = roomManager.getUserRoom(socket.user.id);
       if (existing && existing.room) {
-        socket.join(existing.roomId);
-        // 更新 playerRooms 映射和玩家的 socketId
-        roomManager.updatePlayerSocket(socket.user.id, socket.id);
-        callback({
-          roomId: existing.roomId,
-          roomCode: existing.room.roomCode,
-          isNew: false,
-          players: existing.room.players.map(p => ({
-            id: p.id, nickname: p.nickname, ready: p.ready,
-          })),
-        });
-        // 如果游戏已在进行，同步当前游戏状态到新 socket
-        if (existing.room.state === 'playing') {
-          const gameInstance = existing.room.gameInstance;
-          if (gameInstance && gameInstance.getVisibleState) {
-            const state = gameInstance.getState(existing.roomId);
-            if (state) {
-              socket.emit('game_start', {
-                roomId: existing.roomId,
-                state: gameInstance.getVisibleState(state, socket.user.id),
-              });
+        // 同一游戏 + 房间有效 → 重连/重新加入
+        if (existing.room.gameId === gameId && existing.room.state !== 'finished') {
+          socket.join(existing.roomId);
+          roomManager.updatePlayerSocket(socket.user.id, socket.id);
+          callback({
+            roomId: existing.roomId,
+            roomCode: existing.room.roomCode,
+            isNew: false,
+            hostId: existing.room.hostId,
+            players: existing.room.players.map(p => ({
+              id: p.id, nickname: p.nickname, ready: p.ready, isBot: p.isBot || false,
+            })),
+          });
+          if (existing.room.state === 'playing') {
+            const gameInstance = existing.room.gameInstance;
+            if (gameInstance && gameInstance.getVisibleState) {
+              const state = gameInstance.getState(existing.roomId);
+              if (state) {
+                socket.emit('game_start', {
+                  roomId: existing.roomId,
+                  state: gameInstance.getVisibleState(state, socket.user.id),
+                });
+              }
             }
           }
+          return;
         }
-        return;
+        // 不同游戏 或 房间已结束 → 先离开旧房间
+        console.log(`🔄 quick_match: 用户 ${socket.user.username} 从 ${existing.room.gameId} 切换到 ${gameId}`);
+        leaveCurrentRoom(socket);
       }
 
       const maxPlayers = getGameMaxPlayers(gameId);
@@ -143,6 +201,7 @@ function setupSocketHandlers(io, prisma) {
       io.to(result.room.id).emit('room_update', {
         roomId: result.room.id,
         roomCode: result.room.roomCode,
+        hostId: result.room.hostId,
         players: result.room.players.map(p => ({
           id: p.id, nickname: p.nickname, ready: p.ready,
         })),
@@ -153,6 +212,7 @@ function setupSocketHandlers(io, prisma) {
         roomId: result.room.id,
         roomCode: result.room.roomCode,
         isNew: result.isNew,
+        hostId: result.room.hostId,
         players: result.room.players.map(p => ({
           id: p.id, nickname: p.nickname, ready: p.ready,
         })),
@@ -179,22 +239,29 @@ function setupSocketHandlers(io, prisma) {
       io.to(roomId).emit('room_update', {
         roomId,
         roomCode: result.room.roomCode,
+        hostId: result.room.hostId,
         players: result.room.players.map(p => ({
           id: p.id, nickname: p.nickname, ready: p.ready,
         })),
         state: result.room.state,
       });
 
-      callback({ roomId, roomCode: result.room.roomCode, players: result.room.players });
+      callback({ roomId, roomCode: result.room.roomCode, hostId: result.room.hostId, players: result.room.players });
 
       broadcastStatsDebounced(io);
     });
 
     // ========== 通过房间号加入 ==========
     socket.on('join_by_code', ({ code, gameId }, callback) => {
-      // 校验房间号格式
-      if (!code || !/^\d{3}$/.test(code)) {
-        return callback({ error: '房间号必须是3位数字' });
+      // 校验房间号格式（3-6位数字或字母）
+      if (!code || !/^\d{1,6}$/.test(code)) {
+        return callback({ error: '房间号格式无效（1-6位数字）' });
+      }
+
+      // 离开其他游戏的房间
+      const existingForJoin = roomManager.getUserRoom(socket.user.id);
+      if (existingForJoin && existingForJoin.room && existingForJoin.room.gameId !== gameId) {
+        leaveCurrentRoom(socket);
       }
 
       const maxPlayers = getGameMaxPlayers(gameId);
@@ -210,6 +277,7 @@ function setupSocketHandlers(io, prisma) {
       io.to(result.roomId).emit('room_update', {
         roomId: result.roomId,
         roomCode: result.room.roomCode,
+        hostId: result.room.hostId,
         players: result.room.players.map(p => ({
           id: p.id, nickname: p.nickname, ready: p.ready,
         })),
@@ -219,6 +287,7 @@ function setupSocketHandlers(io, prisma) {
       callback({
         roomId: result.roomId,
         roomCode: result.room.roomCode,
+        hostId: result.room.hostId,
         players: result.room.players.map(p => ({
           id: p.id, nickname: p.nickname, ready: p.ready,
         })),
@@ -226,7 +295,6 @@ function setupSocketHandlers(io, prisma) {
 
       broadcastStatsDebounced(io);
     });
-
     // ========== 准备/取消准备 ==========
     socket.on('player_ready', ({ roomId, ready = true }) => {
       const room = roomManager.getRoom(roomId);
@@ -238,26 +306,34 @@ function setupSocketHandlers(io, prisma) {
       io.to(roomId).emit('room_update', {
         roomId,
         roomCode: updatedRoom.roomCode,
+        hostId: updatedRoom.hostId,
         players: updatedRoom.players.map(p => ({
           id: p.id, nickname: p.nickname, ready: p.ready,
         })),
         state: updatedRoom.state,
       });
 
-      // 传入游戏所需人数，避免 2 人准备就提前开局
+      // 固定人数游戏：所有人准备后自动开始
+      // 自由人数游戏：不自动开始，等房主手动开始
       const maxPlayers = getGameMaxPlayers(updatedRoom.gameId);
-      if (roomManager.allPlayersReady(roomId, maxPlayers)) {
+      const isVariable = isVariablePlayers(updatedRoom.gameId);
+      if (!isVariable && roomManager.allPlayersReady(roomId, maxPlayers)) {
         startGame(io, updatedRoom, prisma);
       }
 
       broadcastStatsDebounced(io);
     });
 
-    // ========== 添加机器人（幂等：重复点击不会报错） ==========
+    // ========== 添加机器人（仅固定人数游戏允许） ==========
     socket.on('add_bots', ({ roomId }, callback) => {
       const room = roomManager.getRoom(roomId);
       if (!room || room.state !== 'waiting') {
         return callback?.({ error: '房间不在等待状态' });
+      }
+
+      // 检查游戏是否允许添加机器人
+      if (!gameAllowsBots(room.gameId)) {
+        return callback?.({ error: '该游戏不支持添加机器人' });
       }
 
       const maxPlayers = getGameMaxPlayers(room.gameId);
@@ -268,13 +344,14 @@ function setupSocketHandlers(io, prisma) {
         return callback?.({ ok: true, botsAdded: 0 });
       }
 
-      // 添加机器人
-      const bots = botManager.fillRoomWithBots(room, room.gameId, maxPlayers);
+      // 每次只添加一个机器人
+      const bot = botManager.addOneBot(room, room.gameId);
 
       // 广播房间更新
       io.to(roomId).emit('room_update', {
         roomId,
         roomCode: room.roomCode,
+        hostId: room.hostId,
         players: room.players.map(p => ({
           id: p.id,
           nickname: p.nickname,
@@ -284,12 +361,156 @@ function setupSocketHandlers(io, prisma) {
         state: room.state,
       });
 
-      callback?.({ ok: true, botsAdded: bots.length });
+      callback?.({ ok: true, botsAdded: bot ? 1 : 0 });
 
-      // 检查是否可以开始游戏
-      if (roomManager.allPlayersReady(roomId, maxPlayers)) {
+      // 固定人数游戏：检查是否可以自动开始
+      const isVariable = isVariablePlayers(room.gameId);
+      if (!isVariable && roomManager.allPlayersReady(roomId, maxPlayers)) {
         startGame(io, room, prisma);
       }
+    });
+
+    // ========== 创建房间 ==========
+    socket.on('create_room', ({ gameId, roomCode }, callback) => {
+      if (!gameExists(gameId)) {
+        return callback?.({ error: '游戏不存在' });
+      }
+
+      // 检查用户是否已在房间中
+      const existing = roomManager.getUserRoom(socket.user.id);
+      if (existing && existing.room) {
+        // 同一游戏 + 房间有效 → 重连
+        if (existing.room.gameId === gameId && existing.room.state !== 'finished') {
+          socket.join(existing.roomId);
+          roomManager.updatePlayerSocket(socket.user.id, socket.id);
+          return callback?.({
+            roomId: existing.roomId,
+            roomCode: existing.room.roomCode,
+            hostId: existing.room.hostId,
+            players: existing.room.players.map(p => ({
+              id: p.id, nickname: p.nickname, ready: p.ready, isBot: p.isBot || false,
+            })),
+          });
+        }
+        // 不同游戏 → 先离开旧房间
+        leaveCurrentRoom(socket);
+      }
+
+      // 创建新房间（支持自定义房间号）
+      const result = roomManager.createRoom(gameId, socket.id, {
+        id: socket.user.id,
+        nickname: socket.user.username,
+      }, roomCode || undefined);
+
+      if (result.error) {
+        return callback?.({ error: result.error });
+      }
+
+      const room = result.room;
+      socket.join(room.id);
+
+      callback?.({
+        roomId: room.id,
+        roomCode: room.roomCode,
+        hostId: room.hostId,
+        players: room.players.map(p => ({
+          id: p.id, nickname: p.nickname, ready: p.ready,
+        })),
+      });
+
+      broadcastStatsDebounced(io);
+    });
+
+    // ========== 房主开始游戏（自由人数游戏） ==========
+    socket.on('host_start_game', ({ roomId }, callback) => {
+      const room = roomManager.getRoom(roomId);
+      if (!room || room.state !== 'waiting') {
+        return callback?.({ error: '房间不在等待状态' });
+      }
+
+      // 只有自由人数游戏才允许手动开始
+      if (!isVariablePlayers(room.gameId)) {
+        return callback?.({ error: '该游戏不支持手动开始' });
+      }
+
+      // 只有房主才能开始
+      if (room.hostId !== socket.user.id) {
+        return callback?.({ error: '只有房主才能开始游戏' });
+      }
+
+      // 检查最少人数
+      const minPlayers = getGameMinPlayers(room.gameId);
+      if (room.players.length < minPlayers) {
+        return callback?.({ error: `至少需要 ${minPlayers} 人才能开始` });
+      }
+
+      // 检查所有人是否都已准备
+      if (!room.players.every(p => p.ready)) {
+        return callback?.({ error: '还有玩家未准备' });
+      }
+
+      callback?.({ ok: true });
+      startGame(io, room, prisma);
+    });
+
+    // ========== 房主踢人 ==========
+    socket.on('kick_player', ({ roomId, targetId }, callback) => {
+      const room = roomManager.getRoom(roomId);
+      if (!room || room.state !== 'waiting') {
+        return callback?.({ error: '房间不在等待状态' });
+      }
+
+      // 只有房主才能踢人
+      if (room.hostId !== socket.user.id) {
+        return callback?.({ error: '只有房主才能踢人' });
+      }
+
+      // 不能踢自己
+      if (targetId === socket.user.id) {
+        return callback?.({ error: '不能踢自己' });
+      }
+
+      // 不能踢机器人（用 add_bots/remove 控制）
+      const targetPlayer = room.players.find(p => p.id === targetId);
+      if (!targetPlayer) {
+        return callback?.({ error: '玩家不存在' });
+      }
+
+      if (targetPlayer.isBot) {
+        // 踢机器人：直接移除
+        room.players = room.players.filter(p => p.id !== targetId);
+        io.to(roomId).emit('room_update', {
+          roomId,
+          roomCode: room.roomCode,
+          hostId: room.hostId,
+          players: room.players.map(p => ({
+            id: p.id, nickname: p.nickname, ready: p.ready, isBot: p.isBot || false,
+          })),
+          state: room.state,
+        });
+        return callback?.({ ok: true });
+      }
+
+      // 踢人类玩家：通知被踢者，然后移除
+      const targetSocketId = targetPlayer.socketId;
+      io.to(targetSocketId).emit('kicked', { message: '你被房主踢出了房间' });
+
+      // 移除玩家
+      room.players = room.players.filter(p => p.id !== targetId);
+      roomManager.cleanupPlayer(targetSocketId, targetId);
+
+      io.to(roomId).emit('room_update', {
+        roomId,
+        roomCode: room.roomCode,
+        hostId: room.hostId,
+        players: room.players.map(p => ({
+          id: p.id, nickname: p.nickname, ready: p.ready, isBot: p.isBot || false,
+        })),
+        state: room.state,
+      });
+
+      callback?.({ ok: true });
+      broadcastStatsDebounced(io);
     });
 
     // ========== 游戏操作 ==========
@@ -309,16 +530,9 @@ function setupSocketHandlers(io, prisma) {
       const result = roomManager.leaveRoom(socket.id);
       roomManager.cleanupUser(socket.user.id); // 始终清理 user 映射
       if (result && !result.empty && result.room) {
-        io.to(result.roomId).emit('room_update', {
-          roomId: result.roomId,
-          roomCode: result.room.roomCode,
-          players: result.room.players.map(p => ({
-            id: p.id, nickname: p.nickname, ready: p.ready,
-          })),
-          state: result.room.state,
-        });
-
         if (result.room.state === 'playing') {
+          // 游戏中离开：先发 game_over，再销毁房间
+          botManager.stopRoomBots(result.roomId);
           io.to(result.roomId).emit('game_over', {
             type: 'game_over',
             reason: 'player_leave',
@@ -328,7 +542,31 @@ function setupSocketHandlers(io, prisma) {
             scores: {},
             message: '有玩家离开房间，游戏结束',
           });
-          roomManager.setRoomState(result.roomId, 'finished');
+          // 检查剩余是否全是机器人，是则彻底销毁
+          const remainingHumans = result.room.players.filter(p => !p.isBot);
+          if (remainingHumans.length === 0) {
+            roomManager.destroyRoom(result.roomId);
+          }
+        } else {
+          // 等待中离开：检查剩余是否全是机器人
+          const remainingHumans = result.room.players.filter(p => !p.isBot);
+          if (remainingHumans.length === 0) {
+            console.log(`🤖 房间 ${result.roomId} 剩余全是机器人，彻底销毁`);
+            botManager.stopRoomBots(result.roomId);
+            roomManager.destroyRoom(result.roomId);
+            broadcastStatsDebounced(io);
+            return;
+          }
+
+          io.to(result.roomId).emit('room_update', {
+            roomId: result.roomId,
+            roomCode: result.room.roomCode,
+            hostId: result.room.hostId,
+            players: result.room.players.map(p => ({
+              id: p.id, nickname: p.nickname, ready: p.ready,
+            })),
+            state: result.room.state,
+          });
         }
       }
 
@@ -341,7 +579,7 @@ function setupSocketHandlers(io, prisma) {
       connectedSockets.delete(socket.id);
 
       // 查找该玩家所在的房间
-      const roomId = roomManager.getPlayerRoom(socket.id)?.id || roomManager.getUserRoom(socket.user.id)?.roomId;
+      const roomId = roomManager.getPlayerRoom(socket.id) || roomManager.getUserRoom(socket.user.id)?.roomId;
       if (!roomId) {
         // 不在任何房间，直接清理
         roomManager.cleanupUser(socket.user.id);
@@ -354,36 +592,83 @@ function setupSocketHandlers(io, prisma) {
         return;
       }
 
-      // 游戏进行中：标记断线，不自动结束游戏，等待重连
+      // 游戏进行中
       if (room.state === 'playing') {
+        const remainingHumans = room.players.filter(p => p.id !== socket.user.id && !p.isBot);
+
+        // 如果剩余玩家全是机器人，直接结束游戏（无人可重连）
+        if (remainingHumans.length === 0) {
+          console.log(`🤖 玩家 ${socket.user.username} 断线，剩余全是机器人，直接结束`);
+          botManager.stopRoomBots(roomId);
+          io.to(roomId).emit('game_over', {
+            type: 'game_over',
+            reason: 'player_disconnect',
+            winner: null,
+            message: '有玩家离开房间，游戏结束',
+          });
+          // 彻底销毁房间，防止机器人残留
+          roomManager.destroyRoom(roomId);
+          roomManager.cleanupUser(socket.user.id);
+          broadcastStatsDebounced(io);
+          return;
+        }
+
         const existing = pendingDisconnects.get(socket.user.id);
         if (existing) clearTimeout(existing.timeout);
 
         console.log(`⏳ 玩家 ${socket.user.username} 断线，等待重连`);
 
-        // 通知对方该玩家断线
-        const other = room.players.find(p => p.id !== socket.user.id);
-        if (other) {
+        // 通知所有其他玩家该玩家断线
+        const others = room.players.filter(p => p.id !== socket.user.id && !p.isBot);
+        for (const other of others) {
           io.to(other.socketId).emit('opponent_disconnected', {
             message: '对方已断线，正在等待重连...',
             disconnectedPlayer: socket.user.username,
           });
         }
 
-        // 宽限期：超时后不自动结束，只记录状态
+        // 宽限期：超时后检查是否需要销毁房间
         const timeout = setTimeout(() => {
           pendingDisconnects.delete(socket.user.id);
-          console.log(`⏳ 玩家 ${socket.user.username} 宽限期过期，仍保留在房间中`);
+          const currentRoom = roomManager.getRoom(roomId);
+          if (!currentRoom) return;
+
+          const remainingHumans = currentRoom.players.filter(p => p.id !== socket.user.id && !p.isBot);
+          if (remainingHumans.length === 0) {
+            console.log(`🤖 玩家 ${socket.user.username} 宽限期过期，剩余全是机器人，销毁房间`);
+            botManager.stopRoomBots(roomId);
+            io.to(roomId).emit('game_over', {
+              type: 'game_over', reason: 'player_disconnect',
+              message: '所有玩家已离开，游戏结束',
+            });
+            roomManager.destroyRoom(roomId);
+            roomManager.cleanupUser(socket.user.id);
+            broadcastStatsDebounced(io);
+          } else {
+            console.log(`⏳ 玩家 ${socket.user.username} 宽限期过期，房间仍有 ${remainingHumans.length} 位人类玩家`);
+          }
         }, DISCONNECT_GRACE_MS);
 
         pendingDisconnects.set(socket.user.id, { roomId, timeout, socketId: socket.id });
       } else {
         // 等待中：直接移除（不影响游戏）
         const result = roomManager.leaveRoom(socket.id);
-        roomManager.cleanupUser(socket.user.id); // 始终清理 user 映射
+        roomManager.cleanupUser(socket.user.id);
         if (result && !result.empty && result.room) {
+          // 如果剩余玩家全是机器人，彻底销毁房间
+          const remainingHumans = result.room.players.filter(p => !p.isBot);
+          if (remainingHumans.length === 0) {
+            console.log(`🤖 房间 ${roomId} 剩余全是机器人，彻底销毁`);
+            botManager.stopRoomBots(roomId);
+            roomManager.destroyRoom(roomId);
+            broadcastStatsDebounced(io);
+            return;
+          }
+
           io.to(roomId).emit('room_update', {
             roomId,
+            roomCode: result.room.roomCode,
+            hostId: result.room.hostId,
             players: result.room.players.map(p => ({
               id: p.id, nickname: p.nickname, ready: p.ready,
             })),

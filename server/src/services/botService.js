@@ -5,9 +5,9 @@
  * 支持多个游戏，通过 prompt 模板适配
  */
 
-// DeepSeek API（优先）/ ModelScope（备用）
+// DeepSeek API
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-cf0075767e944db6951434f0d7ffb518';
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-4bf...';
 const DEEPSEEK_MODEL = 'deepseek-chat';
 
 const MODELSOPE_API_URL = 'https://api-inference.modelscope.cn/v1/chat/completions';
@@ -60,20 +60,16 @@ async function callLLM(prompt, maxTokens = 200) {
   if (wait > 0) await new Promise(r => setTimeout(r, wait));
   lastRequestTime = Date.now();
 
-  // 优先 DeepSeek
+  // 只用 DeepSeek，失败则由调用方走 fallback（随机走法等）
   try {
     const result = await callSingleAPI(DEEPSEEK_API_URL, DEEPSEEK_API_KEY, DEEPSEEK_MODEL, prompt, maxTokens);
-    if (result) return result;
+    if (result) {
+      console.log('[Bot-LLM] ✅ DeepSeek 返回成功');
+      return result;
+    }
+    console.warn('[Bot-LLM] DeepSeek 返回空结果');
   } catch (err) {
-    console.warn('[Bot] DeepSeek 失败，尝试 ModelScope:', err.message);
-  }
-
-  // 备用 ModelScope
-  try {
-    const result = await callSingleAPI(MODELSOPE_API_URL, MODELSOPE_API_KEY, MODELSOPE_MODEL, prompt, maxTokens);
-    if (result) return result;
-  } catch (err) {
-    console.error('[Bot] ModelScope 也失败:', err.message);
+    console.warn(`[Bot-LLM] ❌ DeepSeek 失败: ${err.message}`);
   }
 
   return null;
@@ -84,6 +80,8 @@ async function callLLM(prompt, maxTokens = 200) {
  */
 function extractJSON(text) {
   if (!text) return null;
+  // 去除 <think>...</think> 标签（Qwen 等模型的思考过程）
+  text = text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
   // 尝试直接解析
   try { return JSON.parse(text); } catch {}
   // 提取 ```json ... ``` 块
@@ -98,60 +96,264 @@ function extractJSON(text) {
 // ========== 游戏特定的决策逻辑 ==========
 
 /**
- * 斗地主 AI 决策（代码逻辑 + LLM 辅助）
+ * UNO AI 决策（纯代码逻辑，不依赖 LLM）
+ *
+ * 返回单个 action 或 action 数组（如 [uno, play_card]）
+ *
+ * 策略：
+ * 1. drawStack>0 时：优先出 +2，其次 wild+4，否则摸牌
+ * 2. 选牌：根据手牌数/对手威胁/牌类型综合评分
+ * 3. wild+4 视为"最后手段"（手牌≤2 或无其他选择时才用）
+ * 4. 对手剩 ≤2 张时提升 skip/reverse/+2 优先级
+ * 5. 选色：手牌多时选场上已出最多的颜色（后续容易匹配），手牌少时选手中最长色
+ * 6. 出到最后一张前喊 UNO
+ */
+function decideUno(gameState, botId) {
+  const hand = gameState.hands?.[botId] || gameState.myHand || [];
+  if (!hand || hand.length === 0) return null;
+
+  const currentColor = gameState.currentColor;
+  const topCard = gameState.discard?.[gameState.discard.length - 1];
+  const drawStack = gameState.drawStack || 0;
+
+  // ---------- 对手最小手牌数 ----------
+  const handCounts = gameState.handCounts || {};
+  const minEnemyCards = Math.min(
+    ...Object.entries(handCounts)
+      .filter(([pid]) => String(pid) !== String(botId))
+      .map(([, cnt]) => cnt)
+  );
+  const enemyDanger = minEnemyCards <= 2;  // 对手快要赢了
+
+  // ========== 1. 有叠加 +2/+4 时 ==========
+  if (drawStack > 0) {
+    const counters = hand
+      .map((card, index) => ({ card, index }))
+      .filter(({ card }) =>
+        (gameState.lastCardValue === '+2' && card.value === '+2') ||
+        (gameState.lastCardValue === '+2' && card.value === 'wild+4') ||
+        (gameState.lastCardValue === 'wild+4' && card.value === 'wild+4')
+      );
+    if (counters.length > 0) {
+      // 优先出 +2，留 wild+4
+      const pick = counters.find(c => c.card.value === '+2') || counters[0];
+      const chosenColor = pick.card.color === 'black'
+        ? chooseColor(hand, gameState, enemyDanger)
+        : undefined;
+      return maybeUno(hand, { type: 'play_card', cardIndex: pick.index, chosenColor });
+    }
+    // 无反击牌，必须摸
+    return { type: 'draw_card' };
+  }
+
+  // ========== 2. 找可出的牌 ==========
+  const playable = hand
+    .map((card, index) => ({ card, index }))
+    .filter(({ card }) =>
+      card.color === 'black' ||
+      card.color === currentColor ||
+      (topCard && card.value === topCard.value)
+    );
+
+  if (playable.length === 0) return { type: 'draw_card' };
+
+  // ========== 3. 评分选牌 ==========
+  const scored = playable.map(({ card, index }) => {
+    let score = 0;
+    const isWild = card.color === 'black';
+    const isWild4 = card.value === 'wild+4';
+    const isWildNorm = card.value === 'wild';
+    const isDraw2 = card.value === '+2';
+    const isSkip = card.value === 'skip';
+    const isReverse = card.value === 'reverse';
+    const isNumber = !isWild && !isDraw2 && !isSkip && !isReverse;
+
+    // --- wild+4：留到最后，只在手牌≤2或无其他选择时用 ---
+    if (isWild4) {
+      score = (hand.length <= 2) ? 100 : -50;
+    } else if (isWildNorm) {
+      // wild 普通：手牌少时用，手牌多时留
+      score = (hand.length <= 3) ? 80 : 20;
+    } else if (isDraw2) {
+      score = enemyDanger ? 70 : 35;
+    } else if (isSkip || isReverse) {
+      score = enemyDanger ? 60 : 25;
+    } else if (isNumber) {
+      // 数字牌：先出大的（减少手牌总点数）
+      const num = parseInt(card.value);
+      score = isNaN(num) ? 5 : 5 + num * 2;
+    }
+
+    // 颜色匹配加分（非黑牌且颜色=当前色，更容易出）
+    if (!isWild && card.color === currentColor) {
+      score += 15;
+    }
+
+    return { card, index, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+
+  const pick = scored[0];
+  const chosenColor = pick.card.color === 'black'
+    ? chooseColor(hand, gameState, enemyDanger)
+    : undefined;
+
+  return maybeUno(hand, { type: 'play_card', cardIndex: pick.index, chosenColor });
+}
+
+/**
+ * 如果手牌=2张且即将打出1张（到1张），自动喊 UNO
+ * 返回 action 数组 [uno, playCard] 或单个 playCard
+ */
+function maybeUno(hand, playAction) {
+  if (hand.length === 2) {
+    return [
+      { type: 'uno' },
+      playAction,
+    ];
+  }
+  return playAction;
+}
+
+/**
+ * 选色策略
+ * - 手牌多 (≥4)：选场上弃牌堆中出现最多的颜色（后续更容易匹配）
+ * - 手牌少 (<4)：选手中最多的颜色（集中火力出完）
+ */
+function chooseColor(hand, gameState, enemyDanger) {
+  const handColorCounts = {};
+  const discardColorCounts = {};
+
+  // 统计手牌中的颜色（排除黑牌）
+  for (const card of hand) {
+    if (card.color !== 'black') {
+      handColorCounts[card.color] = (handColorCounts[card.color] || 0) + 1;
+    }
+  }
+
+  // 统计弃牌堆中的颜色
+  const discard = gameState.discard || [];
+  for (const card of discard) {
+    if (card.color !== 'black') {
+      discardColorCounts[card.color] = (discardColorCounts[card.color] || 0) + 1;
+    }
+  }
+
+  // 手牌少：选手中最长色
+  if (hand.length < 4) {
+    const best = Object.entries(handColorCounts).sort((a, b) => b[1] - a[1])[0];
+    return best ? best[0] : 'red';
+  }
+
+  // 手牌多：选弃牌堆中最常见的颜色（场上该色已多，后续配对概率高）
+  const best = Object.entries(discardColorCounts).sort((a, b) => b[1] - a[1])[0];
+  if (best && best[1] > 0) return best[0];
+
+  // 无弃牌堆数据，退化到手牌中最长色
+  const handBest = Object.entries(handColorCounts).sort((a, b) => b[1] - a[1])[0];
+  return handBest ? handBest[0] : 'red';
+}
+
+/**
+ * 斗地主 AI 决策（代码逻辑，不依赖 LLM）
  */
 function decideDoudizhu(gameState, botId) {
+  const { getCardType, canBeat } = require('../../../games/doudizhu/server/cards');
   const hand = gameState.playerHands?.[botId] || gameState.myHand || [];
 
-  // 叫分阶段：随机决定
+  // 叫分阶段
   if (gameState.phase === 'bidding') {
     const highestBid = gameState.highestBid || 0;
     const minBid = highestBid + 1;
-    // 简单策略：30% 概率叫分，否则不叫
     if (Math.random() < 0.3 && minBid <= 3) {
-      const score = Math.random() < 0.5 ? minBid : 3;
-      return { type: 'bid', score };
+      return { type: 'bid', score: Math.random() < 0.5 ? minBid : 3 };
     }
     return { type: 'bid', score: 0 };
   }
 
-  // 出牌阶段：简单策略
   if (hand.length === 0) return null;
 
   const lastPlay = gameState.lastPlay;
 
+  // 自由出牌：出最小单张
   if (!lastPlay) {
-    // 自由出牌：出最小的一张
     const sorted = [...hand].sort((a, b) => a.value - b.value);
     return { type: 'play', cards: [sorted[0]] };
   }
 
-  // 有上家出牌：尝试出更大的牌，否则不出
-  const { getCardType, canBeat } = require('../../../games/doudizhu/server/cards');
   const lastType = lastPlay.cardType;
+  if (!lastType) return { type: 'pass' };
 
-  // 尝试单张压牌
-  for (const card of [...hand].sort((a, b) => a.value - b.value)) {
-    const testType = getCardType([card]);
-    if (testType && canBeat(lastType, testType)) {
-      return { type: 'play', cards: [card] };
+  // 按牌值统计
+  const counts = {};
+  hand.forEach(c => { counts[c.value] = (counts[c.value] || 0) + 1; });
+  const sorted = [...hand].sort((a, b) => a.value - b.value);
+
+  // 1. 尝试同类型压牌
+  if (lastType.type === 'single') {
+    for (const card of sorted) {
+      const t = getCardType([card]);
+      if (t && canBeat(lastType, t)) return { type: 'play', cards: [card] };
     }
   }
 
-  // 尝试对子压牌
-  const counts = {};
-  hand.forEach(c => { counts[c.value] = (counts[c.value] || 0) + 1; });
-  for (const [value, count] of Object.entries(counts)) {
-    if (count >= 2) {
-      const pairCards = hand.filter(c => c.value === Number(value)).slice(0, 2);
-      const testType = getCardType(pairCards);
-      if (testType && canBeat(lastType, testType)) {
-        return { type: 'play', cards: pairCards };
+  if (lastType.type === 'pair') {
+    for (const [value, count] of Object.entries(counts)) {
+      if (count >= 2) {
+        const cards = hand.filter(c => c.value === Number(value)).slice(0, 2);
+        const t = getCardType(cards);
+        if (t && canBeat(lastType, t)) return { type: 'play', cards };
       }
     }
   }
 
-  // 压不过，不出
+  if (lastType.type === 'trio' || lastType.type === 'trio_single' || lastType.type === 'trio_pair') {
+    for (const [value, count] of Object.entries(counts)) {
+      if (count >= 3) {
+        const trioCards = hand.filter(c => c.value === Number(value)).slice(0, 3);
+        if (lastType.type === 'trio') {
+          const t = getCardType(trioCards);
+          if (t && canBeat(lastType, t)) return { type: 'play', cards: trioCards };
+        }
+        if (lastType.type === 'trio_single') {
+          const kicker = sorted.find(c => c.value !== Number(value));
+          if (kicker) {
+            const cards = [...trioCards, kicker];
+            const t = getCardType(cards);
+            if (t && canBeat(lastType, t)) return { type: 'play', cards };
+          }
+        }
+        if (lastType.type === 'trio_pair') {
+          const pairValue = Object.entries(counts).find(([v, c]) => c >= 2 && Number(v) !== Number(value));
+          if (pairValue) {
+            const pairCards = hand.filter(c => c.value === Number(pairValue[0])).slice(0, 2);
+            const cards = [...trioCards, ...pairCards];
+            const t = getCardType(cards);
+            if (t && canBeat(lastType, t)) return { type: 'play', cards };
+          }
+        }
+      }
+    }
+  }
+
+  // 2. 同类型压不过，尝试炸弹
+  for (const [value, count] of Object.entries(counts)) {
+    if (count === 4) {
+      const bombCards = hand.filter(c => c.value === Number(value));
+      const t = getCardType(bombCards);
+      if (t && canBeat(lastType, t)) return { type: 'play', cards: bombCards };
+    }
+  }
+
+  // 3. 尝试火箭（大小王）
+  const jokerS = hand.find(c => c.value === 16);
+  const jokerB = hand.find(c => c.value === 17);
+  if (jokerS && jokerB) {
+    return { type: 'play', cards: [jokerS, jokerB] };
+  }
+
+  // 压不过
   return { type: 'pass' };
 }
 
@@ -187,8 +389,7 @@ type 只能是以下之一：pung、kong、chow、win、pass、discard。
 function decideChess(gameState, botId) {
   // 猜拳阶段：直接随机，不调用 LLM
   if (gameState.phase === 'rps') {
-    const choices = ['rock', 'scissors', 'paper'];
-    const choice = choices[Math.floor(Math.random() * 3)];
+    const choice = ['rock', 'scissors', 'paper'][Math.floor(Math.random() * 3)];
     return { type: 'rps', choice };
   }
 
@@ -203,21 +404,91 @@ function decideChess(gameState, botId) {
 }
 
 /**
- * 象棋走棋 Prompt
+ * 校验 LLM 返回的走法是否合法
  */
-function buildChessMovePrompt(gameState, botId) {
+function validateChessMove(gameState, botId, action) {
+  if (!action.from || !action.to) { console.warn('[Chess-Validate] 缺少 from/to'); return false; }
+  const { isValidMove, wouldBeInCheck, getPieceAt } = require('../../../games/chinese-chess/server/pieces');
+  const myColor = gameState.colorMap?.[String(botId)];
+  const pieces = gameState.pieces || [];
+  const piece = getPieceAt(pieces, action.from.col, action.from.row);
+  if (!piece) { console.warn(`[Chess-Validate] 无棋子 at (${action.from.col},${action.from.row})`); return false; }
+  if (piece.color !== myColor) { console.warn(`[Chess-Validate] 棋子颜色不对: ${piece.color} vs ${myColor}`); return false; }
+  if (!isValidMove(pieces, piece, action.to.col, action.to.row)) { console.warn(`[Chess-Validate] 非法走法: ${piece.name} (${action.from.col},${action.from.row}) → (${action.to.col},${action.to.row})`); return false; }
+  if (wouldBeInCheck(pieces, piece, action.to.col, action.to.row)) { console.warn(`[Chess-Validate] 送将`); return false; }
+  return true;
+}
+
+/**
+ * 象棋 fallback：遍历所有合法走法，随机选一个
+ */
+function getRandomChessMove(gameState, botId) {
+  const { isValidMove, wouldBeInCheck, getPieceAt } = require('../../../games/chinese-chess/server/pieces');
   const myColor = gameState.colorMap?.[String(botId)];
   const pieces = gameState.pieces || [];
   const myPieces = pieces.filter(p => p.color === myColor);
-  const myPiecesStr = myPieces.map(p => `${p.name}(${p.col},${p.row})`).join(', ');
+  const validMoves = [];
 
-  return `你是中国象棋AI，执${myColor === 'red' ? '红' : '黑'}方。
-你的棋子：[${myPiecesStr}]
-棋盘上所有棋子：[${pieces.map(p => `${p.color}${p.name}(${p.col},${p.row})`).join(', ')}]
-轮到${gameState.turnColor === 'red' ? '红' : '黑'}方走棋。
-col 范围 0-8，row 范围 0-9。
-你只能回复一个JSON对象，不要添加任何其他文字。
-格式：{"type":"move","from":{"col":数字,"row":数字},"to":{"col":数字,"row":数字}}`;
+  for (const piece of myPieces) {
+    for (let col = 0; col <= 8; col++) {
+      for (let row = 0; row <= 9; row++) {
+        if (isValidMove(pieces, piece, col, row) && !wouldBeInCheck(pieces, piece, col, row)) {
+          validMoves.push({ from: { col: piece.col, row: piece.row }, to: { col, row } });
+        }
+      }
+    }
+  }
+
+  if (validMoves.length === 0) return null;
+  return { type: 'move', ...validMoves[Math.floor(Math.random() * validMoves.length)] };
+}
+
+/**
+ * 象棋走棋 Prompt（给 LLM 合法走法列表，让它选最优）
+ */
+function buildChessMovePrompt(gameState, botId) {
+  const { isValidMove, wouldBeInCheck } = require('../../../games/chinese-chess/server/pieces');
+  const myColor = gameState.colorMap?.[String(botId)];
+  const pieces = gameState.pieces || [];
+  const myPieces = pieces.filter(p => p.color === myColor);
+  const enemyPieces = pieces.filter(p => p.color !== myColor);
+
+  // Generate ALL legal moves
+  const legalMoves = [];
+  for (const piece of myPieces) {
+    for (let col = 0; col <= 8; col++) {
+      for (let row = 0; row <= 9; row++) {
+        if (isValidMove(pieces, piece, col, row) && !wouldBeInCheck(pieces, piece, col, row)) {
+          const target = pieces.find(p => p.col === col && p.row === row);
+          legalMoves.push({
+            i: legalMoves.length,
+            piece: piece.name,
+            from: piece.col + ',' + piece.row,
+            to: col + ',' + row,
+            capture: target ? target.name : null,
+          });
+        }
+      }
+    }
+  }
+
+  if (legalMoves.length === 0) return null;
+
+  const moveList = legalMoves.map(m =>
+    '[' + m.i + '] ' + m.piece + ' ' + m.from + '->' + m.to + (m.capture ? ' capture:' + m.capture : '')
+  ).join('\n');
+
+  const enemyStr = enemyPieces.map(p => p.name + '(' + p.col + ',' + p.row + ')').join(', ');
+
+  return [
+    'You are a strong Chinese Chess AI. Pick the BEST move from the list below.',
+    'My color: ' + myColor + '. Enemy pieces: ' + enemyStr,
+    '',
+    'Legal moves:',
+    moveList,
+    '',
+    'Reply ONLY with the move number (e.g. 3):'
+  ].join('\n');
 }
 
 // ========== LLM 响应规范化 ==========
@@ -270,6 +541,9 @@ async function getBotAction(gameId, gameState, botId) {
     case 'chinese-chess':
       action = decideChess(gameState, botId);
       break;
+    case 'uno':
+      action = decideUno(gameState, botId);
+      break;
   }
 
   // 代码已决策（猜拳/叫分/简单出牌）
@@ -278,12 +552,29 @@ async function getBotAction(gameId, gameState, botId) {
     return action;
   }
 
-  // 需要 LLM 辅助（象棋走棋/麻将/复杂出牌）
+  // 需要 LLM 辅助（象棋走棋/麻将）
   let prompt;
+  let legalMoves = null;
   switch (gameId) {
-    case 'chinese-chess':
+    case 'chinese-chess': {
+      const { isValidMove, wouldBeInCheck } = require('../../../games/chinese-chess/server/pieces');
+      const myColor = gameState.colorMap?.[String(botId)];
+      const pieces = gameState.pieces || [];
+      const myPieces = pieces.filter(p => p.color === myColor);
+      legalMoves = [];
+      for (const piece of myPieces) {
+        for (let col = 0; col <= 8; col++) {
+          for (let row = 0; row <= 9; row++) {
+            if (isValidMove(pieces, piece, col, row) && !wouldBeInCheck(pieces, piece, col, row)) {
+              legalMoves.push({ type: 'move', from: { col: piece.col, row: piece.row }, to: { col, row } });
+            }
+          }
+        }
+      }
+      if (legalMoves.length === 0) return null;
       prompt = buildChessMovePrompt(gameState, botId);
       break;
+    }
     case 'mahjong':
       prompt = buildMahjongPrompt(gameState, botId);
       break;
@@ -293,17 +584,177 @@ async function getBotAction(gameId, gameState, botId) {
   }
 
   console.log(`[Bot] ${botId} 请求 LLM 决策 (${gameId})`);
-  const response = await callLLM(prompt);
-  action = extractJSON(response);
+  const response = await callLLM(prompt, 100);
+  console.log(`[Bot] ${botId} LLM 原始返回: ${response?.substring(0, 100)}`);
 
+  // 象棋：从 LLM 返回的数字索引中选取合法走法
+  if (gameId === 'chinese-chess' && legalMoves) {
+    const numMatch = response?.match(/\d+/);
+    const idx = numMatch ? parseInt(numMatch[0]) : -1;
+    if (idx >= 0 && idx < legalMoves.length) {
+      action = legalMoves[idx];
+      console.log(`[Bot] ${botId} LLM 选了走法 #${idx}: ${JSON.stringify(action)}`);
+      return action;
+    }
+    // LLM 返回无效索引，随机选一个
+    const fallback = legalMoves[Math.floor(Math.random() * legalMoves.length)];
+    console.log(`[Bot] ${botId} LLM 返回无效索引 "${response}"，随机选: ${JSON.stringify(fallback)}`);
+    return fallback;
+  }
+
+  action = extractJSON(response);
   if (action) {
     action = normalizeAction(action);
     console.log(`[Bot] ${botId} LLM 决策:`, JSON.stringify(action));
     return action;
   }
 
-  console.warn(`[Bot] ${botId} LLM 无法解析:`, response?.substring(0, 100));
+  // LLM 失败：象棋用 fallback 随机合法走法
+  if (gameId === 'chinese-chess') {
+    const fallback = getRandomChessMove(gameState, botId);
+    if (fallback) {
+      console.log(`[Bot] ${botId} LLM 失败，使用 fallback:`, JSON.stringify(fallback));
+      return fallback;
+    }
+  }
+
+  console.warn(`[Bot] ${botId} 无法决策 (${gameId})`);
   return null;
 }
 
-module.exports = { getBotAction, callLLM };
+// ========== UNO AI: chooseBestCard ==========
+/**
+ * UNO AI 评分选牌（纯代码，不依赖 LLM）
+ * @param {Array} hand - 手牌数组 [{color, value}, ...]
+ * @param {object} topCard - 弃牌堆顶牌 {color, value}
+ * @param {object} game - 游戏对象（含 players 等）
+ * @returns {object|null} 最佳出牌 {color, value} 或 null（无可出牌）
+ *
+ * 评分规则：
+ *   +4 Wild: 100  |  Wild: 80  |  +2: 70  |  Skip: 60  |  Reverse: 55
+ *   同色牌: 40 + (faceValue / 10)  |  同数字牌: 30  |  其他: 10
+ *   同分时优先出面值较小的牌
+ */
+function chooseBestCard(hand, topCard, game) {
+  if (!hand || hand.length === 0 || !topCard) return null;
+
+  // 找出可出的牌（黑色万能牌 或 颜色匹配 或 数字匹配）
+  const playable = hand.filter(card =>
+    card.color === 'black' ||
+    card.color === topCard.color ||
+    card.value === topCard.value
+  );
+
+  if (playable.length === 0) return null;
+
+  // 数字面值辅助函数
+  const faceValue = (val) => {
+    const n = parseInt(val);
+    return isNaN(n) ? 0 : n;
+  };
+
+  const scored = playable.map(card => {
+    let score = 0;
+    if (card.color === 'black') {
+      // Wild 牌
+      score = card.value === 'wild+4' ? 100 : 80;
+    } else if (card.value === '+2') {
+      score = 70;
+    } else if (card.value === 'skip') {
+      score = 60;
+    } else if (card.value === 'reverse') {
+      score = 55;
+    } else if (card.color === topCard.color) {
+      // 同色数字牌
+      score = 40 + faceValue(card.value) / 10;
+    } else if (card.value === topCard.value) {
+      // 同数字不同色
+      score = 30;
+    } else {
+      score = 10;
+    }
+    return { card, score };
+  });
+
+  // 按分数降序，同分按面值升序
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return faceValue(a.card.value) - faceValue(b.card.value);
+  });
+
+  return scored[0].card;
+}
+
+// ========== Chinese Chess AI: getChineseChessAction ==========
+/**
+ * 象棋 AI：生成所有合法走法，调用 LLM 选出最优
+ * @param {object} gameState - 游戏状态（含 pieces, colorMap, currentPlayer 等）
+ * @returns {object|null} {from: {row, col}, to: {row, col}} 或 null
+ */
+async function getChineseChessAction(gameState) {
+  const { isValidMove, wouldBeInCheck, getPieceAt } = require('../../../games/chinese-chess/server/pieces');
+
+  const currentPlayer = gameState.currentPlayer;
+  const myColor = gameState.colorMap?.[String(currentPlayer)] || gameState.currentColor;
+  const pieces = gameState.pieces || [];
+  const myPieces = pieces.filter(p => p.color === myColor);
+
+  // 生成所有合法走法
+  const legalMoves = [];
+  for (const piece of myPieces) {
+    for (let col = 0; col <= 8; col++) {
+      for (let row = 0; row <= 9; row++) {
+        if (isValidMove(pieces, piece, col, row) && !wouldBeInCheck(pieces, piece, col, row)) {
+          const target = pieces.find(p => p.col === col && p.row === row);
+          legalMoves.push({
+            i: legalMoves.length,
+            piece: piece.name,
+            from: { row: piece.row, col: piece.col },
+            to: { row, col },
+            capture: target ? target.name : null,
+          });
+        }
+      }
+    }
+  }
+
+  if (legalMoves.length === 0) return null;
+
+  // 构造 prompt 给 LLM
+  const moveList = legalMoves.map(m =>
+    '[' + m.i + '] ' + m.piece + ' (' + m.from.col + ',' + m.from.row + ')->(' + m.to.col + ',' + m.to.row + ')' + (m.capture ? ' 吃:' + m.capture : '')
+  ).join('\n');
+
+  const enemyPieces = pieces.filter(p => p.color !== myColor);
+  const enemyStr = enemyPieces.map(p => p.name + '(' + p.col + ',' + p.row + ')').join(', ');
+
+  const prompt = [
+    'You are a strong Chinese Chess AI. Pick the BEST move from the legal moves below.',
+    'My color: ' + myColor + '. Enemy pieces: ' + enemyStr,
+    '',
+    'Legal moves:',
+    moveList,
+    '',
+    'Reply ONLY with the move number (e.g. 3):',
+  ].join('\n');
+
+  // 调用 LLM
+  const response = await callLLM(prompt, 100);
+  console.log('[ChineseChess-AI] LLM 原始返回:', response?.substring(0, 100));
+
+  // 解析 LLM 返回的走法编号
+  const numMatch = response?.match(/\d+/);
+  const idx = numMatch ? parseInt(numMatch[0]) : -1;
+  if (idx >= 0 && idx < legalMoves.length) {
+    const chosen = legalMoves[idx];
+    console.log('[ChineseChess-AI] LLM 选了走法 #' + idx + ':', JSON.stringify(chosen));
+    return { from: chosen.from, to: chosen.to };
+  }
+
+  // LLM 返回无效，随机选一个合法走法
+  const fallback = legalMoves[Math.floor(Math.random() * legalMoves.length)];
+  console.log('[ChineseChess-AI] LLM 返回无效，随机选:', JSON.stringify(fallback));
+  return { from: fallback.from, to: fallback.to };
+}
+
+module.exports = { getBotAction, callLLM, chooseBestCard, getChineseChessAction };

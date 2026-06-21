@@ -84,10 +84,38 @@ function getGameMaxPlayers(gameId) {
 }
 
 /**
+ * 获取游戏的最小人数
+ */
+function getGameMinPlayers(gameId) {
+  const entry = registeredGames.get(gameId);
+  return entry?.meta?.minPlayers || 1;
+}
+
+/**
  * 检查游戏是否存在
  */
 function gameExists(gameId) {
   return registeredGames.has(gameId);
 }
 
-module.exports = { loadAllGames, getRegisteredGames, createGameInstance, getGameMaxPlayers, gameExists };
+/**
+ * 检查游戏是否为自由人数（minPlayers !== maxPlayers）
+ * 未知游戏返回 false（保守策略：视为固定人数，不启用房主手动开始）
+ */
+function isVariablePlayers(gameId) {
+  const entry = registeredGames.get(gameId);
+  if (!entry || !entry.meta) return false;
+  return entry.meta.minPlayers !== entry.meta.maxPlayers;
+}
+
+/**
+ * 检查游戏是否允许添加机器人
+ * 默认允许，除非 game.json 明确设置 allowBots: false
+ */
+function gameAllowsBots(gameId) {
+  const entry = registeredGames.get(gameId);
+  if (!entry || !entry.meta) return false;
+  return entry.meta.allowBots !== false;
+}
+
+module.exports = { loadAllGames, getRegisteredGames, createGameInstance, getGameMaxPlayers, getGameMinPlayers, gameExists, isVariablePlayers, gameAllowsBots };

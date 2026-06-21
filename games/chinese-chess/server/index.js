@@ -2,6 +2,7 @@ const {
   createInitialPieces, isValidMove, isInCheck, isCheckmate, wouldBeInCheck,
   getPieceAt,
 } = require('./pieces');
+const { getChineseChessAction } = require('../../../server/src/services/botService');
 
 /**
  * 游戏服务器基类
@@ -282,6 +283,9 @@ class ChineseChessServer extends BaseGameServer {
         state: this.getVisibleState(state, p),
       });
     }
+
+    // 如果红方是 bot，触发 AI 走棋
+    this.makeBotMove(roomId);
   }
 
   // ========== 走棋 ==========
@@ -295,10 +299,10 @@ class ChineseChessServer extends BaseGameServer {
       return;
     }
 
-    // 验证是否轮到该玩家（统一 Number 比较）
+    // 验证是否轮到该玩家（统一字符串比较，兼容 bot ID）
     const expectedPid = state.players[state.currentTurn];
     console.log(`[Chess] 回合检查: expected=${expectedPid}, actual=${pid}`);
-    if (Number(expectedPid) !== Number(pid)) {
+    if (String(expectedPid) !== String(pid)) {
       this.doBroadcastTo(roomId, pid, { type: 'error', message: '还没轮到你' });
       return;
     }
@@ -465,6 +469,9 @@ class ChineseChessServer extends BaseGameServer {
 
     this.saveState(roomId, state);
     this.broadcastState(roomId, state);
+
+    // 如果下一个是 bot，触发 AI 走棋
+    this.makeBotMove(roomId);
   }
 
   // ========== 对方断线认负 ==========
@@ -663,6 +670,7 @@ class ChineseChessServer extends BaseGameServer {
 
     state.turnDeadline = deadline;
     state.turnStartTime = Date.now();
+    state._turnTimerFired = false;
     this.saveState(roomId, state);
 
     // 广播计时器
@@ -686,12 +694,13 @@ class ChineseChessServer extends BaseGameServer {
       // 计算实际经过时间
       const elapsed = Date.now() - capturedStartTime;
 
-      // 扣除总时间
-      if (settings.totalTime > 0) {
+      // 扣除已用时间
+      if (settings.totalTime > 0 && elapsed > 0) {
         currentState.timeRemaining[currentPlayer] = Math.max(0, (currentState.timeRemaining[currentPlayer] || 0) - elapsed);
       }
+      currentState._turnTimerFired = true;
 
-      // 检查总时间是否耗尽
+      // 检查总时间是否耗尽（无论步时还是总时超时，只要总时间归零就判负）
       if (settings.totalTime > 0 && currentState.timeRemaining[currentPlayer] <= 0) {
         const winnerPid = currentState.players.find(p => p !== currentPlayer);
         currentState.phase = 'ended';
@@ -730,6 +739,9 @@ class ChineseChessServer extends BaseGameServer {
 
       this.saveState(roomId, currentState);
       this.broadcastState(roomId, currentState);
+
+      // 如果下一个是 bot，触发 AI 走棋
+      this.makeBotMove(roomId);
     }, (deadline - Date.now()) + 500); // 500ms 缓冲
   }
 
@@ -738,12 +750,61 @@ class ChineseChessServer extends BaseGameServer {
    */
   deductTurnTime(roomId, state, playerId) {
     const settings = state.timerSettings;
-    if (!settings || !settings.enabled || !state.turnStartTime) return;
+    if (!settings || !settings.enabled || !state.turnStartTime || state._turnTimerFired) return;
 
     const elapsed = Date.now() - state.turnStartTime;
     if (settings.totalTime > 0) {
       state.timeRemaining[playerId] = Math.max(0, (state.timeRemaining[playerId] || 0) - elapsed);
     }
+  }
+
+  // ========== Bot AI ==========
+
+  /**
+   * 检查当前回合是否是 bot，如果是则延迟触发 AI 走棋
+   * 通过 setTimeout 延迟 1-2 秒模拟思考
+   */
+  makeBotMove(roomId) {
+    const state = this.getState(roomId);
+    if (!state || state.phase !== 'playing') return;
+
+    const currentPlayerId = state.players[state.currentTurn];
+    if (!currentPlayerId || !String(currentPlayerId).startsWith('bot_')) return;
+
+    // 延迟 1-2 秒模拟思考
+    const delay = 1000 + Math.floor(Math.random() * 1000);
+    setTimeout(async () => {
+      try {
+        const currentState = this.getState(roomId);
+        if (!currentState || currentState.phase !== 'playing') return;
+
+        // 再次确认还是同一个 bot 的回合
+        const nowPlayerId = currentState.players[currentState.currentTurn];
+        if (String(nowPlayerId) !== String(currentPlayerId)) return;
+
+        const botId = String(currentPlayerId);
+        const myColor = currentState.colorMap?.[botId] || currentState.turnColor;
+        const gameState = {
+          pieces: currentState.pieces,
+          currentPlayer: currentPlayerId,
+          colorMap: currentState.colorMap,
+          currentColor: currentState.turnColor,
+        };
+
+        console.log(`[Chess-Bot] ${botId} 请求 AI 决策, color=${myColor}, turnColor=${currentState.turnColor}`);
+        const move = await getChineseChessAction(gameState);
+
+        if (!move || !move.from || !move.to) {
+          console.warn(`[Chess-Bot] ${botId} AI 未返回有效走法:`, move);
+          return;
+        }
+
+        console.log(`[Chess-Bot] ${botId} AI 走法: (${move.from.col},${move.from.row}) → (${move.to.col},${move.to.row})`);
+        this.handleMove(roomId, botId, move.from, move.to);
+      } catch (err) {
+        console.error(`[Chess-Bot] AI 决策出错:`, err.message);
+      }
+    }, delay);
   }
 
   // ========== 辅助 ==========

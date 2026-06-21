@@ -901,7 +901,6 @@ input {
   cursor: pointer;
   transition: all 0.3s ease;
   width: 100%;
-  max-width: 320px;
 }
 
 .choosing-btn.quick-match {
@@ -951,21 +950,19 @@ input {
   display: flex;
   gap: 10px;
   width: 100%;
-  max-width: 320px;
 }
 
 .choosing-code-input input {
   flex: 1;
-  padding: 14px 16px;
-  background: var(--bg-input);
+  padding: 16px 16px;
   border: 2px solid var(--border);
   border-radius: var(--radius);
+  background: var(--bg-card);
   color: var(--text);
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 2px;
   text-align: center;
-  letter-spacing: 8px;
-  transition: all var(--transition);
 }
 
 .choosing-code-input input:focus {
@@ -981,9 +978,11 @@ input {
 }
 
 .choosing-code-input .choosing-btn {
-  max-width: 140px;
-  padding: 14px 20px;
-  font-size: 14px;
+  flex: 0 0 auto;
+  width: auto;
+  padding: 16px 20px;
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .choosing-error {
@@ -1104,6 +1103,35 @@ input {
 .waiting-player-status.ready {
   color: var(--success);
   font-weight: 600;
+}
+
+/* 踢人小圆按钮 */
+.kick-btn {
+  padding: 0;
+  width: 22px;
+  min-width: 22px;
+  max-width: 22px;
+  height: 22px;
+  min-height: 22px;
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border) !important;
+  border-radius: 50%;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 0 0 22px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kick-btn:hover {
+  background: var(--danger) !important;
+  color: #fff !important;
+  border-color: var(--danger) !important;
 }
 
 .waiting-empty-slot {
@@ -1261,9 +1289,8 @@ input {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 64px);
-  gap: 12px;
-  padding: 12px;
+  height: calc(100vh - 64px);
+  padding: 8px;
   animation: fadeIn 0.4s ease;
 }
 
@@ -1285,14 +1312,14 @@ input {
 /* 牌桌 */
 .dz-table {
   flex: 1;
-  background: linear-gradient(135deg, #064e3b 0%, #065f46 30%, #047857 60%, #065f46 100%);
-  border-radius: 20px;
-  border: 3px solid #065f46;
-  padding: 16px;
+  background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%);
+  border-radius: 16px;
+  border: 2px solid #065f46;
   display: flex;
   flex-direction: column;
   position: relative;
-  box-shadow: inset 0 0 60px rgba(0,0,0,0.3), 0 8px 32px rgba(0,0,0,0.4);
+  box-shadow: inset 0 0 40px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.3);
+  overflow: hidden;
 }
 
 .dz-top-info {
@@ -1323,17 +1350,26 @@ input {
 .dz-table-body {
   flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 8px;
-  min-height: 160px;
+  align-items: stretch;
+  min-height: 0;
 }
 
 .dz-seat-left,
 .dz-seat-right {
-  width: 110px;
+  width: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 4px;
+}
+
+.dz-seat-played {
   display: flex;
   justify-content: center;
+  min-height: 50px;
+  align-items: center;
 }
 
 .dz-center {
@@ -1344,6 +1380,34 @@ input {
   justify-content: center;
   gap: 12px;
   min-height: 140px;
+}
+
+.dz-kitty-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(0,0,0,0.2);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.dz-kitty-label {
+  font-size: 11px;
+  color: #6ee7b7;
+  opacity: 0.6;
+}
+
+.dz-kitty-cards {
+  display: flex;
+  gap: 4px;
+}
+
+.dz-kitty-info {
+  font-size: 11px;
+  color: #fbbf24;
+  opacity: 0.8;
+  margin-left: 8px;
 }
 
 .dz-kitty-row {
@@ -1463,13 +1527,19 @@ input {
 
 /* 手牌区域 */
 .dz-hand {
-  padding: 8px 0 12px;
+  padding: 6px 0 8px;
   overflow-x: auto;
   overflow-y: visible;
   display: flex;
   justify-content: center;
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.dz-hand::-webkit-scrollbar {
+  display: none;
 }
 
 .dz-hand-cards {
@@ -1490,17 +1560,18 @@ input {
 
 /* ===== 单张牌 ===== */
 .dz-card {
-  width: 58px;
-  height: 82px;
+  width: 56px;
+  height: 80px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
-  border: 2px solid #e2e8f0;
+  background: linear-gradient(180deg, #fff 0%, #f1f5f9 100%);
+  border: 1.5px solid #cbd5e1;
   position: relative;
   cursor: pointer;
   transition: all 0.15s ease;
   flex-shrink: 0;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
   user-select: none;
+  overflow: hidden;
 }
 
 .dz-card:hover {
@@ -1509,14 +1580,20 @@ input {
 }
 
 .dz-card-sm {
-  width: 44px;
-  height: 62px;
+  width: 36px;
+  height: 50px;
+  border-radius: 5px;
+}
+
+.dz-card-sm:hover {
+  transform: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
 }
 
 .dz-card-selected {
-  transform: translateY(-14px) !important;
+  transform: translateY(-16px) !important;
   border-color: #06b6d4 !important;
-  box-shadow: 0 0 16px rgba(6,182,212,0.5) !important;
+  box-shadow: 0 0 0 2px #06b6d4, 0 8px 16px rgba(6,182,212,0.3) !important;
 }
 
 .dz-card-back {
@@ -1558,11 +1635,11 @@ input {
 
 .dz-card-rank-text {
   font-weight: 800;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .dz-card-suit-text {
-  font-size: 13px;
+  font-size: 12px;
   margin-top: -1px;
 }
 
@@ -1571,14 +1648,32 @@ input {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 20px;
+  font-size: 22px;
+  opacity: 0.15;
+}
+
+.dz-card-sm .dz-card-center {
+  font-size: 14px;
+  opacity: 0.2;
 }
 
 .dz-card-center-suit {
   font-size: 28px;
 }
 
-.dz-card-joker {
+.dz-card-joker-big {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  border-color: #ef4444;
+  color: #fff;
+}
+
+.dz-card-joker-small {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-color: #475569;
+  color: #fff;
+}
+
+.dz-card-joker-content {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1587,37 +1682,52 @@ input {
   gap: 2px;
 }
 
-.dz-card-joker-icon {
-  font-size: 22px;
-}
-
-.dz-card-joker-label {
-  font-size: 10px;
-  font-weight: 700;
-}
+.dz-card-joker-star { font-size: 10px; opacity: 0.6; }
+.dz-card-joker-text { font-size: 13px; font-weight: 800; letter-spacing: 2px; }
+.dz-card-sm .dz-card-joker-star { font-size: 7px; }
+.dz-card-sm .dz-card-joker-text { font-size: 9px; letter-spacing: 1px; }
 
 /* ===== 玩家面板 ===== */
 .dz-panel {
-  width: 100px;
-  padding: 12px 8px;
-  background: rgba(15,23,42,0.8);
-  border: 2px solid #334155;
-  border-radius: 12px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
+  gap: 4px;
+  min-width: 80px;
   transition: all 0.3s;
 }
 
+.dz-panel-left { align-items: flex-start; text-align: left; }
+.dz-panel-right { align-items: flex-end; text-align: right; }
+
 .dz-panel-active {
-  border-color: #06b6d4;
-  box-shadow: 0 0 20px rgba(6,182,212,0.3);
+  border-color: #fbbf24;
+  box-shadow: 0 0 12px rgba(251,191,36,0.3);
 }
 
 .dz-panel-landlord {
   border-color: #f59e0b;
+  background: rgba(245,158,11,0.1);
 }
+
+.dz-panel-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dz-panel-icon { font-size: 16px; }
+
+.dz-panel-role {
+  font-size: 10px;
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.dz-panel-farmer { color: #6ee7b7; }
 
 .dz-panel-avatar {
   font-size: 32px;
@@ -1661,14 +1771,18 @@ input {
 
 /* ===== 叫分面板 ===== */
 .dz-bid {
+  background: rgba(0,0,0,0.3);
+  border-radius: 12px;
+  padding: 16px 20px;
   text-align: center;
-  padding: 20px;
+  max-width: 320px;
+  width: 100%;
 }
 
 .dz-bid-title {
-  font-size: 22px;
-  margin-bottom: 16px;
-  color: #f59e0b;
+  font-size: 18px;
+  margin-bottom: 12px;
+  color: #fbbf24;
 }
 
 .dz-bid-history {
@@ -2603,6 +2717,12 @@ input {
   .dz-action-pass, .dz-action-play, .dz-bid-btn,
   .mj-action-btn, .chess-rps-btn, .chess-choose-btn {
     min-height: 44px;
+  }
+
+  /* 踢人按钮不受触摸设备最小高度限制 */
+  .kick-btn {
+    min-height: 22px !important;
+    height: 22px !important;
   }
 
   /* 移除触摸设备上的 hover 位移 */

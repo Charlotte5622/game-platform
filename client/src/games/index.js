@@ -12,6 +12,7 @@ import DoudizhuGame from '../../../games/doudizhu/client/DoudizhuGame';
 import MahjongGame from '../../../games/mahjong/client/MahjongGame';
 import ChineseChessGame from '../../../games/chinese-chess/client/ChineseChessGame';
 import UnoGame from '../../../games/uno/client/UnoGame';
+import TurtleSoupGame from '../../../games/turtle-soup/client/TurtleSoupGame';
 
 // 游戏注册表: gameId -> React Component
 const gameComponents = {
@@ -19,6 +20,7 @@ const gameComponents = {
   'mahjong': MahjongGame,
   'chinese-chess': ChineseChessGame,
   'uno': UnoGame,
+  'turtle-soup': TurtleSoupGame,
 };
 
 /**
