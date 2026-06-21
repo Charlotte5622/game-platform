@@ -241,6 +241,8 @@ input {
   align-items: center;
   gap: 16px;
   white-space: nowrap;
+  flex-wrap: nowrap;
+  min-width: 0;
 }
 
 .navbar-actions {
@@ -248,6 +250,7 @@ input {
   align-items: center;
   gap: 8px;
   margin-left: auto;
+  flex-shrink: 0;
 }
 
 .navbar-icon-btn {
@@ -2967,15 +2970,17 @@ input {
   }
 
   .navbar-right {
-    gap: 10px;
+    gap: 8px;
     min-width: 0;
     flex-shrink: 1;
+    flex-wrap: nowrap;
   }
 
   .navbar-stats {
     font-size: 12px;
     padding: 0;
     white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .navbar-nickname {
@@ -2995,6 +3000,7 @@ input {
 
   .navbar-actions {
     gap: 6px;
+    flex-shrink: 0;
   }
 
   .main-content {
