@@ -23,7 +23,7 @@ function createBot(roomId, gameId) {
   const botId = `bot_${botCounter}_${Date.now()}`;
   return {
     id: botId,
-    nickname: `AI-${['小明', '小红', '小刚', '小丽', '小华', '小芳'][botCounter % 6]}`,
+    nickname: ['棋圣小白', '雀神阿紫', '牌王金哥', '博弈小月', '智多星阿飞', '妙手青青', '天胡小锦', '绝杀阿雷', '翻盘小鱼', '连胜阿豪'][botCounter % 10],
     socketId: null,
     isBot: true,
     ready: true, // 机器人自动准备
