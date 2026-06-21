@@ -213,6 +213,22 @@ export default function GameHost({ gameId, GameComponent }) {
     window.location.href = '/lobby';
   }, [socket]);
 
+  // 返回房间（游戏结束后重新加入）
+  const handleReturnToRoom = useCallback(() => {
+    if (!socket || !roomId) return;
+    socket.emit('return_to_room', { roomId }, (response) => {
+      if (response.error) {
+        alert(response.error);
+        window.location.href = '/lobby';
+        return;
+      }
+      // 成功返回房间，重置状态
+      setResult(null);
+      setPhase('waiting');
+      setGameState(null);
+    });
+  }, [socket, roomId]);
+
   const handleAction = useCallback(
     (action) => {
       if (socket && roomId) {
@@ -487,7 +503,7 @@ export default function GameHost({ gameId, GameComponent }) {
             <button className="back-btn" onClick={() => (window.location.href = '/lobby')}>
               返回大厅
             </button>
-            <button className="back-btn" onClick={() => window.location.reload()}>
+            <button className="back-btn" onClick={handleReturnToRoom}>
               返回房间
             </button>
           </div>
@@ -505,6 +521,7 @@ export default function GameHost({ gameId, GameComponent }) {
       gameState={gameState}
       onAction={handleAction}
       players={players}
+      onReturnToRoom={handleReturnToRoom}
     />
   );
 }

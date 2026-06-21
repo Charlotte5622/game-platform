@@ -396,7 +396,7 @@ class TurtleSoupServer extends BaseGameServer {
   advanceTurn(roomId, state) {
     state.currentTurn = (state.currentTurn + 1) % state.players.length;
     state.turnStartTime = Date.now();
-    state.roundNumber++;
+    // 注意：roundNumber 不在这里递增，只在一轮结束时递增
     this.saveState(roomId, state);
 
     this.doBroadcast(roomId, {

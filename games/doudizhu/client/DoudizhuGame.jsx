@@ -61,7 +61,13 @@ function PlayerPanel({ player, bid, isPassing }) {
     <div
       className={`dz-panel${player.isCurrent ? ' dz-panel-active' : ''}${player.isLandlord ? ' dz-panel-landlord' : ''}`}
     >
-      <div className="dz-panel-avatar">{player.isLandlord ? '👑' : '👤'}</div>
+      <div className="dz-panel-avatar">
+        {player.avatar ? (
+          <img src={player.avatar} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+        ) : (
+          player.isLandlord ? '👑' : '👤'
+        )}
+      </div>
       <div className="dz-panel-name">{player.nickname}</div>
       <div className="dz-panel-count">{player.cardCount} 张</div>
       {bid !== undefined && (
@@ -171,6 +177,7 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
     return {
       id: pid,
       nickname: p?.nickname || `玩家${idx + 1}`,
+      avatar: p?.avatar || null,
       cardCount: playerCardCounts?.[pid] || 0,
       isLandlord: pid === landlord,
       isCurrent: currentTurn === idx,

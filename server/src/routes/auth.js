@@ -58,7 +58,7 @@ router.post('/register', authRateLimit, async (req, res) => {
     // 创建用户
     const user = await prisma.user.create({
       data: { username, password: hashedPassword, nickname },
-      select: { id: true, username: true, nickname: true },
+      select: { id: true, username: true, nickname: true, avatar: true },
     });
 
     // 生成 Token
@@ -67,7 +67,7 @@ router.post('/register', authRateLimit, async (req, res) => {
     res.status(201).json({
       message: '注册成功',
       token,
-      user: { id: user.id, username: user.username, nickname: user.nickname },
+      user: { id: user.id, username: user.username, nickname: user.nickname, avatar: user.avatar },
     });
   } catch (err) {
     console.error('注册失败:', err);
@@ -106,7 +106,7 @@ router.post('/login', authRateLimit, async (req, res) => {
     res.json({
       message: '登录成功',
       token,
-      user: { id: user.id, username: user.username, nickname: user.nickname },
+      user: { id: user.id, username: user.username, nickname: user.nickname, avatar: user.avatar },
     });
   } catch (err) {
     console.error('登录失败:', err);

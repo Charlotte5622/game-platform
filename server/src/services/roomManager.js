@@ -73,6 +73,7 @@ function createRoom(gameId, creatorSocketId, creatorInfo, customCode) {
       id: creatorInfo.id,
       socketId: creatorSocketId,
       nickname: creatorInfo.nickname,
+      avatar: creatorInfo.avatar || null,
       ready: false,
     }],
     state: 'waiting', // waiting | playing | finished
@@ -122,6 +123,7 @@ function joinRoom(roomId, socketId, userInfo, maxPlayers) {
     id: userInfo.id,
     socketId,
     nickname: userInfo.nickname,
+    avatar: userInfo.avatar || null,
     ready: false,
   });
 

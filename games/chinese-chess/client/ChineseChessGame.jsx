@@ -227,7 +227,7 @@ function formatTime(ms) {
 /**
  * 中国象棋主组件
  */
-export default function ChineseChessGame({ socket, roomId, playerId, gameState, onAction, players }) {
+export default function ChineseChessGame({ socket, roomId, playerId, gameState, onAction, players, onReturnToRoom }) {
   const [selected, setSelected] = useState(null);
   const [error, setError] = useState('');
   const [myRpsChoice, setMyRpsChoice] = useState(null);
@@ -613,7 +613,7 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
                 <button className="chess-result-back-btn" onClick={() => window.location.href = '/lobby'}>
                   返回大厅
                 </button>
-                <button className="chess-result-back-btn" onClick={() => window.location.reload()}>
+                <button className="chess-result-back-btn" onClick={onReturnToRoom}>
                   返回房间
                 </button>
               </div>

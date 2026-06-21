@@ -28,7 +28,7 @@ function getAnswerStyle(answer) {
 /**
  * 海龟汤游戏主组件
  */
-export default function TurtleSoupGame({ socket, roomId, playerId, gameState, onAction, players, onLeaveRoom }) {
+export default function TurtleSoupGame({ socket, roomId, playerId, gameState, onAction, players, onLeaveRoom, onReturnToRoom }) {
   const [questionInput, setQuestionInput] = useState('');
   const [guessInput, setGuessInput] = useState('');
   const [showGuessPanel, setShowGuessPanel] = useState(false);
@@ -104,6 +104,7 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
   const hasGuessed = guessedPlayers?.[playerId] || false;
 
   const getNickname = (pid) => players.find(p => p.id === pid)?.nickname || '玩家';
+  const getAvatar = (pid) => players.find(p => p.id === pid)?.avatar || null;
   const getAvatarColor = (name) => {
     const colors = ['#f44336','#e91e63','#9c27b0','#673ab7','#3f51b5','#2196f3','#00bcd4','#009688','#4caf50','#ff9800'];
     let hash = 0;
@@ -111,6 +112,16 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
     return colors[Math.abs(hash) % colors.length];
   };
   const getScore = (pid) => scores?.[pid] || 0;
+
+  // 头像渲染组件
+  const AvatarImg = ({ pid, size = 32 }) => {
+    const avatar = getAvatar(pid);
+    const nickname = getNickname(pid);
+    if (avatar) {
+      return <img src={avatar} alt={nickname} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />;
+    }
+    return <span className="ts-chat-avatar-text">{nickname.charAt(0)}</span>;
+  };
 
   const emitAction = (action) => {
     if (socket && roomId) {
@@ -173,7 +184,7 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
             <button className="ts-back-btn" onClick={onLeaveRoom || (() => window.location.href = '/lobby')}>
               返回大厅
             </button>
-            <button className="ts-back-btn" onClick={() => window.location.reload()}>
+            <button className="ts-back-btn" onClick={onReturnToRoom}>
               返回房间
             </button>
           </div>
@@ -286,7 +297,7 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
           return (
             <div key={"q-" + i} className={"ts-chat-msg" + (isMine ? " ts-chat-mine" : " ts-chat-other")}>
               <div className="ts-chat-avatar" style={{ background: getAvatarColor(nickname) }}>
-                <span className="ts-chat-avatar-text">{nickname.charAt(0)}</span>
+                <AvatarImg pid={q.pid} size={32} />
               </div>
               <div className="ts-chat-body">
                 <div className="ts-chat-header">
@@ -316,7 +327,7 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
           return (
           <div key={"g-" + i} className={"ts-chat-msg ts-chat-guess" + (isMine ? " ts-chat-mine" : " ts-chat-other")}>
             <div className="ts-chat-avatar" style={{ background: getAvatarColor(nickname) }}>
-              <span className="ts-chat-avatar-text">{nickname.charAt(0)}</span>
+              <AvatarImg pid={g.pid} size={32} />
             </div>
             <div className="ts-chat-body">
               <div className="ts-chat-header">

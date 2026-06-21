@@ -74,7 +74,7 @@ function setupSocketHandlers(io, prisma) {
       } else {
         io.to(roomId).emit('room_update', {
           roomId, roomCode: result.room.roomCode, hostId: result.room.hostId,
-          players: result.room.players.map(p => ({ id: p.id, nickname: p.nickname, ready: p.ready })),
+          players: result.room.players.map(p => ({ id: p.id, nickname: p.nickname, avatar: p.avatar, ready: p.ready })),
           state: result.room.state,
         });
       }
@@ -125,7 +125,7 @@ function setupSocketHandlers(io, prisma) {
               hostId: room.hostId,
               state: 'playing',
               players: room.players.map(p => ({
-                id: p.id, nickname: p.nickname, ready: p.ready,
+                id: p.id, nickname: p.nickname, avatar: p.avatar, ready: p.ready,
               })),
             });
             // 同步当前游戏状态
@@ -145,7 +145,7 @@ function setupSocketHandlers(io, prisma) {
               isNew: false,
               hostId: room.hostId,
               players: room.players.map(p => ({
-                id: p.id, nickname: p.nickname, ready: p.ready,
+                id: p.id, nickname: p.nickname, avatar: p.avatar, ready: p.ready,
               })),
             });
           }
@@ -168,7 +168,7 @@ function setupSocketHandlers(io, prisma) {
             isNew: false,
             hostId: existing.room.hostId,
             players: existing.room.players.map(p => ({
-              id: p.id, nickname: p.nickname, ready: p.ready, isBot: p.isBot || false,
+              id: p.id, nickname: p.nickname, avatar: p.avatar, ready: p.ready, isBot: p.isBot || false,
             })),
           });
           if (existing.room.state === 'playing') {
@@ -194,6 +194,7 @@ function setupSocketHandlers(io, prisma) {
       const result = roomManager.quickMatch(gameId, socket.id, {
         id: socket.user.id,
         nickname: socket.user.username,
+      avatar: socket.user.avatar,
       }, maxPlayers);
 
       socket.join(result.room.id);
@@ -203,7 +204,7 @@ function setupSocketHandlers(io, prisma) {
         roomCode: result.room.roomCode,
         hostId: result.room.hostId,
         players: result.room.players.map(p => ({
-          id: p.id, nickname: p.nickname, ready: p.ready,
+          id: p.id, nickname: p.nickname, avatar: p.avatar, ready: p.ready,
         })),
         state: result.room.state,
       });
@@ -214,7 +215,7 @@ function setupSocketHandlers(io, prisma) {
         isNew: result.isNew,
         hostId: result.room.hostId,
         players: result.room.players.map(p => ({
-          id: p.id, nickname: p.nickname, ready: p.ready,
+          id: p.id, nickname: p.nickname, avatar: p.avatar, ready: p.ready,
         })),
       });
 
@@ -230,6 +231,7 @@ function setupSocketHandlers(io, prisma) {
       const result = roomManager.joinRoom(roomId, socket.id, {
         id: socket.user.id,
         nickname: socket.user.username,
+      avatar: socket.user.avatar,
       }, maxPlayers);
 
       if (result.error) return callback({ error: result.error });
@@ -241,7 +243,7 @@ function setupSocketHandlers(io, prisma) {
         roomCode: result.room.roomCode,
         hostId: result.room.hostId,
         players: result.room.players.map(p => ({
-          id: p.id, nickname: p.nickname, ready: p.ready,
+          id: p.id, nickname: p.nickname, avatar: p.avatar, ready: p.ready,
         })),
         state: result.room.state,
       });
@@ -268,6 +270,7 @@ function setupSocketHandlers(io, prisma) {
       const result = roomManager.joinByCode(code, socket.id, {
         id: socket.user.id,
         nickname: socket.user.username,
+      avatar: socket.user.avatar,
       }, maxPlayers, gameId);
 
       if (result.error) return callback({ error: result.error });
@@ -279,7 +282,7 @@ function setupSocketHandlers(io, prisma) {
         roomCode: result.room.roomCode,
         hostId: result.room.hostId,
         players: result.room.players.map(p => ({
-          id: p.id, nickname: p.nickname, ready: p.ready,
+          id: p.id, nickname: p.nickname, avatar: p.avatar, ready: p.ready,
         })),
         state: result.room.state,
       });
@@ -289,7 +292,7 @@ function setupSocketHandlers(io, prisma) {
         roomCode: result.room.roomCode,
         hostId: result.room.hostId,
         players: result.room.players.map(p => ({
-          id: p.id, nickname: p.nickname, ready: p.ready,
+          id: p.id, nickname: p.nickname, avatar: p.avatar, ready: p.ready,
         })),
       });
 
@@ -308,7 +311,7 @@ function setupSocketHandlers(io, prisma) {
         roomCode: updatedRoom.roomCode,
         hostId: updatedRoom.hostId,
         players: updatedRoom.players.map(p => ({
-          id: p.id, nickname: p.nickname, ready: p.ready,
+          id: p.id, nickname: p.nickname, avatar: p.avatar, ready: p.ready,
         })),
         state: updatedRoom.state,
       });
@@ -388,7 +391,7 @@ function setupSocketHandlers(io, prisma) {
             roomCode: existing.room.roomCode,
             hostId: existing.room.hostId,
             players: existing.room.players.map(p => ({
-              id: p.id, nickname: p.nickname, ready: p.ready, isBot: p.isBot || false,
+              id: p.id, nickname: p.nickname, avatar: p.avatar, ready: p.ready, isBot: p.isBot || false,
             })),
           });
         }
@@ -400,6 +403,7 @@ function setupSocketHandlers(io, prisma) {
       const result = roomManager.createRoom(gameId, socket.id, {
         id: socket.user.id,
         nickname: socket.user.username,
+      avatar: socket.user.avatar,
       }, roomCode || undefined);
 
       if (result.error) {
@@ -414,11 +418,57 @@ function setupSocketHandlers(io, prisma) {
         roomCode: room.roomCode,
         hostId: room.hostId,
         players: room.players.map(p => ({
-          id: p.id, nickname: p.nickname, ready: p.ready,
+          id: p.id, nickname: p.nickname, avatar: p.avatar, ready: p.ready,
         })),
       });
 
       broadcastStatsDebounced(io);
+    });
+
+    // ========== 返回房间（游戏结束后重新加入） ==========
+    socket.on('return_to_room', ({ roomId }, callback) => {
+      const room = roomManager.getRoom(roomId);
+      if (!room) {
+        return callback?.({ error: '房间已不存在' });
+      }
+
+      // 检查玩家是否原本在房间中
+      const wasInRoom = room.players.some(p => p.id === socket.user.id);
+      if (!wasInRoom) {
+        return callback?.({ error: '你不在这个房间中' });
+      }
+
+      // 移除机器人（如果有）
+      room.players = room.players.filter(p => !p.isBot);
+      
+      // 重置房间状态
+      room.state = 'waiting';
+      room.gameInstance = null;
+      room.players.forEach(p => { p.ready = false; });
+
+      // 重新加入 Socket.IO 房间
+      socket.join(room.id);
+      roomManager.updatePlayerSocket(socket.user.id, socket.id);
+
+      // 广播房间更新
+      io.to(room.id).emit('room_update', {
+        roomId: room.id,
+        roomCode: room.roomCode,
+        hostId: room.hostId,
+        players: room.players.map(p => ({
+          id: p.id, nickname: p.nickname, avatar: p.avatar, ready: p.ready, isBot: p.isBot || false,
+        })),
+        state: 'waiting',
+      });
+
+      callback?.({
+        roomId: room.id,
+        roomCode: room.roomCode,
+        hostId: room.hostId,
+        players: room.players.map(p => ({
+          id: p.id, nickname: p.nickname, avatar: p.avatar, ready: p.ready, isBot: p.isBot || false,
+        })),
+      });
     });
 
     // ========== 房主开始游戏（自由人数游戏） ==========
@@ -484,7 +534,7 @@ function setupSocketHandlers(io, prisma) {
           roomCode: room.roomCode,
           hostId: room.hostId,
           players: room.players.map(p => ({
-            id: p.id, nickname: p.nickname, ready: p.ready, isBot: p.isBot || false,
+            id: p.id, nickname: p.nickname, avatar: p.avatar, ready: p.ready, isBot: p.isBot || false,
           })),
           state: room.state,
         });
@@ -504,7 +554,7 @@ function setupSocketHandlers(io, prisma) {
         roomCode: room.roomCode,
         hostId: room.hostId,
         players: room.players.map(p => ({
-          id: p.id, nickname: p.nickname, ready: p.ready, isBot: p.isBot || false,
+          id: p.id, nickname: p.nickname, avatar: p.avatar, ready: p.ready, isBot: p.isBot || false,
         })),
         state: room.state,
       });
@@ -563,7 +613,7 @@ function setupSocketHandlers(io, prisma) {
             roomCode: result.room.roomCode,
             hostId: result.room.hostId,
             players: result.room.players.map(p => ({
-              id: p.id, nickname: p.nickname, ready: p.ready,
+              id: p.id, nickname: p.nickname, avatar: p.avatar, ready: p.ready,
             })),
             state: result.room.state,
           });
@@ -670,7 +720,7 @@ function setupSocketHandlers(io, prisma) {
             roomCode: result.room.roomCode,
             hostId: result.room.hostId,
             players: result.room.players.map(p => ({
-              id: p.id, nickname: p.nickname, ready: p.ready,
+              id: p.id, nickname: p.nickname, avatar: p.avatar, ready: p.ready,
             })),
             state: result.room.state,
           });

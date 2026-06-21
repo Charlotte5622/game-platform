@@ -56,7 +56,7 @@ function UnoCard({ card, onClick, small, selected }) {
 /**
  * UNO 游戏主组件
  */
-export default function UnoGame({ socket, roomId, playerId, gameState, onAction, players }) {
+export default function UnoGame({ socket, roomId, playerId, gameState, onAction, players, onReturnToRoom }) {
   const [selectedCard, setSelectedCard] = useState(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [pendingWildIndex, setPendingWildIndex] = useState(null);
@@ -152,6 +152,7 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
   };
 
   const getNickname = (pid) => players.find(p => p.id === pid)?.nickname || '玩家';
+  const getAvatar = (pid) => players.find(p => p.id === pid)?.avatar || null;
 
   // 游戏结束
   if (phase === 'ended' || (winners && winners.length > 0 && phase === 'ended')) {
@@ -172,7 +173,7 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
           </div>
           <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
             <button className="uno-back-btn" onClick={handleLeaveRoom}>返回大厅</button>
-            <button className="uno-back-btn" onClick={() => window.location.reload()}>返回房间</button>
+            <button className="uno-back-btn" onClick={onReturnToRoom}>返回房间</button>
           </div>
         </div>
       </div>
@@ -199,8 +200,16 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
           const winInfo = winners?.find(w => w.pid === pid);
           const placementEmoji = { 1: '🥇', 2: '🥈', 3: '🥉' };
           if (pid === playerId) return null;
+          const avatar = getAvatar(pid);
           return (
             <div key={pid} className={`uno-opponent${playerIds[currentTurn] === pid ? ' uno-opponent-active' : ''}${isDone ? ' uno-opponent-done' : ''}`}>
+              {avatar ? (
+                <img src={avatar} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+              ) : (
+                <span style={{ width: 28, height: 28, borderRadius: '50%', background: '#6366f1', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 600 }}>
+                  {getNickname(pid).charAt(0)}
+                </span>
+              )}
               <span className="uno-opponent-name">
                 {getNickname(pid)}
                 {winInfo && <span style={{marginLeft:4}}>{placementEmoji[winInfo.placement] || `#${winInfo.placement}`}</span>}
