@@ -305,7 +305,7 @@ export default function GameHost({ gameId, GameComponent }) {
             <div className="choosing-code-input">
               <input
                 type="text"
-                placeholder="输入房间号加入，或留空创建新房间"
+                placeholder="输入1-6位数字房间号"
                 maxLength={6}
                 pattern="\d*"
                 id="room-code-input"
@@ -324,13 +324,11 @@ export default function GameHost({ gameId, GameComponent }) {
                 onClick={() => {
                   const input = document.getElementById('room-code-input');
                   const val = input?.value?.trim();
-                  // 留空则生成随机房间号，有值则用自定义房间号
                   if (!val) {
-                    const randomCode = String(Math.floor(100000 + Math.random() * 900000));
-                    handleCreateRoom(randomCode);
-                  } else {
-                    handleCreateRoom(val);
+                    setError('请输入房间号再创建');
+                    return;
                   }
+                  handleCreateRoom(val);
                 }}
               >
                 🏠 创建房间
