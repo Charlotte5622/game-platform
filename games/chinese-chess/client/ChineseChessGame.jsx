@@ -235,6 +235,8 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
   const [timeLeft, setTimeLeft] = useState(60);
   const [drawRequestFrom, setDrawRequestFrom] = useState(null);
   const [drawRequestSent, setDrawRequestSent] = useState(false);
+  const [showResignModal, setShowResignModal] = useState(false);
+  const [showDrawConfirmModal, setShowDrawConfirmModal] = useState(false);
   const [opponentDisconnected, setOpponentDisconnected] = useState(false);
   const [gameResult, setGameResult] = useState(null); // { type, winner, loser, message, reason }
   // 计时器设置
@@ -551,10 +553,10 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
         {/* 操作按钮 */}
         {phase === 'playing' && (
           <div className="chess-actions">
-            <button className="chess-action-btn chess-action-draw" onClick={() => emitAction({ type: 'draw_request' })} disabled={drawRequestSent}>
+            <button className="chess-action-btn chess-action-draw" onClick={() => setShowDrawConfirmModal(true)} disabled={drawRequestSent}>
               {drawRequestSent ? '已发送求和' : '🤝 求和'}
             </button>
-            <button className="chess-action-btn chess-action-resign" onClick={() => { if (window.confirm('确定要投降吗？')) emitAction({ type: 'resign' }); }}>
+            <button className="chess-action-btn chess-action-resign" onClick={() => setShowResignModal(true)}>
               🏳️ 投降
             </button>
           </div>
@@ -622,6 +624,44 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
           </div>
         )}
       </div>
+
+      {/* 投降确认弹窗 */}
+      {showResignModal && (
+        <div className="chess-result-modal" onClick={() => setShowResignModal(false)}>
+          <div className="chess-result-modal-content chess-result-lose" onClick={e => e.stopPropagation()}>
+            <div className="chess-result-icon">🏳️</div>
+            <h2 className="chess-result-title">确认投降？</h2>
+            <p className="chess-result-reason">投降将判你负，确定要放弃这局吗？</p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button className="chess-result-back-btn" style={{ background: 'var(--danger)' }} onClick={() => { emitAction({ type: 'resign' }); setShowResignModal(false); }}>
+                确认投降
+              </button>
+              <button className="chess-result-back-btn" style={{ background: 'var(--bg-input)', color: 'var(--text)' }} onClick={() => setShowResignModal(false)}>
+                继续下棋
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 求和确认弹窗 */}
+      {showDrawConfirmModal && (
+        <div className="chess-result-modal" onClick={() => setShowDrawConfirmModal(false)}>
+          <div className="chess-result-modal-content chess-result-draw" onClick={e => e.stopPropagation()}>
+            <div className="chess-result-icon">🤝</div>
+            <h2 className="chess-result-title">请求和棋？</h2>
+            <p className="chess-result-reason">将向对手发送和棋请求，等待对方回应</p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button className="chess-result-back-btn" style={{ background: 'var(--secondary)' }} onClick={() => { emitAction({ type: 'draw_request' }); setShowDrawConfirmModal(false); }}>
+                发送请求
+              </button>
+              <button className="chess-result-back-btn" style={{ background: 'var(--bg-input)', color: 'var(--text)' }} onClick={() => setShowDrawConfirmModal(false)}>
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 求和请求弹窗 */}
       {drawRequestFrom && (

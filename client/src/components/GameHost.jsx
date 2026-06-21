@@ -416,7 +416,7 @@ export default function GameHost({ gameId, GameComponent }) {
                 🤖 填充机器人
               </button>
             )}
-            {isHost && isVariablePlayers && players.length >= effectiveMinPlayers && players.every(p => p.ready) && (
+            {isHost && players.length >= effectiveMinPlayers && players.every(p => p.ready) && (
               <button className="waiting-start-btn" onClick={handleStartGame}>
                 🎮 开始游戏
               </button>

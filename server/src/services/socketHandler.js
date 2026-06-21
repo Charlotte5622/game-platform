@@ -488,11 +488,6 @@ function setupSocketHandlers(io, prisma) {
         return callback?.({ error: '房间不在等待状态' });
       }
 
-      // 只有自由人数游戏才允许手动开始
-      if (!isVariablePlayers(room.gameId)) {
-        return callback?.({ error: '该游戏不支持手动开始' });
-      }
-
       // 只有房主才能开始
       if (room.hostId !== socket.user.id) {
         return callback?.({ error: '只有房主才能开始游戏' });

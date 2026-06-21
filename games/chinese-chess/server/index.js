@@ -581,6 +581,32 @@ class ChineseChessServer extends BaseGameServer {
     state.drawRequest = { from: pid, timestamp: Date.now() };
     this.saveState(roomId, state);
 
+    // 如果对方是 Bot，自动决策是否接受求和
+    if (String(other).startsWith('bot_')) {
+      setTimeout(() => {
+        // Bot 根据局势决定：如果自己处于劣势则接受，否则拒绝
+        const currentState = this.getState(roomId);
+        if (!currentState || !currentState.drawRequest) return;
+        // 简单策略：Bot 总是拒绝求和（鼓励继续下棋）
+        // 也可以根据棋子价值评估来决定
+        const botColor = currentState.colorMap?.[other];
+        let botMaterial = 0, humanMaterial = 0;
+        if (currentState.pieces) {
+          const VALUES = { '车': 9, '马': 4, '炮': 4.5, '象': 2, '士': 2, '兵': 1 };
+          currentState.pieces.forEach(p => {
+            const v = VALUES[p.name] || 1;
+            if (p.color === botColor) botMaterial += v;
+            else humanMaterial += v;
+          });
+        }
+        // 如果 Bot 劣势（少3分以上），接受求和
+        const accept = (botMaterial + 3) < humanMaterial;
+        console.log(`[Chess-Bot] ${other} 求和决策: material bot=${botMaterial} human=${humanMaterial}, accept=${accept}`);
+        this.handleDrawResponse(roomId, other, accept);
+      }, 1500 + Math.random() * 1000);
+      return;
+    }
+
     // 通知对方有求和请求
     this.doBroadcastTo(roomId, other, {
       type: 'draw_request_received',

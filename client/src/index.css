@@ -1222,6 +1222,8 @@ input {
   gap: 12px;
   margin-bottom: 16px;
   width: 100%;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .waiting-actions .waiting-ready-btn {
@@ -1229,11 +1231,13 @@ input {
 }
 
 .waiting-actions .waiting-bot-btn {
-  flex: 0 0 auto;
+  flex: 1 1 0;
+  min-width: 140px;
 }
 
 .waiting-actions .waiting-start-btn {
-  flex: 0 0 auto;
+  flex: 1 1 0;
+  min-width: 140px;
 }
 
 .waiting-ready-btn {
@@ -2695,24 +2699,27 @@ input {
 
   .chess-board-outer {
     flex: 1 1 auto;
-    max-width: 560px;
+    max-width: 660px;
+    min-width: 0;
   }
 
   .chess-board-svg {
-    max-width: 560px;
+    max-width: 660px;
   }
 
   .chess-side-panel {
-    width: 260px;
+    width: 220px;
     display: flex;
     flex-direction: column;
     gap: 12px;
     flex-shrink: 0;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
   }
 
   .chess-history {
-    max-height: 300px;
-    overflow-y: auto;
+    max-height: none;
+    overflow-y: visible;
   }
 }
 
