@@ -5,6 +5,7 @@ const GAME_ICONS = {
   doudizhu: '🃏',
   mahjong: '🀄',
   'chinese-chess': '♟️',
+  'uno': '🎴',
   'uno-demo': '🎴',
 };
 

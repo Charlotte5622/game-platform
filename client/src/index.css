@@ -1117,6 +1117,11 @@ input {
 .waiting-player-name {
   font-weight: 600;
   font-size: 15px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .waiting-player-status {
@@ -1688,19 +1693,7 @@ input {
   font-size: 28px;
 }
 
-.dz-card-joker-big {
-  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-  border-color: #ef4444;
-  color: #fff;
-}
-
-.dz-card-joker-small {
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  border-color: #475569;
-  color: #fff;
-}
-
-.dz-card-joker-content {
+.dz-card-joker {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1709,10 +1702,37 @@ input {
   gap: 2px;
 }
 
-.dz-card-joker-star { font-size: 10px; opacity: 0.6; }
-.dz-card-joker-text { font-size: 13px; font-weight: 800; letter-spacing: 2px; }
-.dz-card-sm .dz-card-joker-star { font-size: 7px; }
-.dz-card-sm .dz-card-joker-text { font-size: 9px; letter-spacing: 1px; }
+.dz-card-joker-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.dz-card-joker-label {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.dz-card-sm .dz-card-joker-icon {
+  font-size: 18px;
+}
+
+.dz-card-sm .dz-card-joker-label {
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+/* 大王红色背景 */
+.dz-card-red .dz-card-joker {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  border-radius: 6px;
+}
+
+/* 小王黑色背景 */
+.dz-card-black .dz-card-joker {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-radius: 6px;
+}
 
 /* ===== 玩家面板 ===== */
 .dz-panel {

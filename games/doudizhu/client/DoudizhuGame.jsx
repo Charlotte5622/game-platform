@@ -35,8 +35,8 @@ function Card({ card, selected, onClick, small, faceDown }) {
     >
       {isJoker ? (
         <div className="dz-card-joker">
-          <span className="dz-card-joker-icon">{card.rank === 'JOKER_B' ? '🃏' : '🂿'}</span>
-          <span className="dz-card-joker-label">{card.rank === 'JOKER_B' ? '大' : '小'}</span>
+          <span className="dz-card-joker-icon">{card.rank === 'JOKER_B' ? '★' : '☆'}</span>
+          <span className="dz-card-joker-label">{card.rank === 'JOKER_B' ? '大王' : '小王'}</span>
         </div>
       ) : (
         <>
@@ -261,8 +261,11 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
           <div className="dz-center">
             {/* 底牌 */}
             {phase === 'playing' && kitty && (
-              <div className="dz-kitty-row">
-                {kitty.map((c) => <Card key={c.id} card={c} small />)}
+              <div className="dz-kitty-bar">
+                <span className="dz-kitty-label">底牌</span>
+                <div className="dz-kitty-cards">
+                  {kitty.map((c) => <Card key={c.id} card={c} small />)}
+                </div>
               </div>
             )}
 
