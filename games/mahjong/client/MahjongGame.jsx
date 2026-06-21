@@ -1,5 +1,25 @@
 import { useState, useEffect, useCallback } from 'react';
 
+// 检测是否为手机竖屏
+function useIsPortraitMobile() {
+  const [isPortrait, setIsPortrait] = useState(false);
+  useEffect(() => {
+    const check = () => {
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth <= 768;
+      const isPortraitMode = window.innerHeight > window.innerWidth;
+      setIsPortrait(isMobile && isPortraitMode);
+    };
+    check();
+    window.addEventListener('resize', check);
+    window.addEventListener('orientationchange', check);
+    return () => {
+      window.removeEventListener('resize', check);
+      window.removeEventListener('orientationchange', check);
+    };
+  }, []);
+  return isPortrait;
+}
+
 // 花色颜色
 const SUIT_COLORS = {
   wan: '#dc2626',   // 万 - 红
@@ -125,6 +145,7 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
   // BUG-2 修复：响应动作 + 吃牌选项
   const [responseData, setResponseData] = useState(null); // { actions, chowOptions }
   const [showChowPicker, setShowChowPicker] = useState(false);
+  const isPortraitMobile = useIsPortraitMobile();
 
   // 监听 action_hint + action_required
   useEffect(() => {
@@ -224,6 +245,15 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
 
   return (
     <div className="mj">
+      {/* 竖屏旋转提示 */}
+      {isPortraitMobile && (
+        <div className="mj-rotate-hint">
+          <div className="mj-rotate-icon">📱↻</div>
+          <p>请旋转手机以获得最佳麻将体验</p>
+          <span>横屏模式下可看到所有4位玩家</span>
+        </div>
+      )}
+
       {/* 牌桌 */}
       <div className="mj-table">
         {/* 顶部信息 */}

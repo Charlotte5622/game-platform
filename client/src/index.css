@@ -2124,6 +2124,43 @@ input {
   animation: float 2s ease-in-out infinite;
 }
 
+/* 竖屏旋转提示 */
+.mj-rotate-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.mj-rotate-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  animation: rotate-hint 2s ease-in-out infinite;
+}
+
+@keyframes rotate-hint {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(20deg); }
+}
+
+.mj-rotate-hint p {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.mj-rotate-hint span {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
 /* 牌桌 */
 .mj-table {
   flex: 1;
@@ -3379,6 +3416,7 @@ input {
     gap: 8px;
   }
 
+  /* 竖屏：简化布局，提示旋转 */
   .mj-board {
     grid-template-columns: 1fr;
     grid-template-rows: auto;
@@ -3703,6 +3741,150 @@ input {
     font-size: 26px;
   }
 
+}
+
+/* ============================================
+   麻将横屏模式 (手机横屏)
+   ============================================ */
+@media (max-width: 768px) and (orientation: landscape) {
+  .mj-rotate-hint {
+    display: none;
+  }
+
+  .mj {
+    padding: 4px;
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .mj-board {
+    grid-template-columns: 100px 1fr 100px;
+    grid-template-rows: auto 1fr auto;
+    gap: 4px;
+    min-height: 0;
+    flex: 1;
+  }
+
+  .mj-seat-top {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    justify-content: center;
+  }
+
+  .mj-seat-left {
+    grid-column: 1;
+    grid-row: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mj-seat-right {
+    grid-column: 3;
+    grid-row: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mj-center {
+    grid-column: 2;
+    grid-row: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mj-opponent {
+    min-width: 80px;
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .mj-opponent-header {
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+
+  .mj-opponent-icon {
+    font-size: 14px;
+  }
+
+  .mj-opponent-name {
+    max-width: 50px;
+    font-size: 11px;
+  }
+
+  .mj-opponent-count {
+    font-size: 10px;
+  }
+
+  .mj-opponent-melds {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 2px;
+  }
+
+  .mj-opponent-discards {
+    display: flex;
+    gap: 1px;
+    flex-wrap: wrap;
+  }
+
+  .mj-tile {
+    width: 30px;
+    height: 40px;
+  }
+
+  .mj-tile-text {
+    font-size: 12px;
+  }
+
+  .mj-tile-suit {
+    font-size: 8px;
+  }
+
+  .mj-tile-sm {
+    width: 20px;
+    height: 28px;
+  }
+
+  .mj-tile-sm .mj-tile-text {
+    font-size: 8px;
+  }
+
+  .mj-hand {
+    padding: 4px;
+  }
+
+  .mj-hand-tiles {
+    gap: 2px;
+  }
+
+  .mj-hand-wrap {
+    margin-right: -8px;
+  }
+
+  .mj-top-bar {
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  .mj-info-tag {
+    font-size: 10px;
+    padding: 2px 8px;
+  }
+
+  .mj-actions {
+    gap: 6px;
+    padding: 4px;
+  }
+
+  .mj-action-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
 }
 
 /* ============================================
