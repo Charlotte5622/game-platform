@@ -28,6 +28,10 @@ const SUIT_SYMBOLS = {
 // 数字转中文
 const NUM_CN = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
 
+// 风向
+const WINDS = ['东', '南', '西', '北'];
+const WIND_COLORS = { '东': '#dc2626', '南': '#2563eb', '西': '#16a34a', '北': '#7c3aed' };
+
 /**
  * 麻将牌组件
  */
@@ -79,18 +83,31 @@ function MjTile({ tile, onClick, selected, small, faceDown, highlight }) {
 }
 
 /**
- * 玩家面板（对手）
+ * 玩家面板 — 支持 normal / compact(side) 两种模式
  */
-function OpponentPanel({ player, melds, discards, isCurrent, isDealer }) {
+function OpponentPanel({ player, melds, isCurrent, wind, compact }) {
+  if (compact) {
+    // 竖屏侧边紧凑模式
+    return (
+      <div className={`mj-side-panel${isCurrent ? ' mj-side-active' : ''}`}>
+        <div className="mj-side-wind" style={{ color: WIND_COLORS[wind] }}>{wind}</div>
+        <div className="mj-side-name">{player.nickname}</div>
+        <div className="mj-side-count">{player.cardCount}张</div>
+        {melds && melds.length > 0 && (
+          <div className="mj-side-melds">{melds.length}副</div>
+        )}
+      </div>
+    );
+  }
+
+  // 正常模式（对面 / 桌面左右）
   return (
     <div className={`mj-opponent${isCurrent ? ' mj-opponent-active' : ''}`}>
       <div className="mj-opponent-header">
-        <span className="mj-opponent-icon">{isDealer ? '🅰️' : '👤'}</span>
+        <span className="mj-wind-badge" style={{ background: WIND_COLORS[wind] }}>{wind}</span>
         <span className="mj-opponent-name">{player.nickname}</span>
         <span className="mj-opponent-count">{player.cardCount}张</span>
       </div>
-
-      {/* 明牌 */}
       {melds && melds.length > 0 && (
         <div className="mj-opponent-melds">
           {melds.map((meld, i) => (
@@ -99,15 +116,6 @@ function OpponentPanel({ player, melds, discards, isCurrent, isDealer }) {
                 <MjTile key={t.id || j} tile={t} small />
               ))}
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* 弃牌 */}
-      {discards && discards.length > 0 && (
-        <div className="mj-opponent-discards">
-          {discards.slice(-10).map((t, i) => (
-            <MjTile key={t.id || i} tile={t} small />
           ))}
         </div>
       )}
@@ -122,8 +130,7 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
   const [selectedTile, setSelectedTile] = useState(null);
   const [error, setError] = useState('');
   const [actionHint, setActionHint] = useState(null);
-  // BUG-2 修复：响应动作 + 吃牌选项
-  const [responseData, setResponseData] = useState(null); // { actions, chowOptions }
+  const [responseData, setResponseData] = useState(null);
   const [showChowPicker, setShowChowPicker] = useState(false);
 
   // 监听 action_hint + action_required
@@ -172,23 +179,26 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
   const isMyTurn = gameState.players[currentTurn] === playerId;
   const myIndex = gameState.players.indexOf(playerId);
 
-  // 获取相对位置的玩家
+  // 获取相对位置的玩家 + 风向
   const getPlayer = (offset) => {
     const idx = (myIndex + offset) % 4;
     const pid = gameState.players[idx];
     const p = players.find((pl) => pl.id === pid);
+    const wind = WINDS[(idx - dealer + 4) % 4];
     return {
       id: pid,
       nickname: p?.nickname || `玩家${idx + 1}`,
       cardCount: handCounts?.[pid] || 0,
       isDealer: idx === dealer,
       isCurrent: currentTurn === idx,
+      wind,
     };
   };
 
-  const right = getPlayer(1);
-  const top = getPlayer(2);
-  const left = getPlayer(3);
+  const right = getPlayer(1);   // 右边 → 下家
+  const top = getPlayer(2);     // 对面 → 对家
+  const left = getPlayer(3);    // 左边 → 上家
+  const myWind = WINDS[(myIndex - dealer + 4) % 4];
 
   // 打牌
   const handleDiscard = useCallback((tile) => {
@@ -201,7 +211,6 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
   const handleTileClick = useCallback((tile) => {
     if (!isMyTurn) return;
     if (selectedTile?.id === tile.id) {
-      // 双击打出
       handleDiscard(tile);
     } else {
       setSelectedTile(tile);
@@ -216,20 +225,16 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
     setShowChowPicker(false);
   }, [onAction]);
 
-  // BUG-2 修复：用 responseData（来自 action_required 事件）驱动响应按钮
   const responseActions = responseData?.actions || [];
   const hasResponse = responseActions.length > 0;
   const hasDrawAction = actionHint && actionHint.actions?.some(a => a !== 'discard');
   const showActions = hasResponse || hasDrawAction;
 
-  // 竖屏紧凑对手信息（CSS控制显隐）
-  const compactOpponents = [top, left, right];
-
   return (
     <div className="mj">
       {/* 牌桌 */}
       <div className="mj-table">
-        {/* 顶部信息 */}
+        {/* 顶部信息栏 */}
         <div className="mj-top-bar">
           <span className="mj-info-tag">剩余 {wallCount} 张</span>
           {lastDiscard && (
@@ -242,59 +247,73 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
           </span>
         </div>
 
-        {/* 竖屏紧凑对手栏 — CSS控制：竖屏显示，横屏/桌面隐藏 */}
-        <div className="mj-opp-compact">
-          {compactOpponents.map((opp, i) => (
-            <div key={opp.id} className={`mj-opp-compact-item${opp.isCurrent ? ' active' : ''}`}>
-              <span className="mj-opp-compact-icon">{opp.isDealer ? '🅰️' : '👤'}</span>
-              <span className="mj-opp-compact-name">{opp.nickname}</span>
-              <span className="mj-opp-compact-count">{opp.cardCount}张</span>
-            </div>
-          ))}
-        </div>
-
-        {/* 牌桌主体 - 4个方位 */}
+        {/* 四方位牌桌 */}
         <div className="mj-board">
-          {/* 对面 */}
+          {/* 对面 (北) */}
           <div className="mj-seat-top">
             <OpponentPanel
               player={top}
               melds={melds?.[top.id]}
-              discards={discards?.[top.id]}
               isCurrent={top.isCurrent}
-              isDealer={top.isDealer}
+              wind={top.wind}
             />
           </div>
 
-          {/* 左边 */}
+          {/* 左边 (西) — 竖屏用compact */}
           <div className="mj-seat-left">
-            <OpponentPanel
-              player={left}
-              melds={melds?.[left.id]}
-              discards={discards?.[left.id]}
-              isCurrent={left.isCurrent}
-              isDealer={left.isDealer}
-            />
+            <div className="mj-seat-left-normal">
+              <OpponentPanel
+                player={left}
+                melds={melds?.[left.id]}
+                isCurrent={left.isCurrent}
+                wind={left.wind}
+              />
+            </div>
+            <div className="mj-seat-left-compact">
+              <OpponentPanel
+                player={left}
+                melds={melds?.[left.id]}
+                isCurrent={left.isCurrent}
+                wind={left.wind}
+                compact
+              />
+            </div>
           </div>
 
-          {/* 中央 - 弃牌池 */}
+          {/* 中央 — 弃牌池 */}
           <div className="mj-center">
             <div className="mj-discard-pool">
-              {/* 对手弃牌 */}
-              {[top, left, right].map((opp) => (
-                discards?.[opp.id] && discards[opp.id].length > 0 && (
-                  <div key={opp.id} className="mj-discard-row">
-                    <span className="mj-discard-label">{opp.nickname}:</span>
-                    {discards[opp.id].slice(-8).map((t, i) => (
-                      <MjTile key={t.id || i} tile={t} small />
-                    ))}
-                  </div>
-                )
-              ))}
-              {/* 自己的弃牌 */}
+              {/* 北家弃牌 */}
+              {discards?.[top.id] && discards[top.id].length > 0 && (
+                <div className="mj-discard-row">
+                  <span className="mj-discard-label" style={{ color: WIND_COLORS[top.wind] }}>{top.wind}</span>
+                  {discards[top.id].slice(-8).map((t, i) => (
+                    <MjTile key={t.id || i} tile={t} small />
+                  ))}
+                </div>
+              )}
+              {/* 西家弃牌 */}
+              {discards?.[left.id] && discards[left.id].length > 0 && (
+                <div className="mj-discard-row">
+                  <span className="mj-discard-label" style={{ color: WIND_COLORS[left.wind] }}>{left.wind}</span>
+                  {discards[left.id].slice(-8).map((t, i) => (
+                    <MjTile key={t.id || i} tile={t} small />
+                  ))}
+                </div>
+              )}
+              {/* 东家弃牌 */}
+              {discards?.[right.id] && discards[right.id].length > 0 && (
+                <div className="mj-discard-row">
+                  <span className="mj-discard-label" style={{ color: WIND_COLORS[right.wind] }}>{right.wind}</span>
+                  {discards[right.id].slice(-8).map((t, i) => (
+                    <MjTile key={t.id || i} tile={t} small />
+                  ))}
+                </div>
+              )}
+              {/* 南家弃牌(我) */}
               {discards?.[playerId] && discards[playerId].length > 0 && (
                 <div className="mj-discard-row mj-discard-mine">
-                  <span className="mj-discard-label">我:</span>
+                  <span className="mj-discard-label" style={{ color: WIND_COLORS[myWind] }}>{myWind}</span>
                   {discards[playerId].slice(-8).map((t, i) => (
                     <MjTile key={t.id || i} tile={t} small />
                   ))}
@@ -304,15 +323,25 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
             {error && <div className="mj-error">{error}</div>}
           </div>
 
-          {/* 右边 */}
+          {/* 右边 (东) — 竖屏用compact */}
           <div className="mj-seat-right">
-            <OpponentPanel
-              player={right}
-              melds={melds?.[right.id]}
-              discards={discards?.[right.id]}
-              isCurrent={right.isCurrent}
-              isDealer={right.isDealer}
-            />
+            <div className="mj-seat-right-normal">
+              <OpponentPanel
+                player={right}
+                melds={melds?.[right.id]}
+                isCurrent={right.isCurrent}
+                wind={right.wind}
+              />
+            </div>
+            <div className="mj-seat-right-compact">
+              <OpponentPanel
+                player={right}
+                melds={melds?.[right.id]}
+                isCurrent={right.isCurrent}
+                wind={right.wind}
+                compact
+              />
+            </div>
           </div>
         </div>
 
@@ -330,10 +359,9 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
           </div>
         )}
 
-        {/* BUG-1/2/3 修复：操作按钮 */}
+        {/* 操作按钮 */}
         {showActions && !showChowPicker && (
           <div className="mj-actions">
-            {/* 响应别人打牌的操作 */}
             {responseActions.includes('win') && (
               <button className="mj-action-btn mj-action-win" onClick={() => handleResponse('win')}>🏆 和牌</button>
             )}
@@ -343,25 +371,22 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
             {responseActions.includes('kong') && (
               <button className="mj-action-btn mj-action-kong" onClick={() => handleResponse('kong')}>杠</button>
             )}
-            {/* BUG-3 修复：吃牌打开选择器 */}
             {responseActions.includes('chow') && (
               <button className="mj-action-btn mj-action-chow" onClick={() => setShowChowPicker(true)}>吃</button>
             )}
-            {/* 摸牌后自摸/暗杠 */}
             {actionHint?.actions?.includes('win') && (
               <button className="mj-action-btn mj-action-win" onClick={() => handleResponse('win')}>🏆 自摸</button>
             )}
             {actionHint?.actions?.includes('kong') && (
               <button className="mj-action-btn mj-action-kong" onClick={() => handleResponse('kong', { concealed: true })}>暗杠</button>
             )}
-            {/* 过 */}
             {hasResponse && (
               <button className="mj-action-btn mj-action-pass" onClick={() => handleResponse('pass')}>过</button>
             )}
           </div>
         )}
 
-        {/* BUG-3 修复：吃牌选择器 */}
+        {/* 吃牌选择器 */}
         {showChowPicker && responseData?.chowOptions && (
           <div className="mj-actions mj-chow-picker">
             <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>选择吃法：</span>
@@ -381,6 +406,10 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
 
       {/* 我的手牌 */}
       <div className="mj-hand">
+        <div className="mj-hand-bar">
+          <span className="mj-my-wind" style={{ color: WIND_COLORS[myWind] }}>{myWind}</span>
+          <span className="mj-my-label">我的手牌</span>
+        </div>
         <div className="mj-hand-tiles">
           {myHand?.map((tile, i) => (
             <div key={tile.id} className="mj-hand-wrap" style={{ zIndex: i }}>
