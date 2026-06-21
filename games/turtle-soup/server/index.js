@@ -83,6 +83,8 @@ class TurtleSoupServer extends BaseGameServer {
       roundNumber: 0,            // 当前轮次
       scores: {},                // pid -> score
       answeringInProgress: false, // AI是否正在回答
+      pendingGuesses: {},        // pid -> { guess, timestamp } - guesses waiting to be judged
+      guessedPlayers: {},        // pid -> true - players who have submitted guesses (can't ask anymore)
     };
   }
 
@@ -94,6 +96,8 @@ class TurtleSoupServer extends BaseGameServer {
       guesses: gs.guesses ? gs.guesses.map(g => ({ ...g })) : [],
       votes: gs.votes ? { ...gs.votes } : {},
       scores: gs.scores ? { ...gs.scores } : {},
+      pendingGuesses: gs.pendingGuesses ? { ...gs.pendingGuesses } : {},
+      guessedPlayers: gs.guessedPlayers ? { ...gs.guessedPlayers } : {},
     };
 
     // 隐藏谜底（除非游戏结束）
@@ -287,6 +291,12 @@ class TurtleSoupServer extends BaseGameServer {
     if (!state || state.phase !== 'playing') return;
     if (!state.puzzle) return;
 
+    // 检查玩家是否已提交猜测
+    if (state.guessedPlayers[pid]) {
+      this.doBroadcastTo(roomId, pid, { type: 'error', message: '你已提交猜测，无法继续提问' });
+      return;
+    }
+
     // 检查是否轮到该玩家
     if (state.players[state.currentTurn] !== pid) {
       this.doBroadcastTo(roomId, pid, { type: 'error', message: '还没轮到你提问' });
@@ -401,18 +411,30 @@ class TurtleSoupServer extends BaseGameServer {
       return;
     }
 
-    // 记录猜测
-    const guessEntry = {
-      pid,
-      guess: guess.trim(),
-      result: null,
-      correct: false,
-      timestamp: Date.now(),
-    };
-    state.guesses.push(guessEntry);
+    // 检查是否已经提交过猜测
+    if (state.guessedPlayers[pid]) {
+      this.doBroadcastTo(roomId, pid, { type: 'error', message: '你已经提交过猜测了' });
+      return;
+    }
 
-    // 异步调用 AI 判别
-    this.judgeGuess(roomId, state, guessEntry);
+    // 存储猜测，但不立即判定
+    state.pendingGuesses[pid] = { guess: guess.trim(), timestamp: Date.now() };
+    state.guessedPlayers[pid] = true;
+    this.saveState(roomId, state);
+
+    // 广播猜测已提交
+    this.doBroadcast(roomId, {
+      type: 'guess_submitted',
+      pid,
+      guessCount: Object.keys(state.pendingGuesses).length,
+      totalPlayers: state.players.length,
+    });
+    this.syncState(roomId);
+
+    // 检查是否所有玩家都已提交猜测
+    if (Object.keys(state.pendingGuesses).length >= state.players.length) {
+      this.judgeAllGuesses(roomId, state);
+    }
   }
 
   async judgeGuess(roomId, state, guessEntry) {
@@ -478,6 +500,89 @@ class TurtleSoupServer extends BaseGameServer {
         result: 'AI判定失败，请重试',
         correct: false,
       });
+    }
+  }
+
+  async judgeAllGuesses(roomId, state) {
+    const pendingGuesses = { ...state.pendingGuesses };
+
+    // 广播正在判定
+    this.doBroadcast(roomId, {
+      type: 'ai_judging_all_guesses',
+      count: Object.keys(pendingGuesses).length,
+    });
+
+    const results = [];
+
+    // 判定所有猜测
+    for (const [pid, guessData] of Object.entries(pendingGuesses)) {
+      const guessEntry = {
+        pid,
+        guess: guessData.guess,
+        result: null,
+        correct: false,
+        timestamp: guessData.timestamp,
+      };
+      state.guesses.push(guessEntry);
+
+      try {
+        const result = await this.callAIJudge(
+          state.puzzle.title,
+          state.puzzle.answer,
+          state.puzzle.keyFacts,
+          guessData.guess,
+          'guess'
+        );
+
+        const isCorrect = this.parseGuessResult(result);
+        guessEntry.result = result;
+        guessEntry.correct = isCorrect;
+
+        results.push({
+          pid,
+          guess: guessData.guess,
+          result,
+          correct: isCorrect,
+        });
+      } catch (err) {
+        console.error(`[TurtleSoup] AI判定猜测失败 (${pid}):`, err.message);
+        guessEntry.result = 'AI判定失败';
+        guessEntry.correct = false;
+
+        results.push({
+          pid,
+          guess: guessData.guess,
+          result: 'AI判定失败',
+          correct: false,
+        });
+      }
+    }
+
+    // 清除待判定猜测和已猜测玩家标记
+    state.pendingGuesses = {};
+    state.guessedPlayers = {};
+    this.saveState(roomId, state);
+
+    // 广播所有结果
+    this.doBroadcast(roomId, {
+      type: 'guesses_submitted_all',
+      results,
+    });
+    this.syncState(roomId);
+
+    // 检查是否有正确答案
+    const correctGuess = results.find(r => r.correct);
+    if (correctGuess) {
+      state.winner = correctGuess.pid;
+      state.scores[correctGuess.pid] = (state.scores[correctGuess.pid] || 0) + 100;
+
+      // 给提问者加分
+      for (let i = 0; i < state.questions.length; i++) {
+        const q = state.questions[i];
+        state.scores[q.pid] = (state.scores[q.pid] || 0) + 5;
+      }
+
+      this.endGame(roomId, state);
     }
   }
 

@@ -3273,8 +3273,8 @@ input {
 
   .lobby-stats {
     flex-direction: row;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: 8px;
+    padding: 10px 12px;
     flex-wrap: nowrap;
     justify-content: center;
   }
@@ -3289,7 +3289,7 @@ input {
   }
 
   .lobby-stat-num {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   .lobby-stat-icon {
@@ -3298,6 +3298,7 @@ input {
 
   .lobby-stat-label {
     font-size: 10px;
+    white-space: nowrap;
   }
 
   .lobby-grid {
@@ -4929,6 +4930,14 @@ input {
   box-shadow: 0 4px 16px rgba(108, 92, 231, 0.15);
 }
 
+.ts-vote-card:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  pointer-events: none;
+}
+
 .ts-vote-selected {
   border-color: var(--primary, #6c5ce7) !important;
   background: rgba(108, 92, 231, 0.12);
@@ -5103,16 +5112,18 @@ input {
   opacity: 0.5;
 }
 
-/* --- Messages --- */
+/* --- QQ-Style Messages --- */
 .ts-chat-msg {
-  max-width: 80%;
-  padding: 10px 14px;
-  border-radius: 14px;
-  background: var(--bg-card, #1a1c25);
-  border: 1px solid var(--border, rgba(255,255,255,0.06));
-  align-self: flex-start;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: flex-start;
   word-break: break-word;
   animation: ts-msg-in 0.25s ease;
+}
+
+.ts-chat-msg.ts-chat-mine {
+  flex-direction: row-reverse;
 }
 
 @keyframes ts-msg-in {
@@ -5120,10 +5131,46 @@ input {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.ts-chat-mine {
-  align-self: flex-end;
-  background: rgba(108, 92, 231, 0.15);
+.ts-chat-avatar {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ts-chat-avatar-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  user-select: none;
+}
+
+.ts-chat-body {
+  display: flex;
+  flex-direction: column;
+  max-width: 75%;
+}
+
+.ts-chat-bubble {
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--bg-card, #1a1c25);
+  border: 1px solid var(--border, rgba(255,255,255,0.06));
+  word-break: break-word;
+}
+
+.ts-chat-mine .ts-chat-bubble {
+  background: rgba(108, 92, 231, 0.18);
   border-color: rgba(108, 92, 231, 0.25);
+}
+
+.ts-chat-other .ts-chat-bubble {
+  background: var(--bg-card, #1a1c25);
 }
 
 .ts-chat-header {
@@ -5188,13 +5235,17 @@ input {
 
 /* --- Guess Messages --- */
 .ts-chat-guess {
-  padding: 10px 14px;
-  border-radius: 14px;
+  /* Inherits .ts-chat-msg flex layout */
+}
+
+.ts-chat-guess .ts-chat-bubble {
   background: rgba(253, 121, 168, 0.1);
   border: 1px solid rgba(253, 121, 168, 0.25);
-  max-width: 80%;
-  align-self: flex-end;
-  word-break: break-word;
+}
+
+.ts-chat-mine.ts-chat-guess .ts-chat-bubble {
+  background: rgba(108, 92, 231, 0.18);
+  border-color: rgba(108, 92, 231, 0.25);
 }
 
 .ts-chat-badge {
@@ -5601,6 +5652,35 @@ input {
 
 .ts-back-btn:active {
   transform: scale(0.96);
+}
+
+/* --- Guessed Waiting State --- */
+.ts-guessed-waiting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 20px;
+  background: rgba(108, 92, 231, 0.08);
+  border-top: 1px solid rgba(108, 92, 231, 0.2);
+  animation: ts-pulse 2s ease-in-out infinite;
+}
+
+@keyframes ts-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.ts-guessed-icon {
+  font-size: 24px;
+}
+
+.ts-guessed-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--primary, #6c5ce7);
+  text-align: center;
 }
 
 /* --- Responsive --- */

@@ -50,10 +50,24 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
       ai_thinking: () => { setNotification('🤖 AI正在思考...'); },
       question_answered: () => { setNotification(''); },
       ai_judging_guess: () => { setNotification('🤖 AI正在判定...'); },
+      ai_judging_all_guesses: () => { setNotification('🤖 AI正在判定所有猜测...'); },
+      guess_submitted: (data) => {
+        setNotification('📝 ' + getNickname(data.pid) + ' 提交了猜测 (' + data.guessCount + '/' + data.totalPlayers + ')');
+      },
       guess_result: (data) => {
         setNotification('');
         if (data.correct) {
           setNotification('🎉 ' + getNickname(data.pid) + ' 猜对了！');
+        }
+      },
+      guesses_submitted_all: (data) => {
+        setNotification('');
+        const correctResult = data.results.find(r => r.correct);
+        if (correctResult) {
+          setNotification('🎉 ' + getNickname(correctResult.pid) + ' 猜对了！');
+        } else {
+          setNotification('🤔 没有人猜对，继续提问吧！');
+          setTimeout(() => setNotification(''), 3000);
         }
       },
       player_skipped: (data) => {
@@ -87,12 +101,21 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
     );
   }
 
-  const { phase, categories, votes, puzzle, currentTurn, questions, guesses, winner, scores } = gameState;
+  const { phase, categories, votes, puzzle, currentTurn, questions, guesses, winner, scores, pendingGuesses, guessedPlayers } = gameState;
   const isMyTurn = gameState.players?.[currentTurn] === playerId;
   const currentTurnPlayer = gameState.players?.[currentTurn];
   const myScore = scores?.[playerId] || 0;
+  const hasGuessed = guessedPlayers?.[playerId] || false;
+  const guessCount = pendingGuesses ? Object.keys(pendingGuesses).length : 0;
+  const totalPlayers = gameState.players?.length || 0;
 
   const getNickname = (pid) => players.find(p => p.id === pid)?.nickname || '玩家';
+  const getAvatarColor = (name) => {
+    const colors = ['#f44336','#e91e63','#9c27b0','#673ab7','#3f51b5','#2196f3','#00bcd4','#009688','#4caf50','#ff9800'];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
+  };
   const getScore = (pid) => scores?.[pid] || 0;
 
   const emitAction = (action) => {
@@ -258,43 +281,62 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
 
         {questions?.map((q, i) => {
           const answerStyle = getAnswerStyle(q.answer);
+          const nickname = getNickname(q.pid);
+          const isMine = q.pid === playerId;
           return (
-            <div key={"q-" + i} className={"ts-chat-msg" + (q.pid === playerId ? " ts-chat-mine" : "")}>
-              <div className="ts-chat-header">
-                <span className="ts-chat-name">{getNickname(q.pid)}</span>
-                <span className="ts-chat-time">
-                  {new Date(q.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
-                </span>
+            <div key={"q-" + i} className={"ts-chat-msg" + (isMine ? " ts-chat-mine" : " ts-chat-other")}>
+              <div className="ts-chat-avatar" style={{ background: getAvatarColor(nickname) }}>
+                <span className="ts-chat-avatar-text">{nickname.charAt(0)}</span>
               </div>
-              <div className="ts-chat-question">❓ {q.question}</div>
-              {q.answer ? (
-                <div className="ts-chat-answer" style={{ borderLeftColor: answerStyle.bg }}>
-                  <span className="ts-chat-answer-icon">{answerStyle.icon}</span>
-                  <span>{q.answer}</span>
+              <div className="ts-chat-body">
+                <div className="ts-chat-header">
+                  <span className="ts-chat-name">{nickname}</span>
+                  <span className="ts-chat-time">
+                    {new Date(q.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </div>
-              ) : (
-                <div className="ts-chat-answer ts-chat-thinking">🤖 AI思考中...</div>
-              )}
+                <div className="ts-chat-bubble">
+                  <div className="ts-chat-question">❓ {q.question}</div>
+                  {q.answer ? (
+                    <div className="ts-chat-answer" style={{ borderLeftColor: answerStyle.bg }}>
+                      <span className="ts-chat-answer-icon">{answerStyle.icon}</span>
+                      <span>{q.answer}</span>
+                    </div>
+                  ) : (
+                    <div className="ts-chat-answer ts-chat-thinking">🤖 AI思考中...</div>
+                  )}
+                </div>
+              </div>
             </div>
           );
         })}
-
-        {guesses?.map((g, i) => (
-          <div key={"g-" + i} className={"ts-chat-msg ts-chat-guess" + (g.pid === playerId ? " ts-chat-mine" : "")}>
-            <div className="ts-chat-header">
-              <span className="ts-chat-name">{getNickname(g.pid)}</span>
-              <span className="ts-chat-badge">🎯 猜测</span>
+        {guesses?.map((g, i) => {
+          const nickname = getNickname(g.pid);
+          const isMine = g.pid === playerId;
+          return (
+          <div key={"g-" + i} className={"ts-chat-msg ts-chat-guess" + (isMine ? " ts-chat-mine" : " ts-chat-other")}>
+            <div className="ts-chat-avatar" style={{ background: getAvatarColor(nickname) }}>
+              <span className="ts-chat-avatar-text">{nickname.charAt(0)}</span>
             </div>
-            <div className="ts-chat-guess-text">{g.guess}</div>
-            {g.result ? (
-              <div className={"ts-chat-guess-result" + (g.correct ? " ts-guess-correct" : "")}>
-                {g.correct ? '🎉 ' : '🤔 '}{g.result}
+            <div className="ts-chat-body">
+              <div className="ts-chat-header">
+                <span className="ts-chat-name">{nickname}</span>
+                <span className="ts-chat-badge">🎯 猜测</span>
               </div>
-            ) : (
-              <div className="ts-chat-guess-result">🤖 AI判定中...</div>
-            )}
+              <div className="ts-chat-bubble">
+                <div className="ts-chat-guess-text">{g.guess}</div>
+                {g.result ? (
+                  <div className={"ts-chat-guess-result" + (g.correct ? " ts-guess-correct" : "")}>
+                    {g.correct ? '🎉 ' : '🤔 '}{g.result}
+                  </div>
+                ) : (
+                  <div className="ts-chat-guess-result">🤖 AI判定中...</div>
+                )}
+              </div>
+            </div>
           </div>
-        ))}
+          );
+        })}
 
         <div ref={chatEndRef} />
       </div>
@@ -303,61 +345,70 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
       {error && <div className="ts-error">{error}</div>}
 
       <div className="ts-actions">
-        <div className="ts-input-bar">
-          <input
-            className="ts-input"
-            type="text"
-            placeholder={isMyTurn ? '输入你的问题（是/否类型）...' : '等待其他玩家提问...'}
-            value={questionInput}
-            onChange={e => setQuestionInput(e.target.value)}
-            onKeyDown={e => handleKeyPress(e, 'ask')}
-            disabled={!isMyTurn}
-            maxLength={200}
-          />
-          <button
-            className="ts-send-btn"
-            onClick={handleAsk}
-            disabled={!isMyTurn || !questionInput.trim()}
-          >
-            提问
-          </button>
-          {isMyTurn && (
-            <button className="ts-skip-btn" onClick={handleSkip} title="跳过回合">
-              ⏭️
-            </button>
-          )}
-        </div>
-
-        <button
-          className="ts-guess-toggle-btn"
-          onClick={() => setShowGuessPanel(!showGuessPanel)}
-        >
-          🎯 提交猜测
-        </button>
-
-        {showGuessPanel && (
-          <div className="ts-guess-panel">
-            <div className="ts-guess-panel-header">
-              <span>🎯 提交你的最终猜测</span>
-              <button className="ts-guess-close" onClick={() => setShowGuessPanel(false)}>✕</button>
-            </div>
-            <textarea
-              className="ts-guess-input"
-              placeholder="输入你对这个谜题的完整猜测..."
-              value={guessInput}
-              onChange={e => setGuessInput(e.target.value)}
-              onKeyDown={e => handleKeyPress(e, 'guess')}
-              rows={3}
-              maxLength={500}
-            />
-            <button
-              className="ts-guess-submit-btn"
-              onClick={handleGuess}
-              disabled={!guessInput.trim()}
-            >
-              提交猜测
-            </button>
+        {hasGuessed ? (
+          <div className="ts-guessed-waiting">
+            <div className="ts-guessed-icon">⏳</div>
+            <div className="ts-guessed-text">已提交猜测，等待其他玩家... ({guessCount}/{totalPlayers})</div>
           </div>
+        ) : (
+          <>
+            <div className="ts-input-bar">
+              <input
+                className="ts-input"
+                type="text"
+                placeholder={isMyTurn ? '输入你的问题（是/否类型）...' : '等待其他玩家提问...'}
+                value={questionInput}
+                onChange={e => setQuestionInput(e.target.value)}
+                onKeyDown={e => handleKeyPress(e, 'ask')}
+                disabled={!isMyTurn || hasGuessed}
+                maxLength={200}
+              />
+              <button
+                className="ts-send-btn"
+                onClick={handleAsk}
+                disabled={!isMyTurn || !questionInput.trim() || hasGuessed}
+              >
+                提问
+              </button>
+              {isMyTurn && (
+                <button className="ts-skip-btn" onClick={handleSkip} title="跳过回合">
+                  ⏭️
+                </button>
+              )}
+            </div>
+
+            <button
+              className="ts-guess-toggle-btn"
+              onClick={() => setShowGuessPanel(!showGuessPanel)}
+            >
+              🎯 提交猜测 {guessCount > 0 && `(${guessCount}/${totalPlayers})`}
+            </button>
+
+            {showGuessPanel && (
+              <div className="ts-guess-panel">
+                <div className="ts-guess-panel-header">
+                  <span>🎯 提交你的最终猜测</span>
+                  <button className="ts-guess-close" onClick={() => setShowGuessPanel(false)}>✕</button>
+                </div>
+                <textarea
+                  className="ts-guess-input"
+                  placeholder="输入你对这个谜题的完整猜测..."
+                  value={guessInput}
+                  onChange={e => setGuessInput(e.target.value)}
+                  onKeyDown={e => handleKeyPress(e, 'guess')}
+                  rows={3}
+                  maxLength={500}
+                />
+                <button
+                  className="ts-guess-submit-btn"
+                  onClick={handleGuess}
+                  disabled={!guessInput.trim()}
+                >
+                  提交猜测
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
