@@ -483,9 +483,14 @@ export default function GameHost({ gameId, GameComponent }) {
               })}
             </div>
           )}
-          <button className="back-btn" onClick={() => (window.location.href = '/lobby')}>
-            返回大厅
-          </button>
+          <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+            <button className="back-btn" onClick={() => (window.location.href = '/lobby')}>
+              返回大厅
+            </button>
+            <button className="back-btn" onClick={() => window.location.reload()}>
+              返回房间
+            </button>
+          </div>
         </div>
       </div>
     );

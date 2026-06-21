@@ -34,6 +34,8 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
   const [showGuessPanel, setShowGuessPanel] = useState(false);
   const [error, setError] = useState('');
   const [notification, setNotification] = useState('');
+  const [hasGuessed, setHasGuessed] = useState(false);
+  const [roundResults, setRoundResults] = useState(null);
   const chatEndRef = useRef(null);
 
   useEffect(() => {
@@ -50,25 +52,19 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
       ai_thinking: () => { setNotification('🤖 AI正在思考...'); },
       question_answered: () => { setNotification(''); },
       ai_judging_guess: () => { setNotification('🤖 AI正在判定...'); },
-      ai_judging_all_guesses: () => { setNotification('🤖 AI正在判定所有猜测...'); },
+      ai_judging_all_guesses: () => { setNotification('🤖 AI正在为所有猜测打分...'); },
       guess_submitted: (data) => {
         setNotification('📝 ' + getNickname(data.pid) + ' 提交了猜测 (' + data.guessCount + '/' + data.totalPlayers + ')');
       },
-      guess_result: (data) => {
-        setNotification('');
-        if (data.correct) {
-          setNotification('🎉 ' + getNickname(data.pid) + ' 猜对了！');
-        }
+      round_results: (data) => {
+        setNotification('📊 第' + data.roundNumber + '轮结果已出！');
+        setRoundResults(data);
       },
-      guesses_submitted_all: (data) => {
-        setNotification('');
-        const correctResult = data.results.find(r => r.correct);
-        if (correctResult) {
-          setNotification('🎉 ' + getNickname(correctResult.pid) + ' 猜对了！');
-        } else {
-          setNotification('🤔 没有人猜对，继续提问吧！');
-          setTimeout(() => setNotification(''), 3000);
-        }
+      new_round: (data) => {
+        setNotification('🔄 第' + data.roundNumber + '轮开始！请选择题材');
+        setRoundResults(null);
+        setHasGuessed(false);
+        setTimeout(() => setNotification(''), 3000);
       },
       player_skipped: (data) => {
         setNotification(getNickname(data.pid) + ' 跳过了回合');
@@ -101,13 +97,13 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
     );
   }
 
-  const { phase, categories, votes, puzzle, currentTurn, questions, guesses, winner, scores, pendingGuesses, guessedPlayers } = gameState;
+  const { phase, categories, votes, puzzle, currentTurn, questions, guesses, winner, scores, roundNumber, totalRounds, usedCategories, pendingGuesses, guessedPlayers } = gameState;
   const isMyTurn = gameState.players?.[currentTurn] === playerId;
   const currentTurnPlayer = gameState.players?.[currentTurn];
   const myScore = scores?.[playerId] || 0;
-  const hasGuessed = guessedPlayers?.[playerId] || false;
-  const guessCount = pendingGuesses ? Object.keys(pendingGuesses).length : 0;
+  const guessCount = Object.keys(pendingGuesses || {}).length;
   const totalPlayers = gameState.players?.length || 0;
+  const hasGuessed = guessedPlayers?.[playerId] || false;
 
   const getNickname = (pid) => players.find(p => p.id === pid)?.nickname || '玩家';
   const getAvatarColor = (name) => {
@@ -139,6 +135,7 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
     emitAction({ type: 'guess', guess: guessInput.trim() });
     setGuessInput('');
     setShowGuessPanel(false);
+    setHasGuessed(true);
   };
 
   const handleSkip = () => {
@@ -154,31 +151,35 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
   };
 
   if (phase === 'ended' || winner) {
+    const sortedPlayers = [...(gameState.players || [])].sort((a, b) => (scores?.[b] || 0) - (scores?.[a] || 0));
     return (
       <div className="ts">
         <div className="ts-result">
-          <div className="ts-result-icon">{winner === playerId ? '🎉' : '🐢'}</div>
+          <div className="ts-result-icon">🏁</div>
           <h2 className="ts-result-title">
-            {winner ? getNickname(winner) + ' 猜对了真相！' : '游戏结束'}
+            {totalRounds || 5} 轮游戏结束！
           </h2>
-          {puzzle && (
-            <div className="ts-reveal">
-              <div className="ts-reveal-label">真相是...</div>
-              <div className="ts-reveal-answer">{puzzle.answer}</div>
-            </div>
-          )}
           <div className="ts-scores">
-            <h3>📊 最终得分</h3>
-            {gameState.players?.map(pid => (
-              <div key={pid} className={"ts-score-row" + (pid === winner ? " ts-score-winner" : "")}>
-                <span className="ts-score-name">{getNickname(pid)}</span>
+            <h3>📊 最终排名</h3>
+            {sortedPlayers.map((pid, i) => (
+              <div key={pid} className={"ts-score-row" + (i === 0 ? " ts-score-winner" : "")}>
+                <span className="ts-score-name">
+                  {i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : `#${i+1} `}
+                  {getNickname(pid)}
+                  {pid === playerId ? '（你）' : ''}
+                </span>
                 <span className="ts-score-value">{getScore(pid)} 分</span>
               </div>
             ))}
           </div>
-          <button className="ts-back-btn" onClick={onLeaveRoom || (() => window.location.href = '/lobby')}>
-            返回大厅
-          </button>
+          <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+            <button className="ts-back-btn" onClick={onLeaveRoom || (() => window.location.href = '/lobby')}>
+              返回大厅
+            </button>
+            <button className="ts-back-btn" onClick={() => window.location.reload()}>
+              返回房间
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -186,6 +187,8 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
 
   if (phase === 'voting') {
     const voteSummary = {};
+    const availableCategories = (categories || []).filter(c => !(usedCategories || []).includes(c.id));
+    const catsToShow = availableCategories.length > 0 ? availableCategories : (categories || []);
     if (categories) {
       for (const cat of categories) {
         voteSummary[cat.id] = 0;
@@ -202,10 +205,10 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
       <div className="ts">
         <div className="ts-header">
           <h2 className="ts-title">🐢 海龟汤</h2>
-          <p className="ts-subtitle">选择你想玩的谜题类型</p>
+          <p className="ts-subtitle">第 {roundNumber || 1}/{totalRounds || 5} 轮 · 选择你想玩的谜题类型</p>
         </div>
         <div className="ts-vote-grid">
-          {categories?.map(cat => {
+          {catsToShow.map(cat => {
             const style = CATEGORY_COLORS[cat.id] || CATEGORY_COLORS.mystery;
             const isSelected = myVote === cat.id;
             const count = voteSummary[cat.id] || 0;
@@ -342,6 +345,25 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
       </div>
 
       {notification && <div className="ts-notification">{notification}</div>}
+      {roundResults && (
+        <div className="ts-round-results">
+          <h4>📊 第{roundResults.roundNumber}轮结果</h4>
+          {roundResults.results?.map(r => (
+            <div key={r.pid} className="ts-round-result-row">
+              <span>{getNickname(r.pid)}</span>
+              <span style={{fontWeight:'600', color: r.score >= 70 ? 'var(--success)' : r.score >= 40 ? 'var(--warning)' : 'var(--danger)'}}>
+                {r.score}分
+              </span>
+            </div>
+          ))}
+          {roundResults.puzzle && (
+            <div className="ts-reveal" style={{marginTop:'8px'}}>
+              <div className="ts-reveal-label">真相</div>
+              <div className="ts-reveal-answer">{roundResults.puzzle.answer}</div>
+            </div>
+          )}
+        </div>
+      )}
       {error && <div className="ts-error">{error}</div>}
 
       <div className="ts-actions">

@@ -82,6 +82,8 @@ class UnoServer extends BaseGameServer {
       lastCardValue: null,  // 上一张牌的值
       phase: 'playing',     // playing | ended
       winner: null,
+      winners: [],           // 获胜顺序 [{pid, placement}]
+      finishedPlayers: {},   // pid -> true (已出完牌的玩家)
       calledUno: {},        // pid -> boolean (是否喊了 UNO)
     };
   }
@@ -97,6 +99,8 @@ class UnoServer extends BaseGameServer {
     delete visible.hands;
     delete visible.deck; // 不暴露牌堆
     visible.deckCount = gs.deck.length;
+    visible.winners = gs.winners || [];
+    visible.finishedPlayers = gs.finishedPlayers || {};
     return visible;
   }
 
@@ -145,6 +149,7 @@ class UnoServer extends BaseGameServer {
   onPlayerAction(roomId, pid, action) {
     const state = this.getState(roomId);
     if (!state || state.phase !== 'playing') return;
+    if (state.finishedPlayers[pid]) return; // 已完成的玩家不能操作
 
     switch (action.type) {
       case 'play_card':
@@ -209,29 +214,65 @@ class UnoServer extends BaseGameServer {
       state.currentColor = card.color;
     }
 
-    // 检查胜负
-    if (hand.length === 0) {
-      state.phase = 'playing'; // 保持 playing 直到广播完
-      this.saveState(roomId, state);
-
-      this.doBroadcast(roomId, {
-        type: 'game_over',
-        winner: pid,
-        message: '出完所有牌，获胜！',
-      });
-
-      if (this.onGameOver) {
-        const scores = {};
-        for (const p of state.players) {
-          scores[p] = p === pid ? 10 : -10;
-        }
-        this.onGameOver(roomId, {
-          winners: [pid],
-          scores,
+    // 功能牌不能作为最后一张出：如果出完后只剩1张且是功能牌，自动加1张
+    const FUNCTIONAL = ['skip', 'reverse', '+2', 'wild', 'wild+4'];
+    if (hand.length === 1 && FUNCTIONAL.includes(hand[0].value)) {
+      if (state.deck.length === 0) this.reshuffleDeck(state);
+      if (state.deck.length > 0) {
+        hand.push(state.deck.pop());
+        this.doBroadcastTo(roomId, pid, {
+          type: 'info',
+          message: '最后一张是功能牌，自动加抽1张',
         });
       }
-      state.phase = 'ended';
+    }
+
+    // 检查是否出完手牌
+    if (hand.length === 0) {
+      const placement = state.winners.length + 1;
+      state.winners.push({ pid, placement });
+      state.finishedPlayers[pid] = true;
+      state.winner = pid; // 兼容旧客户端
+
+      this.doBroadcast(roomId, {
+        type: 'player_finished',
+        pid,
+        placement,
+        message: `玩家获得第${placement}名！`,
+      });
+
+      // 检查是否只剩1人
+      const remaining = state.players.filter(p => !state.finishedPlayers[p]);
+      if (remaining.length <= 1) {
+        // 游戏结束
+        if (remaining.length === 1) {
+          state.winners.push({ pid: remaining[0], placement: state.winners.length + 1 });
+          state.finishedPlayers[remaining[0]] = true;
+        }
+        state.phase = 'ended';
+        this.saveState(roomId, state);
+
+        this.doBroadcast(roomId, {
+          type: 'game_over',
+          winners: state.winners,
+          message: '游戏结束！',
+        });
+
+        if (this.onGameOver) {
+          const scores = {};
+          state.winners.forEach((w, i) => {
+            scores[w.pid] = state.players.length - i;
+          });
+          this.onGameOver(roomId, { winners: state.winners.map(w => w.pid), scores });
+        }
+        return;
+      }
+
+      // 还有人在玩，跳过该玩家继续
       this.saveState(roomId, state);
+      this.advanceTurn(state);
+      this.saveState(roomId, state);
+      this.broadcastState(roomId, state);
       return;
     }
 
@@ -288,7 +329,14 @@ class UnoServer extends BaseGameServer {
   }
 
   advanceTurn(state) {
-    state.currentTurn = (state.currentTurn + state.direction + state.players.length) % state.players.length;
+    const n = state.players.length;
+    for (let i = 0; i < n; i++) {
+      state.currentTurn = (state.currentTurn + state.direction + n) % n;
+      if (!state.finishedPlayers[state.players[state.currentTurn]]) {
+        return;
+      }
+    }
+    // 所有人都完成了（不应该到这里）
   }
 
   // ========== 摸牌 ==========

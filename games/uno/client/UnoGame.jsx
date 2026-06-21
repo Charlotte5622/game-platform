@@ -101,9 +101,11 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
     );
   }
 
-  const { myHand, handCounts, currentColor, currentTurn, drawStack, discard, deckCount, phase, winner, players: playerIds } = gameState;
+  const { myHand, handCounts, currentColor, currentTurn, drawStack, discard, deckCount, phase, winner, winners, finishedPlayers, players: playerIds } = gameState;
   const isMyTurn = playerIds[currentTurn] === playerId;
   const topCard = discard?.[discard.length - 1];
+  const isFinished = finishedPlayers?.[playerId];
+  const myPlacement = winners?.find(w => w.pid === playerId)?.placement;
 
   const emitAction = (action) => {
     if (socket && roomId) {
@@ -152,14 +154,26 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
   const getNickname = (pid) => players.find(p => p.id === pid)?.nickname || '玩家';
 
   // 游戏结束
-  if (phase === 'ended' || winner) {
-    const isWinner = winner === playerId;
+  if (phase === 'ended' || (winners && winners.length > 0 && phase === 'ended')) {
+    const myWin = winners?.find(w => w.pid === playerId);
+    const placementEmoji = { 1: '🥇', 2: '🥈', 3: '🥉' };
     return (
       <div className="uno">
         <div className="uno-result">
-          <div className="uno-result-icon">{isWinner ? '🎉' : '😢'}</div>
-          <h2 className="uno-result-title">{isWinner ? '你赢了！' : `${getNickname(winner)} 获胜`}</h2>
-          <button className="uno-back-btn" onClick={handleLeaveRoom}>返回大厅</button>
+          <div className="uno-result-icon">{myWin ? (placementEmoji[myWin.placement] || '🎉') : '😢'}</div>
+          <h2 className="uno-result-title">{myWin ? `第${myWin.placement}名！` : '游戏结束'}</h2>
+          <div className="uno-result-standings">
+            {winners?.map(w => (
+              <div key={w.pid} className="uno-result-row">
+                <span>{placementEmoji[w.placement] || `#${w.placement}`}</span>
+                <span>{getNickname(w.pid)}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+            <button className="uno-back-btn" onClick={handleLeaveRoom}>返回大厅</button>
+            <button className="uno-back-btn" onClick={() => window.location.reload()}>返回房间</button>
+          </div>
         </div>
       </div>
     );
@@ -180,12 +194,22 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
 
       {/* 对手信息 */}
       <div className="uno-opponents">
-        {playerIds.filter(pid => pid !== playerId).map(pid => (
-          <div key={pid} className={`uno-opponent${playerIds[currentTurn] === pid ? ' uno-opponent-active' : ''}`}>
-            <span className="uno-opponent-name">{getNickname(pid)}</span>
-            <span className="uno-opponent-count">{handCounts?.[pid] || 0} 张</span>
-          </div>
-        ))}
+        {playerIds.map(pid => {
+          const isDone = finishedPlayers?.[pid];
+          const winInfo = winners?.find(w => w.pid === pid);
+          const placementEmoji = { 1: '🥇', 2: '🥈', 3: '🥉' };
+          if (pid === playerId) return null;
+          return (
+            <div key={pid} className={`uno-opponent${playerIds[currentTurn] === pid ? ' uno-opponent-active' : ''}${isDone ? ' uno-opponent-done' : ''}`}>
+              <span className="uno-opponent-name">
+                {getNickname(pid)}
+                {winInfo && <span style={{marginLeft:4}}>{placementEmoji[winInfo.placement] || `#${winInfo.placement}`}</span>}
+                {isDone && !winInfo && <span style={{marginLeft:4}}>✅</span>}
+              </span>
+              <span className="uno-opponent-count">{isDone ? '已出完' : `${handCounts?.[pid] || 0} 张`}</span>
+            </div>
+          );
+        })}
       </div>
 
       {/* 出牌区域 */}
@@ -219,7 +243,7 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
       </div>
 
       {/* 操作按钮 */}
-      {isMyTurn && (
+      {isMyTurn && !isFinished && (
         <div className="uno-actions">
           <button className="uno-draw-btn" onClick={handleDraw}>
             摸牌{drawStack > 0 ? ` (${drawStack}张)` : ''}
@@ -230,29 +254,38 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
         </div>
       )}
 
+      {/* 已获胜提示 */}
+      {isFinished && (
+        <div style={{textAlign:'center',padding:'12px',color:'var(--success)',fontWeight:'600'}}>
+          {myPlacement ? `🎉 你已获得第${myPlacement}名！` : '✅ 你已出完所有牌'}
+        </div>
+      )}
+
       {/* 错误提示 */}
       {error && <div className="uno-error">{error}</div>}
 
       {/* 手牌 */}
-      <div className="uno-hand">
-        {myHand?.map((card, i) => (
-          <div key={card.id || i} className="uno-hand-card-wrap" style={{ zIndex: i }}>
-            <UnoCard
-              card={card}
-              selected={selectedCard === i}
-              onClick={() => {
-                if (selectedCard === i) {
-                  handleCardClick(i);
-                } else {
-                  setSelectedCard(i);
-                }
-              }}
-            />
-          </div>
-        ))}
-      </div>
+      {!isFinished && (
+        <div className="uno-hand">
+          {myHand?.map((card, i) => (
+            <div key={card.id || i} className="uno-hand-card-wrap" style={{ zIndex: i }}>
+              <UnoCard
+                card={card}
+                selected={selectedCard === i}
+                onClick={() => {
+                  if (selectedCard === i) {
+                    handleCardClick(i);
+                  } else {
+                    setSelectedCard(i);
+                  }
+                }}
+              />
+            </div>
+          ))}
+        </div>
+      )}
 
-      {isMyTurn && <p className="uno-hand-hint">点击选牌，再点击出牌</p>}
+      {isMyTurn && !isFinished && <p className="uno-hand-hint">点击选牌，再点击出牌</p>}
     </div>
   );
 }

@@ -80,11 +80,14 @@ class TurtleSoupServer extends BaseGameServer {
       turnStartTime: Date.now(),
       questionTimeout: 60000,    // 每轮提问限时60秒
       maxQuestions: 30,          // 最多30个问题
-      roundNumber: 0,            // 当前轮次
-      scores: {},                // pid -> score
-      answeringInProgress: false, // AI是否正在回答
-      pendingGuesses: {},        // pid -> { guess, timestamp } - guesses waiting to be judged
-      guessedPlayers: {},        // pid -> true - players who have submitted guesses (can't ask anymore)
+      roundNumber: 1,            // 当前轮次
+      totalRounds: 5,            // 总轮次
+      usedCategories: [],        // 已使用过的分类
+      roundScores: {},           // { roundNumber: { pid: score } }
+      scores: {},                // pid -> total score
+      answeringInProgress: false,
+      pendingGuesses: {},
+      guessedPlayers: {},
     };
   }
 
@@ -96,8 +99,11 @@ class TurtleSoupServer extends BaseGameServer {
       guesses: gs.guesses ? gs.guesses.map(g => ({ ...g })) : [],
       votes: gs.votes ? { ...gs.votes } : {},
       scores: gs.scores ? { ...gs.scores } : {},
+      roundScores: gs.roundScores ? { ...gs.roundScores } : {},
       pendingGuesses: gs.pendingGuesses ? { ...gs.pendingGuesses } : {},
       guessedPlayers: gs.guessedPlayers ? { ...gs.guessedPlayers } : {},
+      usedCategories: gs.usedCategories ? [...gs.usedCategories] : [],
+      totalRounds: gs.totalRounds || 5,
     };
 
     // 隐藏谜底（除非游戏结束）
@@ -227,13 +233,17 @@ class TurtleSoupServer extends BaseGameServer {
   }
 
   startPuzzlePhase(roomId, state) {
-    // 统计票数，选最高票分类
+    // 过滤已使用的分类
+    const availableCategories = CATEGORIES.filter(c => !(state.usedCategories || []).includes(c.id));
+    const catsToVote = availableCategories.length > 0 ? availableCategories : CATEGORIES;
+
+    // 统计票数，选最高票分类（只从可选分类中选）
     const voteSummary = this.getVoteSummary(state);
     let maxVotes = 0;
-    let winnerCategory = CATEGORIES[0].id;
+    let winnerCategory = catsToVote[0].id;
 
     for (const [catId, count] of Object.entries(voteSummary)) {
-      if (count > maxVotes) {
+      if (count > maxVotes && catsToVote.some(c => c.id === catId)) {
         maxVotes = count;
         winnerCategory = catId;
       }
@@ -241,26 +251,24 @@ class TurtleSoupServer extends BaseGameServer {
 
     // 平票随机选
     const tied = Object.entries(voteSummary)
-      .filter(([, count]) => count === maxVotes)
+      .filter(([catId, count]) => count === maxVotes && catsToVote.some(c => c.id === catId))
       .map(([catId]) => catId);
-    winnerCategory = tied[Math.floor(Math.random() * tied.length)];
+    if (tied.length > 0) winnerCategory = tied[Math.floor(Math.random() * tied.length)];
 
     // 从该分类随机选一个谜题
     const categoryPuzzles = PUZZLES.filter(p => p.category === winnerCategory);
-    if (categoryPuzzles.length === 0) {
-      // 该分类无谜题，从所有谜题中随机选一个
-      const puzzle = PUZZLES[Math.floor(Math.random() * PUZZLES.length)];
-      winnerCategory = puzzle.category;
-    }
     const puzzle = categoryPuzzles.length > 0
       ? categoryPuzzles[Math.floor(Math.random() * categoryPuzzles.length)]
       : PUZZLES[Math.floor(Math.random() * PUZZLES.length)];
+
+    // 记录已使用的分类
+    if (!state.usedCategories) state.usedCategories = [];
+    state.usedCategories.push(winnerCategory);
 
     state.phase = 'playing';
     state.puzzle = puzzle;
     state.currentTurn = 0;
     state.turnStartTime = Date.now();
-    state.roundNumber = 1;
 
     // 初始化分数
     for (const pid of state.players) {
@@ -506,82 +514,95 @@ class TurtleSoupServer extends BaseGameServer {
   async judgeAllGuesses(roomId, state) {
     const pendingGuesses = { ...state.pendingGuesses };
 
-    // 广播正在判定
     this.doBroadcast(roomId, {
       type: 'ai_judging_all_guesses',
       count: Object.keys(pendingGuesses).length,
     });
 
+    const roundNum = state.roundNumber;
+    if (!state.roundScores[roundNum]) state.roundScores[roundNum] = {};
+
     const results = [];
 
-    // 判定所有猜测
     for (const [pid, guessData] of Object.entries(pendingGuesses)) {
       const guessEntry = {
         pid,
         guess: guessData.guess,
         result: null,
-        correct: false,
+        score: 0,
         timestamp: guessData.timestamp,
       };
       state.guesses.push(guessEntry);
 
       try {
-        const result = await this.callAIJudge(
-          state.puzzle.title,
-          state.puzzle.answer,
-          state.puzzle.keyFacts,
-          guessData.guess,
-          'guess'
-        );
+        // 用相关度打分替代二元判定
+        const prompt = `谜题: ${state.puzzle.title}\n真相: ${state.puzzle.answer}\n关键事实: ${(state.puzzle.keyFacts || []).join(', ')}\n\n玩家猜测: ${guessData.guess}\n\n请根据猜测与真相的相关程度打分(0-100):\n- 90-100: 完全正确或几乎完全正确\n- 70-89: 非常接近，抓住了核心要点\n- 50-69: 部分正确，抓住了某些关键点\n- 30-49: 有一定相关性但偏离较大\n- 0-29: 基本不相关或完全错误\n\n只回复一个数字(0-100)，不要其他内容。`;
 
-        const isCorrect = this.parseGuessResult(result);
-        guessEntry.result = result;
-        guessEntry.correct = isCorrect;
+        const scoreStr = await this.callAI(prompt, 10);
+        const score = Math.max(0, Math.min(100, parseInt(scoreStr) || 0));
 
-        results.push({
-          pid,
-          guess: guessData.guess,
-          result,
-          correct: isCorrect,
-        });
+        guessEntry.result = `${score}分`;
+        guessEntry.score = score;
+        state.roundScores[roundNum][pid] = (state.roundScores[roundNum][pid] || 0) + score;
+        state.scores[pid] = (state.scores[pid] || 0) + score;
+
+        results.push({ pid, guess: guessData.guess, score, result: `${score}分` });
       } catch (err) {
-        console.error(`[TurtleSoup] AI判定猜测失败 (${pid}):`, err.message);
-        guessEntry.result = 'AI判定失败';
-        guessEntry.correct = false;
-
-        results.push({
-          pid,
-          guess: guessData.guess,
-          result: 'AI判定失败',
-          correct: false,
-        });
+        console.error(`[TurtleSoup] AI打分失败 (${pid}):`, err.message);
+        guessEntry.result = 'AI打分失败';
+        guessEntry.score = 0;
+        results.push({ pid, guess: guessData.guess, score: 0, result: 'AI打分失败' });
       }
     }
 
-    // 清除待判定猜测和已猜测玩家标记
+    // 给提问者加分
+    for (const q of state.questions) {
+      const bonus = 3;
+      state.scores[q.pid] = (state.scores[q.pid] || 0) + bonus;
+    }
+
     state.pendingGuesses = {};
     state.guessedPlayers = {};
     this.saveState(roomId, state);
 
-    // 广播所有结果
+    // 广播本轮结果
     this.doBroadcast(roomId, {
-      type: 'guesses_submitted_all',
+      type: 'round_results',
+      roundNumber: roundNum,
       results,
+      scores: { ...state.scores },
+      roundScores: { ...state.roundScores[roundNum] },
+      puzzle: state.puzzle,
     });
     this.syncState(roomId);
 
-    // 检查是否有正确答案
-    const correctGuess = results.find(r => r.correct);
-    if (correctGuess) {
-      state.winner = correctGuess.pid;
-      state.scores[correctGuess.pid] = (state.scores[correctGuess.pid] || 0) + 100;
-
-      // 给提问者加分
-      for (let i = 0; i < state.questions.length; i++) {
-        const q = state.questions[i];
-        state.scores[q.pid] = (state.scores[q.pid] || 0) + 5;
-      }
-
+    // 判断是否进入下一轮
+    if (roundNum < (state.totalRounds || 5)) {
+      // 进入下一轮投票
+      setTimeout(() => {
+        const currentState = this.getState(roomId);
+        if (!currentState || currentState.phase === 'ended') return;
+        currentState.roundNumber = roundNum + 1;
+        currentState.phase = 'voting';
+        currentState.votes = {};
+        currentState.puzzle = null;
+        currentState.questions = [];
+        currentState.guesses = [];
+        currentState.currentTurn = 0;
+        currentState.pendingGuesses = {};
+        currentState.guessedPlayers = {};
+        currentState.voteTimer = null;
+        this.saveState(roomId, currentState);
+        this.syncState(roomId);
+        this.doBroadcast(roomId, {
+          type: 'new_round',
+          roundNumber: roundNum + 1,
+          totalRounds: currentState.totalRounds || 5,
+          usedCategories: currentState.usedCategories || [],
+        });
+      }, 5000); // 5秒后进入下一轮
+    } else {
+      // 所有轮次结束
       this.endGame(roomId, state);
     }
   }
@@ -736,6 +757,27 @@ class TurtleSoupServer extends BaseGameServer {
       return '不相关';
     }
     return 'AI判定失败，请重试';
+  }
+
+  // 简单AI调用（直接传prompt）
+  async callAI(prompt, maxTokens = 100) {
+    try {
+      const result = await this.callSingleAPI(
+        DEEPSEEK_API_URL, DEEPSEEK_API_KEY, DEEPSEEK_MODEL,
+        '你是一个精确的评分助手。只回复数字。', prompt, maxTokens
+      );
+      if (result) return result;
+    } catch (err) {
+      console.warn(`[TurtleSoup-LLM] callAI失败: ${err.message}`);
+    }
+    try {
+      const result = await this.callSingleAPI(
+        MODELSOPE_API_URL, MODELSOPE_API_KEY, MODELSOPE_MODEL,
+        '你是一个精确的评分助手。只回复数字。', prompt, maxTokens
+      );
+      if (result) return result;
+    } catch (err) {}
+    return '50';
   }
 
   async callSingleAPI(apiUrl, apiKey, model, systemPrompt, userPrompt, maxTokens) {

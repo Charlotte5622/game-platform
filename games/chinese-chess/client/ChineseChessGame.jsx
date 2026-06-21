@@ -609,9 +609,14 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
                 {gameResult.reason === 'draw_agreed' && <span>双方同意和棋</span>}
                 {gameResult.reason === 'player_disconnect' && <span>对方断线</span>}
               </div>
-              <button className="chess-result-back-btn" onClick={() => window.location.href = '/lobby'}>
-                返回大厅
-              </button>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                <button className="chess-result-back-btn" onClick={() => window.location.href = '/lobby'}>
+                  返回大厅
+                </button>
+                <button className="chess-result-back-btn" onClick={() => window.location.reload()}>
+                  返回房间
+                </button>
+              </div>
             </div>
           </div>
         )}
