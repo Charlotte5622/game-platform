@@ -157,23 +157,41 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
 
   const getNickname = (pid) => players.find(p => p.id === pid)?.nickname || '玩家';
   const getAvatar = (pid) => players.find(p => p.id === pid)?.avatar || null;
+  const getIsBot = (pid) => players.find(p => p.id === pid)?.isBot || false;
 
   // 游戏结束
   if (phase === 'ended' || (winners && winners.length > 0 && phase === 'ended')) {
     const myWin = winners?.find(w => w.pid === playerId);
     const placementEmoji = { 1: '🥇', 2: '🥈', 3: '🥉' };
+    const placementFace = { 1: '🥳', 2: '😊', 3: '😌' };
+    const myEmoji = myWin ? (placementEmoji[myWin.placement] || '😢') : '😢';
+    const myFace = myWin ? (placementFace[myWin.placement] || '😶') : '😭';
     return (
       <div className="uno">
         <div className="uno-result">
-          <div className="uno-result-icon">{myWin ? (placementEmoji[myWin.placement] || '🎉') : '😢'}</div>
+          <div className="uno-result-icon">{myEmoji}</div>
+          <div className="uno-result-face">{myFace}</div>
           <h2 className="uno-result-title">{myWin ? `第${myWin.placement}名！` : '游戏结束'}</h2>
           <div className="uno-result-standings">
-            {winners?.map(w => (
-              <div key={w.pid} className="uno-result-row">
-                <span>{placementEmoji[w.placement] || `#${w.placement}`}</span>
-                <span>{getNickname(w.pid)}</span>
-              </div>
-            ))}
+            {winners?.map(w => {
+              const avatar = getAvatar(w.pid);
+              const isBot = getIsBot(w.pid);
+              return (
+                <div key={w.pid} className="uno-result-row">
+                  <span className="uno-result-rank">{placementEmoji[w.placement] || `#${w.placement}`}</span>
+                  <div className="uno-result-avatar">
+                    {isBot ? (
+                      <span className="uno-bot-avatar" style={{width:28,height:28,fontSize:16}}>🤖</span>
+                    ) : avatar ? (
+                      <img src={avatar} alt="" style={{width:28,height:28,borderRadius:'50%',objectFit:'cover'}} />
+                    ) : (
+                      <span className="uno-user-avatar" style={{width:28,height:28,fontSize:12}}>{getNickname(w.pid).charAt(0)}</span>
+                    )}
+                  </div>
+                  <span className="uno-result-name">{getNickname(w.pid)}</span>
+                </div>
+              );
+            })}
           </div>
           <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
             <button className="uno-back-btn" onClick={handleLeaveRoom}>返回大厅</button>
@@ -188,6 +206,17 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
     <div className="uno">
       {/* 顶部信息 */}
       <div className="uno-top-bar">
+        <div className="uno-me-info">
+          {getIsBot(playerId) ? (
+            <span className="uno-bot-avatar" style={{width:24,height:24,fontSize:14}}>🤖</span>
+          ) : getAvatar(playerId) ? (
+            <img src={getAvatar(playerId)} alt="" style={{width:24,height:24,borderRadius:'50%',objectFit:'cover'}} />
+          ) : (
+            <span className="uno-user-avatar" style={{width:24,height:24,fontSize:11}}>{getNickname(playerId).charAt(0)}</span>
+          )}
+          <span className="uno-me-name">{getNickname(playerId)}</span>
+          {isFinished && <span className="uno-me-done">✅ 已出完</span>}
+        </div>
         <span className="uno-info-tag">剩余: {deckCount} 张</span>
         <span className={`uno-turn-tag ${isMyTurn ? 'uno-turn-mine' : ''}`}>
           {isMyTurn ? '🟢 轮到你' : `⏳ ${getNickname(playerIds[currentTurn])}`}

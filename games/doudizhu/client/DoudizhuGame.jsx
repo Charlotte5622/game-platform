@@ -253,6 +253,16 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
       <div className="dz-table">
         {/* 顶部信息 */}
         <div className="dz-top-info">
+          <div className="dz-me-info">
+            {me.isBot ? (
+              <span className="dz-bot-avatar" style={{width:24,height:24,fontSize:14}}>🤖</span>
+            ) : me.avatar ? (
+              <img src={me.avatar} alt="" style={{width:24,height:24,borderRadius:'50%',objectFit:'cover'}} />
+            ) : (
+              <span className="dz-user-avatar" style={{width:24,height:24,fontSize:11}}>{me.nickname?.charAt(0) || '👤'}</span>
+            )}
+            <span className="dz-me-name">{me.nickname}</span>
+          </div>
           <span className="dz-room-tag">房间 {roomId?.slice(-6)}</span>
           {landlord && (
             <span className="dz-landlord-tag">
@@ -261,6 +271,18 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
           )}
           {highestBid > 0 && <span className="dz-bid-tag">底分: {highestBid}</span>}
         </div>
+
+        {/* 叫地主阶段 - 牌桌最上方 */}
+        {phase === 'bidding' && (
+          <BiddingPanel
+            isMyTurn={isMyTurn && bids?.[playerId] === undefined}
+            highestBid={highestBid}
+            bids={bids}
+            players={gameState.players}
+            getPlayer={getPlayer}
+            onBid={handleBid}
+          />
+        )}
 
         {/* 底牌 - 牌桌最上方 */}
         {phase === 'playing' && kitty && (
@@ -279,18 +301,6 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
           </div>
 
           <div className="dz-center">
-            {/* 叫分阶段 */}
-            {phase === 'bidding' && (
-              <BiddingPanel
-                isMyTurn={isMyTurn && bids?.[playerId] === undefined}
-                highestBid={highestBid}
-                bids={bids}
-                players={gameState.players}
-                getPlayer={getPlayer}
-                onBid={handleBid}
-              />
-            )}
-
             {/* 出牌区域 */}
             {phase === 'playing' && (
               <div className="dz-play-zone">

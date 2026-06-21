@@ -1499,8 +1499,22 @@ input {
 .dz-top-info {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 16px;
   margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.dz-me-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dz-me-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f0;
 }
 
 .dz-room-tag {
@@ -4045,8 +4059,31 @@ input {
 .uno-top-bar {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.uno-me-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.uno-me-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.uno-me-done {
+  font-size: 11px;
+  color: var(--success);
+  margin-left: 4px;
 }
 
 .uno-info-tag {
@@ -4448,13 +4485,49 @@ input {
 
 .uno-result-icon {
   font-size: 80px;
-  margin-bottom: 20px;
+  margin-bottom: 8px;
+}
+
+.uno-result-face {
+  font-size: 48px;
+  margin-bottom: 16px;
 }
 
 .uno-result-title {
   font-size: 28px;
   font-weight: 800;
   margin-bottom: 28px;
+}
+
+.uno-result-standings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.uno-result-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: var(--bg-input);
+  border-radius: 8px;
+}
+
+.uno-result-rank {
+  font-size: 20px;
+  min-width: 28px;
+  text-align: center;
+}
+
+.uno-result-avatar {
+  flex-shrink: 0;
+}
+
+.uno-result-name {
+  font-weight: 600;
+  font-size: 14px;
 }
 
 .uno-back-btn {
