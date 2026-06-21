@@ -1217,6 +1217,25 @@ input {
   animation: pulse 2s ease-in-out infinite;
 }
 
+.waiting-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.waiting-actions .waiting-ready-btn {
+  flex: 1;
+}
+
+.waiting-actions .waiting-bot-btn {
+  flex: 0 0 auto;
+}
+
+.waiting-actions .waiting-start-btn {
+  flex: 0 0 auto;
+}
+
 .waiting-ready-btn {
   padding: 16px 56px;
   background: linear-gradient(135deg, var(--success) 0%, #00a884 100%);
@@ -1252,6 +1271,44 @@ input {
   color: var(--danger);
   border-color: var(--danger);
   background: rgba(231, 76, 60, 0.08);
+}
+
+.waiting-bot-btn {
+  flex: 1;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, var(--warning) 0%, #f9ca24 100%);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.25s;
+}
+
+.waiting-bot-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(243, 156, 18, 0.3);
+}
+
+.waiting-start-btn {
+  flex: 1;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, var(--success) 0%, #55efc4 100%);
+  color: #0f0f23;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.25s;
+}
+
+.waiting-start-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px var(--success-glow);
 }
 
 /* 错误 */
@@ -3029,6 +3086,20 @@ input {
 
   .waiting-player {
     padding: 14px 16px;
+  }
+
+  .waiting-actions {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .waiting-actions .waiting-ready-btn {
+    flex: 1 1 100%;
+  }
+
+  .waiting-actions .waiting-bot-btn,
+  .waiting-actions .waiting-start-btn {
+    flex: 1 1 45%;
   }
 
   .waiting-ready-btn {

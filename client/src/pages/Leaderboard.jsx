@@ -7,6 +7,7 @@ const GAMES = [
   { id: 'doudizhu', name: '🃏 斗地主' },
   { id: 'mahjong', name: '🀄 四人麻将' },
   { id: 'uno', name: '🃏 UNO' },
+  { id: 'turtle-soup', name: '🐢 海龟汤' },
 ];
 
 const PODIUM_COLORS = ['#ffd700', '#c0c0c0', '#cd7f33']; // 金 银 铜

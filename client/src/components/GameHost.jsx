@@ -95,12 +95,18 @@ export default function GameHost({ gameId, GameComponent }) {
       playSound(gameId, won ? 'win' : 'lose');
     });
 
+    s.on('kicked', (data) => {
+      alert(data?.message || '你被踢出了房间');
+      window.location.href = '/lobby';
+    });
+
     return () => {
       s.off('room_update');
       s.off('game_start');
       s.off('state_update');
       s.off('game_restart');
       s.off('game_over');
+      s.off('kicked');
     };
   }, [gameId]);
 
@@ -399,9 +405,9 @@ export default function GameHost({ gameId, GameComponent }) {
               : `需要 ${effectiveMaxPlayers} 位玩家才能开始`}
           </p>
 
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+          <div className="waiting-actions">
             {!isReady && (
-              <button className="waiting-ready-btn" onClick={handleReady} style={{ flex: 1 }}>
+              <button className="waiting-ready-btn" onClick={handleReady}>
                 准备
               </button>
             )}
@@ -451,7 +457,7 @@ export default function GameHost({ gameId, GameComponent }) {
           </span>
           <h2>{(() => {
             // 象棋等游戏：区分绝杀/超时结果
-            if (gameId === 'chess' && result?.reason) {
+            if (gameId === 'chinese-chess' && result?.reason) {
               const isWin = result?.winners?.includes(playerId) || String(result?.winner) === String(playerId);
               if (result.reason === 'checkmate') {
                 return isWin ? '🏆 绝杀！你赢了！' : '😭 被绝杀，你输了';

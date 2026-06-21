@@ -591,6 +591,7 @@ class TurtleSoupServer extends BaseGameServer {
         currentState.currentTurn = 0;
         currentState.pendingGuesses = {};
         currentState.guessedPlayers = {};
+        if (currentState.voteTimer) clearTimeout(currentState.voteTimer);
         currentState.voteTimer = null;
         this.saveState(roomId, currentState);
         this.syncState(roomId);

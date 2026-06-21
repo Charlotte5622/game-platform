@@ -336,6 +336,11 @@ function setupSocketHandlers(io, prisma) {
         return callback?.({ error: '房间不在等待状态' });
       }
 
+      // 检查是否为房主
+      if (room.hostId !== socket.user.id) {
+        return callback?.({ error: '只有房主可以添加机器人' });
+      }
+
       // 检查游戏是否允许添加机器人
       if (!gameAllowsBots(room.gameId)) {
         return callback?.({ error: '该游戏不支持添加机器人' });
@@ -440,7 +445,10 @@ function setupSocketHandlers(io, prisma) {
         return callback?.({ error: '你不在这个房间中' });
       }
 
-      // 移除机器人（如果有）
+      // 移除机器人（如果有）并停止定时器
+      if (room.players.some(p => p.isBot)) {
+        botManager.stopRoomBots(roomId);
+      }
       room.players = room.players.filter(p => !p.isBot);
       
       // 重置房间状态

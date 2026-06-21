@@ -371,7 +371,7 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
   // 猜拳阶段
   if (phase === 'rps') {
     const myChoice = myRpsChoice || rpsChoices?.[playerId]?.choice;
-    const opponentId = Object.keys(rpsChoices || {}).find(k => k !== playerId);
+    const opponentId = Object.keys(rpsChoices || {}).find(k => String(k) !== String(playerId));
     const opponentReady = !!opponentId;
 
     const handleSendTimerSettings = () => {

@@ -72,9 +72,10 @@ function startBotDecisionLoop(roomId, gameId, botIds, getGameState, onAction) {
           return;
         }
 
-        // 检查是否轮到该机器人
+        // 检查是否轮到该机器人，或者需要响应（碰/杠/吃/和）
         const isBotTurn = isPlayersTurn(gameState, botId, gameId);
-        if (!isBotTurn) return;
+        const needsResponse = gameId === 'mahjong' && checkNeedsResponse(gameState, botId);
+        if (!isBotTurn && !needsResponse) return;
 
         console.log(`[Bot] ${botId} 轮到决策 phase=${gameState.phase} gameId=${gameId}`);
 
