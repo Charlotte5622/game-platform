@@ -1,6 +1,7 @@
 import { io } from 'socket.io-client';
 
 let socket = null;
+let visHandler = null;
 
 /**
  * 获取 Socket.IO 单例连接
@@ -36,14 +37,15 @@ export function getSocket() {
 
   // 手机端后台切换守护：页面恢复可见时确保 socket 连接，不做页面刷新
   if (typeof document !== 'undefined') {
-    document.addEventListener('visibilitychange', () => {
+    visHandler = () => {
       if (document.visibilityState === 'visible' && socket) {
         if (!socket.connected) {
           console.log('📱 页面恢复可见，Socket 断开，尝试重连...');
           socket.connect();
         }
       }
-    });
+    };
+    document.addEventListener('visibilitychange', visHandler);
   }
 
   return socket;
@@ -56,5 +58,9 @@ export function disconnectSocket() {
   if (socket) {
     socket.disconnect();
     socket = null;
+  }
+  if (visHandler) {
+    document.removeEventListener('visibilitychange', visHandler);
+    visHandler = null;
   }
 }

@@ -363,6 +363,7 @@ class DoudizhuServer extends BaseGameServer {
   handleGameOver(roomId, winnerId) {
     const state = this.getState(roomId);
     if (!state || state.phase !== 'playing') return; // 防止重复触发
+    state.phase = 'ended'; // 标记游戏结束，防止重复触发
 
     const isLandlord = winnerId === state.landlord;
     const winners = isLandlord

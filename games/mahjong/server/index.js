@@ -556,7 +556,13 @@ class MahjongServer extends BaseGameServer {
 
   handleWin(roomId, playerId) {
     const state = this.getState(roomId);
-    if (!state) return;
+    if (!state || state.phase === 'ended') return;
+
+    // 验证：自摸必须轮到该玩家，接炮必须在等待响应列表中
+    const playerIdx = state.players.indexOf(playerId);
+    const isCurrentTurn = state.currentTurn === playerIdx;
+    const isResponder = state.waitingAction?.responders?.includes(playerId);
+    if (!isCurrentTurn && !isResponder) return;
 
     const hand = state.hands[playerId];
     const winResult = checkWin(hand);

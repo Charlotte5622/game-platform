@@ -7,6 +7,7 @@ const GAME_ICONS = {
   'chinese-chess': '♟️',
   'uno': '🎴',
   'uno-demo': '🎴',
+  'turtle-soup': '🐢',
 };
 
 // 游戏渐变色映射

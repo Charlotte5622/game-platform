@@ -60,10 +60,16 @@ app.post('/api/leave-room', express.raw({ type: '*/*' }), (req, res) => {
   try {
     const body = JSON.parse(req.body.toString());
     const { roomId, token, userId } = body;
-    if (userId) {
-      roomManager.cleanupUser(userId);
+    if (userId && token) {
+      // 验证 token 有效性
+      const decoded = verifySocketToken(token);
+      if (decoded && decoded.id === userId) {
+        roomManager.cleanupUser(userId);
+      }
     }
-  } catch {}
+  } catch (err) {
+    console.warn('leave-room 解析错误:', err.message);
+  }
   res.json({ ok: true });
 });
 
@@ -84,10 +90,12 @@ server.listen(PORT, () => {
 });
 
 // 优雅关闭
-process.on('SIGTERM', async () => {
-  console.log('收到 SIGTERM 信号，正在关闭...');
+const gracefulShutdown = async (signal) => {
+  console.log(`收到 ${signal} 信号，正在关闭...`);
   await prisma.$disconnect();
   server.close(() => process.exit(0));
-});
+};
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 module.exports = { app, server, io, prisma };

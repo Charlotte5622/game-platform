@@ -252,9 +252,10 @@ function leaveRoom(socketId) {
     return { room: null, roomId, empty: true };
   }
 
-  // 如果离开的是房主，转移房主给第一个玩家
+  // 如果离开的是房主，优先转移给非机器人玩家
   if (leavingPlayer && room.hostId === leavingPlayer.id) {
-    room.hostId = room.players[0].id;
+    const humanPlayer = room.players.find(p => !p.isBot);
+    room.hostId = humanPlayer ? humanPlayer.id : room.players[0].id;
   }
 
   return { room, roomId, empty: false };

@@ -197,6 +197,8 @@ function setupSocketHandlers(io, prisma) {
       avatar: socket.user.avatar,
       }, maxPlayers);
 
+      if (result.error) return callback({ error: result.error });
+
       socket.join(result.room.id);
 
       io.to(result.room.id).emit('room_update', {
@@ -545,6 +547,10 @@ function setupSocketHandlers(io, prisma) {
       const targetSocketId = targetPlayer.socketId;
       io.to(targetSocketId).emit('kicked', { message: '你被房主踢出了房间' });
 
+      // 让被踢者的 socket 离开 Socket.IO 房间
+      const targetSocket = io.sockets.sockets.get(targetSocketId);
+      if (targetSocket) targetSocket.leave(roomId);
+
       // 移除玩家
       room.players = room.players.filter(p => p.id !== targetId);
       roomManager.cleanupPlayer(targetSocketId, targetId);
@@ -567,6 +573,7 @@ function setupSocketHandlers(io, prisma) {
     socket.on('game_action', ({ roomId, action }) => {
       const room = roomManager.getRoom(roomId);
       if (!room || room.state !== 'playing') return;
+      if (!room.players.some(p => p.id === socket.user.id)) return; // 验证玩家在房间中
 
       // BUG-1 修复：使用房间自己的游戏实例，而非全局单例
       if (!room.gameInstance) return;
@@ -579,6 +586,7 @@ function setupSocketHandlers(io, prisma) {
 
       const result = roomManager.leaveRoom(socket.id);
       roomManager.cleanupUser(socket.user.id); // 始终清理 user 映射
+      if (result && result.roomId) socket.leave(result.roomId);
       if (result && !result.empty && result.room) {
         if (result.room.state === 'playing') {
           // 游戏中离开：先发 game_over，再销毁房间

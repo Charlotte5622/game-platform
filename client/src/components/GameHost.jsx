@@ -27,6 +27,8 @@ export default function GameHost({ gameId, GameComponent }) {
   const [phase, setPhase] = useState('choosing'); // choosing | matching | waiting | playing | finished
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
+  const resultEmojiRef = useRef(null);
+  const defeatEmojiRef = useRef(null);
   const [maxPlayers, setMaxPlayers] = useState(null); // 从API获取
   const [hostId, setHostId] = useState(null);
   const [allowBots, setAllowBots] = useState(true); // 默认允许，从API获取
@@ -82,6 +84,8 @@ export default function GameHost({ gameId, GameComponent }) {
 
     s.on('game_restart', (data) => {
       setGameState(data.state);
+      setPhase('playing');
+      setResult(null);
     });
 
     s.on('game_over', (data) => {
@@ -335,7 +339,6 @@ export default function GameHost({ gameId, GameComponent }) {
               </button>
             </div>
           </div>
-          {error && <p className="choosing-error">{error}</p>}
         </div>
       </div>
     );
@@ -439,9 +442,11 @@ export default function GameHost({ gameId, GameComponent }) {
               const isDraw = result?.draw || (!isWin && !result?.winners?.length && !result?.winner);
               if (isDraw) return '🤝';
               if (isWin) {
-                return ['🎉', '🏆', '🥳'][Math.floor(Math.random() * 3)];
+                if (!resultEmojiRef.current) resultEmojiRef.current = ['🎉', '🏆', '🥳'][Math.floor(Math.random() * 3)];
+                return resultEmojiRef.current;
               }
-              return ['😢', '😭', '🥺'][Math.floor(Math.random() * 3)];
+              if (!defeatEmojiRef.current) defeatEmojiRef.current = ['😢', '😭', '🥺'][Math.floor(Math.random() * 3)];
+              return defeatEmojiRef.current;
             })()}
           </span>
           <h2>{(() => {

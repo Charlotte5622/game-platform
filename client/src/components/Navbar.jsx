@@ -8,10 +8,11 @@ export default function Navbar() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
 
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(() => localStorage.getItem('muted') === 'true');
   const toggleMute = () => {
     const next = !muted;
     setMuted(next);
+    localStorage.setItem('muted', String(next));
     setVolume(next ? 0 : 0.5);
   };
 
