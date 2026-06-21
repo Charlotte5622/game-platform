@@ -279,6 +279,7 @@ input {
   border-radius: 8px;
   font-size: 13px;
   transition: all var(--transition);
+  white-space: nowrap;
 }
 
 .navbar-logout:hover {
@@ -600,6 +601,7 @@ input {
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
 .lobby-stat-divider {
@@ -753,6 +755,7 @@ input {
 }
 
 .game-card-tag {
+  white-space: nowrap;
   font-size: 12px;
   color: var(--text-dim);
   background: var(--bg-input);
@@ -773,6 +776,7 @@ input {
   width: 100%;
   text-align: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
 }
 
 .game-card:hover .game-card-play {
@@ -951,6 +955,7 @@ input {
   cursor: pointer;
   transition: all 0.3s ease;
   width: 100%;
+  white-space: nowrap;
 }
 
 .choosing-btn.quick-match {
@@ -1181,6 +1186,7 @@ input {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
 }
 
 .kick-btn:hover {
@@ -1210,6 +1216,7 @@ input {
   transition: all 0.3s ease;
   box-shadow: 0 4px 20px var(--success-glow);
   letter-spacing: 1px;
+  white-space: nowrap;
 }
 
 .waiting-ready-btn:hover {
@@ -1227,6 +1234,7 @@ input {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.25s ease;
+  white-space: nowrap;
 }
 
 .waiting-unready-btn:hover {
@@ -1326,6 +1334,7 @@ input {
   font-weight: 700;
   transition: all 0.3s ease;
   box-shadow: 0 2px 12px var(--primary-glow);
+  white-space: nowrap;
 }
 
 .back-btn:hover {
@@ -1549,6 +1558,7 @@ input {
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition);
+  white-space: nowrap;
 }
 
 .dz-action-pass:hover {
@@ -1567,6 +1577,7 @@ input {
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(6,182,212,0.4);
   transition: all var(--transition);
+  white-space: nowrap;
 }
 
 .dz-action-play:hover {
@@ -1893,6 +1904,7 @@ input {
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition);
+  white-space: nowrap;
 }
 
 .dz-bid-pass {
@@ -2127,6 +2139,7 @@ input {
   cursor: pointer;
   transition: all 0.2s ease;
   border: none;
+  white-space: nowrap;
 }
 
 .mj-action-win {
@@ -2474,6 +2487,7 @@ input {
   cursor: pointer;
   transition: all 0.2s ease;
   border: 2px solid transparent;
+  white-space: nowrap;
 }
 
 .chess-choose-red {
@@ -2695,6 +2709,7 @@ input {
   cursor: pointer;
   transition: all 0.2s;
   border: 1px solid var(--border);
+  white-space: nowrap;
 }
 
 .chess-action-draw {
@@ -2848,6 +2863,7 @@ input {
   .navbar-stats {
     font-size: 12px;
     padding: 0;
+    white-space: nowrap;
   }
 
   .navbar-nickname {
@@ -3642,6 +3658,7 @@ input {
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .chess-timer-info {
@@ -3745,6 +3762,7 @@ input {
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .chess-result-back-btn:hover {
@@ -4001,6 +4019,7 @@ input {
   cursor: pointer;
   transition: all 0.25s ease;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  white-space: nowrap;
 }
 
 .uno-color-btn:hover {
@@ -4026,6 +4045,7 @@ input {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .uno-draw-btn:hover {
@@ -4046,6 +4066,7 @@ input {
   animation: pulse 2s infinite;
   box-shadow: 0 4px 16px var(--danger-glow);
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .uno-uno-btn:hover {
@@ -4216,6 +4237,7 @@ input {
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 /* ========== 战绩页面 ========== */
@@ -5397,6 +5419,7 @@ input {
   font-size: 18px;
   flex-shrink: 0;
   transition: background 0.2s, transform 0.15s;
+  white-space: nowrap;
 }
 
 .ts-send-btn:hover {
@@ -5423,6 +5446,7 @@ input {
   cursor: pointer;
   transition: all 0.2s;
   font-family: inherit;
+  white-space: nowrap;
 }
 
 .ts-skip-btn:hover {
@@ -5442,6 +5466,7 @@ input {
   cursor: pointer;
   transition: all 0.2s;
   font-family: inherit;
+  white-space: nowrap;
 }
 
 .ts-guess-toggle-btn:hover {
@@ -5525,6 +5550,7 @@ input {
   cursor: pointer;
   transition: background 0.2s, transform 0.15s;
   font-family: inherit;
+  white-space: nowrap;
 }
 
 .ts-guess-submit-btn:hover {
@@ -5691,6 +5717,7 @@ input {
   transition: background 0.2s, transform 0.15s;
   font-family: inherit;
   margin-top: 8px;
+  white-space: nowrap;
 }
 
 .ts-back-btn:hover {
