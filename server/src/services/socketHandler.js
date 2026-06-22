@@ -709,7 +709,11 @@ function setupSocketHandlers(io, prisma) {
 
       // 游戏进行中
       if (room.state === 'playing') {
-        const remainingHumans = room.players.filter(p => p.id !== socket.user.id && !p.isBot);
+        // 立即标记该玩家为断线
+        const disconnectedPlayer = room.players.find(p => p.id === socket.user.id);
+        if (disconnectedPlayer) disconnectedPlayer.disconnected = true;
+
+        const remainingHumans = room.players.filter(p => p.id !== socket.user.id && !p.isBot && !p.disconnected);
 
         // 如果剩余玩家全是机器人，给予宽限期等待重连（手机切后台场景）
         if (remainingHumans.length === 0) {
@@ -718,12 +722,11 @@ function setupSocketHandlers(io, prisma) {
           const existing = pendingDisconnects.get(socket.user.id);
           if (existing) clearTimeout(existing.timeout);
 
-          // 5分钟宽限期：手机切后台后有足够时间回来
           const timeout = setTimeout(() => {
             pendingDisconnects.delete(socket.user.id);
             const currentRoom = roomManager.getRoom(roomId);
             if (!currentRoom) return;
-            // 检查用户是否已重连
+            // 检查用户是否已重连（socketId 已更新表示重连）
             const reconnected = currentRoom.players.find(p => p.id === socket.user.id);
             if (reconnected && reconnected.socketId && reconnected.socketId !== socket.id) {
               console.log(`✅ 玩家 ${socket.user.username} 已重连，保留房间`);
@@ -767,7 +770,7 @@ function setupSocketHandlers(io, prisma) {
           const currentRoom = roomManager.getRoom(roomId);
           if (!currentRoom) return;
 
-          const remainingHumans = currentRoom.players.filter(p => p.id !== socket.user.id && !p.isBot);
+          const remainingHumans = currentRoom.players.filter(p => p.id !== socket.user.id && !p.isBot && !p.disconnected);
           if (remainingHumans.length === 0) {
             console.log(`🤖 玩家 ${socket.user.username} 宽限期过期，剩余全是机器人，销毁房间`);
             botManager.stopRoomBots(roomId);

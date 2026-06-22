@@ -358,6 +358,8 @@ function updatePlayerSocket(userId, newSocketId) {
     // 更新为新的 socketId
     player.socketId = newSocketId;
     playerRooms.set(newSocketId, roomId);
+    // 清除断线标记（玩家已重连）
+    player.disconnected = false;
   }
 }
 
