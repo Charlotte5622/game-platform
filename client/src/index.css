@@ -6797,4 +6797,13 @@ input {
     white-space: nowrap;
     font-size: 10px;
   }
+
+  /* 海龟汤聊天消息气泡 — 手机端适配 */
+  .ts-chat-body {
+    max-width: calc(100% - 56px);
+  }
+
+  .ts-chat-msg.ts-chat-mine .ts-chat-body {
+    max-width: calc(100% - 56px);
+  }
 }

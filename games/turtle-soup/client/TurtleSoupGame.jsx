@@ -121,7 +121,7 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
     );
   }
 
-  const { phase, categories, votes, puzzle, currentTurn, questions, guesses, winner, scores, roundNumber, totalRounds, usedCategories, pendingGuesses, guessedPlayers } = gameState;
+  const { phase, categories, votes, puzzle, currentTurn, questions, guesses, winner, scores, roundNumber, totalRounds, usedPuzzles, pendingGuesses, guessedPlayers } = gameState;
   const isMyTurn = gameState.players?.[currentTurn] === playerId;
   const currentTurnPlayer = gameState.players?.[currentTurn];
   const myScore = scores?.[playerId] || 0;
@@ -225,8 +225,7 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
 
   if (phase === 'voting') {
     const voteSummary = {};
-    const availableCategories = (categories || []).filter(c => !(usedCategories || []).includes(c.id));
-    const catsToShow = availableCategories.length > 0 ? availableCategories : (categories || []);
+    const catsToShow = categories || [];
     if (categories) {
       for (const cat of categories) {
         voteSummary[cat.id] = 0;
@@ -474,11 +473,11 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
               <input
                 className="ts-input"
                 type="text"
-                placeholder={isMyTurn ? '输入你的问题（是/否类型）...' : '等待其他玩家提问...'}
+                placeholder={isMyTurn ? '输入你的问题（是/否类型）...' : '等待其他玩家提问…（可提前输入）'}
                 value={questionInput}
                 onChange={e => setQuestionInput(e.target.value)}
                 onKeyDown={e => handleKeyPress(e, 'ask')}
-                disabled={!isMyTurn || hasGuessed}
+                disabled={hasGuessed}
                 maxLength={200}
               />
               <button

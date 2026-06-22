@@ -82,7 +82,7 @@ class TurtleSoupServer extends BaseGameServer {
       maxQuestions: 30,          // 最多30个问题
       roundNumber: 1,            // 当前轮次
       totalRounds: 5,            // 总轮次
-      usedCategories: [],        // 已使用过的分类
+      usedPuzzles: [],        // 已使用过的谜题ID
       roundScores: {},           // { roundNumber: { pid: score } }
       scores: {},                // pid -> total score
       answeringInProgress: false,
@@ -117,7 +117,7 @@ class TurtleSoupServer extends BaseGameServer {
       roundScores: gs.roundScores ? { ...gs.roundScores } : {},
       pendingGuesses: gs.pendingGuesses ? { ...gs.pendingGuesses } : {},
       guessedPlayers: gs.guessedPlayers ? { ...gs.guessedPlayers } : {},
-      usedCategories: gs.usedCategories ? [...gs.usedCategories] : [],
+      usedPuzzles: gs.usedPuzzles ? [...gs.usedPuzzles] : [],
       acknowledgedPlayers: gs.acknowledgedPlayers ? { ...gs.acknowledgedPlayers } : {},
     };
 
@@ -252,17 +252,16 @@ class TurtleSoupServer extends BaseGameServer {
   }
 
   startPuzzlePhase(roomId, state) {
-    // 过滤已使用的分类
-    const availableCategories = CATEGORIES.filter(c => !(state.usedCategories || []).includes(c.id));
-    const catsToVote = availableCategories.length > 0 ? availableCategories : CATEGORIES;
+    // 使用全部CATEGORIES投票（不再按已用分类过滤）
+    const catsToVote = CATEGORIES;
 
-    // 统计票数，选最高票分类（只从可选分类中选）
+    // 统计票数，选最高票分类
     const voteSummary = this.getVoteSummary(state);
     let maxVotes = 0;
     let winnerCategory = catsToVote[0].id;
 
     for (const [catId, count] of Object.entries(voteSummary)) {
-      if (count > maxVotes && catsToVote.some(c => c.id === catId)) {
+      if (count > maxVotes) {
         maxVotes = count;
         winnerCategory = catId;
       }
@@ -270,19 +269,26 @@ class TurtleSoupServer extends BaseGameServer {
 
     // 平票随机选
     const tied = Object.entries(voteSummary)
-      .filter(([catId, count]) => count === maxVotes && catsToVote.some(c => c.id === catId))
+      .filter(([catId, count]) => count === maxVotes)
       .map(([catId]) => catId);
     if (tied.length > 0) winnerCategory = tied[Math.floor(Math.random() * tied.length)];
 
-    // 从该分类随机选一个谜题
-    const categoryPuzzles = PUZZLES.filter(p => p.category === winnerCategory);
-    const puzzle = categoryPuzzles.length > 0
-      ? categoryPuzzles[Math.floor(Math.random() * categoryPuzzles.length)]
-      : PUZZLES[Math.floor(Math.random() * PUZZLES.length)];
+    // 从该分类随机选一个谜题（排除已用谜题ID）
+    if (!state.usedPuzzles) state.usedPuzzles = [];
+    let categoryPuzzles = PUZZLES.filter(p => p.category === winnerCategory && !state.usedPuzzles.includes(p.id));
+    // 如果该分类下所有谜题都用完，fallback到全库排除已用谜题
+    if (categoryPuzzles.length === 0) {
+      categoryPuzzles = PUZZLES.filter(p => !state.usedPuzzles.includes(p.id));
+    }
+    // 如果全库也用完了，重置
+    if (categoryPuzzles.length === 0) {
+      state.usedPuzzles = [];
+      categoryPuzzles = PUZZLES;
+    }
+    const puzzle = categoryPuzzles[Math.floor(Math.random() * categoryPuzzles.length)];
 
-    // 记录已使用的分类
-    if (!state.usedCategories) state.usedCategories = [];
-    state.usedCategories.push(winnerCategory);
+    // 记录已使用的谜题ID
+    state.usedPuzzles.push(puzzle.id);
 
     state.phase = 'playing';
     state.puzzle = puzzle;
@@ -727,7 +733,8 @@ class TurtleSoupServer extends BaseGameServer {
       type: 'new_round',
       roundNumber: currentRound + 1,
       totalRounds: currentState.totalRounds || 5,
-      usedCategories: currentState.usedCategories || [],
+      usedPuzzles: currentState.usedPuzzles || [],
+      scores: { ...currentState.scores },
     });
   }
 
