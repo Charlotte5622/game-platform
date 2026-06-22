@@ -788,50 +788,81 @@ function setupSocketHandlers(io, prisma) {
 
         pendingDisconnects.set(socket.user.id, { roomId, timeout, socketId: socket.id });
       } else {
-        // 等待中：直接移除（不影响游戏）
-        let result = roomManager.leaveRoom(socket.id);
-
-        // leaveRoom 可能因 socketId 不匹配返回 null，用 roomId 兜底
-        if (!result && roomId) {
-          const room = roomManager.getRoom(roomId);
-          if (room) {
-            room.players = room.players.filter(p => p.id !== socket.user.id);
-            if (room.players.length === 0) {
-              result = { room: null, roomId, empty: true };
-            } else {
-              result = { room, roomId, empty: false };
+        // ========== 多Tab竞态检查 ==========
+        // 移除玩家前先检查该用户是否还有其他活跃 socket 连接
+        const activeSocketId = (() => {
+          for (const [sid, info] of connectedSockets.entries()) {
+            if (info.userId === socket.user.id && sid !== socket.id) {
+              const s = io.sockets.sockets.get(sid);
+              if (s) return sid;
             }
           }
+          return null;
+        })();
+
+        if (activeSocketId) {
+          // 用户还有其他连接（多Tab），只清理当前 socket，不移除玩家
+          console.log(`🔀 用户 ${socket.user.username} 有多个连接，保留房间`);
+          roomManager.cleanupUser(socket.user.id);
+          return;
         }
 
-        roomManager.cleanupUser(socket.user.id);
+        // ========== waiting 状态宽限期（30秒） ==========
+        const existing = pendingDisconnects.get(socket.user.id);
+        if (existing) clearTimeout(existing.timeout);
 
-        if (result && !result.empty && result.room) {
-          // 如果剩余玩家全是机器人，彻底销毁房间
-          const remainingHumans = result.room.players.filter(p => !p.isBot);
-          if (remainingHumans.length === 0) {
-            console.log(`🤖 房间 ${roomId} 剩余全是机器人，彻底销毁`);
-            botManager.stopRoomBots(roomId);
-            roomManager.destroyRoom(roomId);
-            broadcastStatsDebounced(io);
+        console.log(`⏳ 玩家 ${socket.user.username} 在等待阶段断线，30秒宽限期`);
+
+        const timeout = setTimeout(() => {
+          pendingDisconnects.delete(socket.user.id);
+          const currentRoom = roomManager.getRoom(roomId);
+          if (!currentRoom) return;
+
+          // 检查是否已重连
+          const player = currentRoom.players.find(p => p.id === socket.user.id);
+          if (player && player.socketId && player.socketId !== socket.id) {
+            console.log(`✅ 玩家 ${socket.user.username} 已重连，保留房间`);
             return;
           }
 
-          io.to(roomId).emit('room_update', {
-            roomId,
-            roomCode: result.room.roomCode,
-            hostId: result.room.hostId,
-            players: result.room.players.map(p => ({
-              id: p.id, nickname: p.nickname, avatar: p.avatar, ready: p.ready,
-            })),
-            state: result.room.state,
-          });
-        } else if (result && result.empty) {
-          // 房间已空，确保清理
-          roomManager.destroyRoom(roomId);
-        }
-        broadcastStatsDebounced(io);
+          // 超时未重连，移除玩家
+          let result = roomManager.leaveRoom(player ? player.socketId : socket.id);
+          if (!result && roomId) {
+            const room = roomManager.getRoom(roomId);
+            if (room) {
+              room.players = room.players.filter(p => p.id !== socket.user.id);
+              result = { room, roomId, empty: room.players.length === 0 };
+            }
+          }
+
+          roomManager.cleanupUser(socket.user.id);
+
+          if (result && !result.empty && result.room) {
+            const remainingHumans = result.room.players.filter(p => !p.isBot);
+            if (remainingHumans.length === 0) {
+              console.log(`🤖 房间 ${roomId} 剩余全是机器人，彻底销毁`);
+              botManager.stopRoomBots(roomId);
+              roomManager.destroyRoom(roomId);
+              broadcastStatsDebounced(io);
+              return;
+            }
+            io.to(roomId).emit('room_update', {
+              roomId,
+              roomCode: result.room.roomCode,
+              hostId: result.room.hostId,
+              players: result.room.players.map(p => ({
+                id: p.id, nickname: p.nickname, avatar: p.avatar, ready: p.ready, isBot: p.isBot || false,
+              })),
+            });
+          } else if (result && result.empty) {
+            roomManager.destroyRoom(roomId);
+            broadcastStatsDebounced(io);
+          }
+        }, 30 * 1000); // 30秒宽限期
+
+        pendingDisconnects.set(socket.user.id, { roomId, timeout, socketId: socket.id });
       }
+
     });
   });
 

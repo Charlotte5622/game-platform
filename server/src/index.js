@@ -61,9 +61,21 @@ app.post('/api/leave-room', express.raw({ type: '*/*' }), (req, res) => {
     const body = JSON.parse(req.body.toString());
     const { roomId, token, userId } = body;
     if (userId && token) {
-      // 验证 token 有效性
       const decoded = verifySocketToken(token);
       if (decoded && decoded.id === userId) {
+        const userRoom = roomManager.getUserRoom(userId);
+        if (userRoom) {
+          const { roomId: rid, room } = userRoom;
+          if (room) {
+            // 从 players 数组移除该用户
+            room.players = room.players.filter(p => p.id !== userId);
+            // 如果只剩机器人或房间已空，销毁房间
+            const humans = room.players.filter(p => !p.isBot);
+            if (humans.length === 0) {
+              roomManager.destroyRoom(rid);
+            }
+          }
+        }
         roomManager.cleanupUser(userId);
       }
     }
@@ -72,6 +84,7 @@ app.post('/api/leave-room', express.raw({ type: '*/*' }), (req, res) => {
   }
   res.json({ ok: true });
 });
+
 
 // WebSocket 处理
 setupSocketHandlers(io, prisma);
