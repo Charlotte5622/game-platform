@@ -210,8 +210,11 @@ class GomokuServer extends BaseGameServer {
     state.winner = opponentId;
     this.saveState(roomId, state);
 
-    // 先同步状态，再广播结果
-    this.syncState(roomId);
+    this.doBroadcast(roomId, {
+      type: 'state_update',
+      state: this.getVisibleState(state, pid),
+    });
+
     this.doBroadcast(roomId, {
       type: 'game_over',
       reason: 'resign',
@@ -251,6 +254,11 @@ class GomokuServer extends BaseGameServer {
     if (accept) {
       state.phase = 'ended';
       this.saveState(roomId, state);
+
+      this.doBroadcast(roomId, {
+        type: 'state_update',
+        state: this.getVisibleState(state, pid),
+      });
 
       this.doBroadcast(roomId, {
         type: 'game_over',

@@ -966,7 +966,7 @@ function decideGomoku(gameState, botId) {
     }
   }
 
-  return bestMove;
+  return bestMove ? { type: 'place', row: bestMove.row, col: bestMove.col } : null;
 }
 
 module.exports = { getBotAction, callLLM, chooseBestCard, getChineseChessAction, decideGomoku };
