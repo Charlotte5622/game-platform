@@ -573,7 +573,7 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
         {moveHistory && moveHistory.length > 0 && (
           <div className="chess-history" ref={historyRef}>
             <div className="chess-history-title">走棋记录</div>
-            {moveHistory.slice(-12).map((m, i) => (
+            {moveHistory.slice(-8).map((m, i) => (
               <div key={i} className={`chess-history-item ${m.color}`}>
                 <span className="chess-history-piece">{m.piece}</span>
                 <span className="chess-history-move">

@@ -2981,6 +2981,8 @@ input {
   .chess-history {
     max-height: calc(100vh - 300px);
     overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 }
 
@@ -2995,6 +2997,12 @@ input {
   border-radius: var(--radius);
   height: 140px;
   overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.chess-history::-webkit-scrollbar {
+  display: none;
 }
 
 .chess-history-title {
@@ -3017,7 +3025,7 @@ input {
 }
 
 .chess-history-item.red { color: #dc2626; }
-.chess-history-item.black { color: #1a1a2e; }
+.chess-history-item.black { color: var(--text); }
 
 .chess-history-piece {
   font-weight: 700;
