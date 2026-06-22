@@ -704,7 +704,7 @@ function setupSocketHandlers(io, prisma) {
 
         // 如果剩余玩家全是机器人，给予宽限期等待重连（手机切后台场景）
         if (remainingHumans.length === 0) {
-          console.log(`⏳ 玩家 ${socket.user.username} 断线，剩余全是机器人，等待重连（5分钟宽限期）`);
+          console.log(`⏳ 玩家 ${socket.user.username} 断线，剩余全是机器人，等待重连（2分钟宽限期）`);
 
           const existing = pendingDisconnects.get(socket.user.id);
           if (existing) clearTimeout(existing.timeout);
@@ -731,7 +731,7 @@ function setupSocketHandlers(io, prisma) {
             roomManager.destroyRoom(roomId);
             roomManager.cleanupUser(socket.user.id);
             broadcastStatsDebounced(io);
-          }, 5 * 60 * 1000); // 5分钟
+          }, 2 * 60 * 1000); // 2分钟
 
           pendingDisconnects.set(socket.user.id, { roomId, timeout, socketId: socket.id });
           return;
