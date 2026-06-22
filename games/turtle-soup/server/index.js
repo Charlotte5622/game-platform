@@ -96,8 +96,14 @@ class TurtleSoupServer extends BaseGameServer {
 
   getVisibleState(gs, pid) {
     // 深拷贝防止客户端修改服务端状态
+    // 注意：排除所有不可序列化的字段（Timer对象会导致socket.io栈溢出）
+    const {
+      revealTimer, voteTimer, _turnTimer, _advancing, _isFinalReveal,
+      answeringInProgress,
+      ...rest
+    } = gs;
     const visible = {
-      ...gs,
+      ...rest,
       questions: gs.questions ? gs.questions.map(q => ({ ...q })) : [],
       guesses: gs.guesses ? gs.guesses.map(g => ({ ...g })) : [],
       votes: gs.votes ? { ...gs.votes } : {},

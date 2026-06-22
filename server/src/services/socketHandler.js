@@ -29,8 +29,8 @@ function broadcastStatsDebounced(io) {
  * 设置 WebSocket 事件处理
  */
 function setupSocketHandlers(io, prisma) {
-  // 认证中间件
-  io.use((socket, next) => {
+  // 认证中间件（同时从数据库刷新头像）
+  io.use(async (socket, next) => {
     const token = socket.handshake.auth.token;
     if (!token) {
       return next(new Error('未提供认证 Token'));
@@ -42,6 +42,22 @@ function setupSocketHandlers(io, prisma) {
     }
 
     socket.user = user;
+
+    // 从数据库获取最新头像（JWT中的avatar可能是旧值）
+    try {
+      if (prisma && user.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { avatar: true },
+        });
+        if (dbUser) {
+          socket.user.avatar = dbUser.avatar || null;
+        }
+      }
+    } catch (err) {
+      console.warn('[Socket] 刷新用户头像失败:', err.message);
+    }
+
     next();
   });
 

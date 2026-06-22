@@ -79,8 +79,8 @@ class ChineseChessServer extends BaseGameServer {
   }
 
   getVisibleState(gs, pid) {
-    // 象棋信息完全公开，但排除内部字段
-    const { _turnTimer, ...visible } = gs;
+    // 象棋信息完全公开，但排除内部字段（Timer对象会导致socket.io栈溢出）
+    const { _turnTimer, _turnTimerFired, drawRequest, ...visible } = gs;
     return visible;
   }
 
