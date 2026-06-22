@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../services/api';
 
 const GAMES = [
-  { id: 'chinese-chess', name: '♟️ 中国象棋' },
-  { id: 'doudizhu', name: '🃏 斗地主' },
-  { id: 'mahjong', name: '🀄 四人麻将' },
-  { id: 'uno', name: '🃏 UNO' },
-  { id: 'turtle-soup', name: '🐢 海龟汤' },
+  { id: 'chinese-chess', name: '中国象棋', icon: '♟️' },
+  { id: 'doudizhu', name: '斗地主', icon: '🃏' },
+  { id: 'mahjong', name: '四人麻将', icon: '🀄' },
+  { id: 'uno', name: 'UNO', icon: '🃏' },
+  { id: 'turtle-soup', name: '海龟汤', icon: '🐢' },
+  { id: 'gomoku', name: '五子棋', icon: '⚫' },
 ];
 
 const PODIUM_COLORS = ['#ffd700', '#c0c0c0', '#cd7f33']; // 金 银 铜
@@ -43,6 +44,48 @@ function PodiumSlot({ player, rank, isFirst }) {
   );
 }
 
+/**
+ * 液体玻璃下拉选择框
+ */
+function GlassDropdown({ games, selected, onSelect }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const selectedGame = games.find(g => g.id === selected) || games[0];
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  return (
+    <div className={`lb-dropdown${open ? ' lb-dropdown-open' : ''}`} ref={ref}>
+      <button className="lb-dropdown-trigger" onClick={() => setOpen(!open)}>
+        <span className="lb-dropdown-icon">{selectedGame.icon}</span>
+        <span className="lb-dropdown-text">{selectedGame.name}</span>
+        <span className="lb-dropdown-arrow">▾</span>
+      </button>
+      {open && (
+        <div className="lb-dropdown-menu">
+          {games.map(g => (
+            <button
+              key={g.id}
+              className={`lb-dropdown-item${g.id === selected ? ' lb-dropdown-active' : ''}`}
+              onClick={() => { onSelect(g.id); setOpen(false); }}
+            >
+              <span className="lb-dropdown-item-icon">{g.icon}</span>
+              <span className="lb-dropdown-item-text">{g.name}</span>
+              {g.id === selected && <span className="lb-dropdown-check">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Leaderboard() {
   const { gameId: urlGameId } = useParams();
   const [selectedGame, setSelectedGame] = useState(urlGameId || 'chinese-chess');
@@ -64,17 +107,9 @@ export default function Leaderboard() {
     <div className="lb-page">
       <h1 className="lb-title">🏆 排行榜</h1>
 
-      {/* 游戏切换 */}
-      <div className="lb-tabs">
-        {GAMES.map(g => (
-          <button
-            key={g.id}
-            className={`lb-tab${selectedGame === g.id ? ' lb-tab-active' : ''}`}
-            onClick={() => setSelectedGame(g.id)}
-          >
-            {g.name}
-          </button>
-        ))}
+      {/* 液体玻璃下拉选择 */}
+      <div className="lb-selector-wrap">
+        <GlassDropdown games={GAMES} selected={selectedGame} onSelect={setSelectedGame} />
       </div>
 
       {loading ? (

@@ -12,6 +12,7 @@ const GAME_NAMES = {
   'chinese-chess': '♟️ 中国象棋',
   'uno': '🃏 UNO',
   'turtle-soup': '🐢 海龟汤',
+  'gomoku': '⚫ 五子棋',
 };
 
 function formatDuration(seconds) {
