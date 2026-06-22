@@ -2993,7 +2993,7 @@ input {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  max-height: 300px;
+  height: 140px;
   overflow-y: auto;
 }
 
@@ -6208,7 +6208,7 @@ input {
 .ts-chat-body {
   display: flex;
   flex-direction: column;
-  max-width: 75%;
+  max-width: 85%;
 }
 
 .ts-chat-bubble {
@@ -7421,10 +7421,10 @@ input {
 
   /* 海龟汤聊天消息气泡 — 手机端适配 */
   .ts-chat-body {
-    max-width: calc(100% - 56px);
+    max-width: calc(100% - 44px);
   }
 
   .ts-chat-msg.ts-chat-mine .ts-chat-body {
-    max-width: calc(100% - 56px);
+    max-width: calc(100% - 44px);
   }
 }

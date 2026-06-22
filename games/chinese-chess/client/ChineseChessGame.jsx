@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { playSound } from '../../../client/src/services/sounds';
 
 // 猜拳图标
@@ -329,6 +329,13 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
 
   const { phase, colorMap, pieces, turnColor, currentTurn, check, moveHistory, rpsChoices, rpsRound, winner } = gameState;
 
+  const historyRef = useRef(null);
+  useEffect(() => {
+    if (historyRef.current) {
+      historyRef.current.scrollTop = historyRef.current.scrollHeight;
+    }
+  }, [moveHistory]);
+
   // JSON 传输后所有 key 变为字符串，必须用 String(playerId) 查找
   const myColor = colorMap ? colorMap[String(playerId)] : undefined;
   const isMyTurn = phase === 'playing' && !!myColor && myColor === turnColor;
@@ -564,7 +571,7 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
 
         {/* 走棋记录 */}
         {moveHistory && moveHistory.length > 0 && (
-          <div className="chess-history">
+          <div className="chess-history" ref={historyRef}>
             <div className="chess-history-title">走棋记录</div>
             {moveHistory.slice(-12).map((m, i) => (
               <div key={i} className={`chess-history-item ${m.color}`}>
