@@ -43,6 +43,10 @@ export default function GameHost({ gameId, GameComponent }) {
 
   const playerId = useMemo(getPlayerId, []);
   const navigate = useNavigate();
+  const navigateRef = useRef(navigate);
+  useEffect(() => { navigateRef.current = navigate; }, [navigate]);
+  const [leaveConfirm, setLeaveConfirm] = useState(false);
+  const hasPushedRef = useRef(false);
 
   // 获取游戏人数配置
   useEffect(() => {
@@ -264,27 +268,28 @@ export default function GameHost({ gameId, GameComponent }) {
       navigated = true;
       localStorage.removeItem('activeRoomId');
       localStorage.removeItem('activeGameId');
-      navigate('/lobby');
+      navigateRef.current('/lobby');
     };
     if (socket && socket.connected) {
-      socket.emit('leave_room', doNavigate);
-      setTimeout(doNavigate, 800); // 兜底
-    } else {
-      doNavigate();
+      socket.emit('leave_room');
     }
-  }, [socket, navigate]);
+    doNavigate(); // 立即导航，不等服务端
+  }, [socket]);
 
-  // 确认离开房间
+  // 确认离开房间（弹出自定义弹窗）
   const confirmLeave = useCallback(() => {
-    const isAlone = playersRef.current.length <= 1;
-    const message = isAlone
-      ? '当前房间只有你一人，离开后房间将被关闭。确认离开？'
-      : '确认离开房间？';
+    setLeaveConfirm(true);
+  }, []);
 
-    if (window.confirm(message)) {
-      handleLeaveRoom();
-    }
+  const handleConfirmLeave = useCallback(() => {
+    setLeaveConfirm(false);
+    hasLeftRef.current = true;
+    handleLeaveRoom();
   }, [handleLeaveRoom]);
+
+  const handleCancelLeave = useCallback(() => {
+    setLeaveConfirm(false);
+  }, []);
 
   // 返回房间（游戏结束后重新加入）
   const handleReturnToRoom = useCallback(() => {
@@ -324,31 +329,16 @@ export default function GameHost({ gameId, GameComponent }) {
 
     // 手机返回键 / 浏览器后退：确实要离开
     // 进入房间时推入一个历史记录条目，用于检测手机返回手势
-    window.history.pushState(null, '', window.location.href);
+    if (!hasPushedRef.current) {
+      window.history.pushState(null, '', window.location.href);
+      hasPushedRef.current = true;
+    }
 
     const handlePopState = () => {
       if (hasLeftRef.current) return;
-
-      // 弹出确认框
-      const isAlone = playersRef.current.length <= 1;
-      const message = isAlone
-        ? '当前房间只有你一人，离开后房间将被关闭。确认离开？'
-        : '确认离开房间？';
-
-      // 恢复 history 状态（阻止浏览器后退）
+      // 再次 pushState 阻止浏览器后退
       window.history.pushState(null, '', window.location.href);
-
-      if (!window.confirm(message)) {
-        return; // 用户取消
-      }
-
-      hasLeftRef.current = true;
-      try {
-        socket.emit('leave_room');
-        localStorage.removeItem('activeRoomId');
-        localStorage.removeItem('activeGameId');
-        navigate('/lobby');
-      } catch {}
+      setLeaveConfirm(true);
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -356,7 +346,7 @@ export default function GameHost({ gameId, GameComponent }) {
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [socket, roomId, navigate]);
+  }, [socket, roomId]);
 
   // ===== 各阶段渲染 =====
 
@@ -511,6 +501,23 @@ export default function GameHost({ gameId, GameComponent }) {
             </div>
           )}
         </div>
+
+        {leaveConfirm && (
+          <div className="modal-overlay" onClick={handleCancelLeave}>
+            <div className="modal-box" onClick={e => e.stopPropagation()}>
+              <div className="modal-title">确认离开</div>
+              <div className="modal-message">
+                {playersRef.current.length <= 1
+                  ? '当前房间只有你一人，离开后房间将被关闭。'
+                  : '确认离开房间？'}
+              </div>
+              <div className="modal-actions">
+                <button className="modal-btn modal-btn-cancel" onClick={handleCancelLeave}>取消</button>
+                <button className="modal-btn modal-btn-confirm" onClick={handleConfirmLeave}>离开</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -576,14 +583,32 @@ export default function GameHost({ gameId, GameComponent }) {
 
   // 游戏进行中
   return (
-    <GameComponent
-      socket={socket}
-      roomId={roomId}
-      playerId={playerId}
-      gameState={gameState}
-      onAction={handleAction}
-      players={players}
-      onReturnToRoom={handleReturnToRoom}
-    />
+    <>
+      <GameComponent
+        socket={socket}
+        roomId={roomId}
+        playerId={playerId}
+        gameState={gameState}
+        onAction={handleAction}
+        players={players}
+        onReturnToRoom={handleReturnToRoom}
+      />
+      {leaveConfirm && (
+        <div className="modal-overlay" onClick={handleCancelLeave}>
+          <div className="modal-box" onClick={e => e.stopPropagation()}>
+            <div className="modal-title">确认离开</div>
+            <div className="modal-message">
+              {playersRef.current.length <= 1
+                ? '当前房间只有你一人，离开后房间将被关闭。'
+                : '确认离开房间？'}
+            </div>
+            <div className="modal-actions">
+              <button className="modal-btn modal-btn-cancel" onClick={handleCancelLeave}>取消</button>
+              <button className="modal-btn modal-btn-confirm" onClick={handleConfirmLeave}>离开</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
