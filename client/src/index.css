@@ -404,11 +404,7 @@ input {
   z-index: 1000;
 
   /* 液体玻璃效果 — 减弱模糊以保证颜色饱满填充 */
-  backdrop-filter: blur(4px) saturate(140%);
-  -webkit-backdrop-filter: blur(4px) saturate(140%);
-  box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 .theme-option::before {
@@ -416,7 +412,6 @@ input {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 40%);
   pointer-events: none;
 }
 
@@ -6150,6 +6145,7 @@ input {
 .ts-chat {
   flex: 1;
   overflow-y: auto;
+  min-height: 0;
   padding: 12px 16px;
   display: flex;
   flex-direction: column;
@@ -6377,9 +6373,13 @@ input {
 /* --- Actions / Input Bar --- */
 .ts-actions {
   flex-shrink: 0;
+  margin-top: auto;
 }
 
 .ts-input-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
   gap: 8px;

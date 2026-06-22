@@ -119,6 +119,31 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
     };
   }, [socket, players, playerId]);
 
+  // 处理手机键盘弹出 - 动态调整容器高度
+  useEffect(() => {
+    const el = document.querySelector('.ts');
+    if (!el || !window.visualViewport) return;
+    
+    const handler = () => {
+      const vv = window.visualViewport;
+      el.style.height = vv.height + 'px';
+      el.style.maxHeight = vv.height + 'px';
+      // 自动滚动到底部
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+    
+    window.visualViewport.addEventListener('resize', handler);
+    window.visualViewport.addEventListener('scroll', handler);
+    handler();
+    
+    return () => {
+      window.visualViewport.removeEventListener('resize', handler);
+      window.visualViewport.removeEventListener('scroll', handler);
+      el.style.height = '';
+      el.style.maxHeight = '';
+    };
+  }, []);
+
   if (!gameState) {
     return (
       <div className="ts-loading">
