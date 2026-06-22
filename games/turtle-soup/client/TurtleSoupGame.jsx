@@ -42,7 +42,14 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [gameState?.questions?.length, gameState?.guesses?.length]);
+  }, [
+    gameState?.questions?.length,
+    gameState?.guesses?.length,
+    // 依赖最后一条消息的答案字段（AI回答时触发滚动）
+    gameState?.questions?.[gameState.questions.length - 1]?.answer,
+    // 依赖最后一条猜测的结果字段
+    gameState?.guesses?.[gameState.guesses.length - 1]?.result,
+  ]);
 
   // 倒计时 effect
   useEffect(() => {
