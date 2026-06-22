@@ -8,6 +8,7 @@ const GAME_ICONS = {
   'uno': '🎴',
   'uno-demo': '🎴',
   'turtle-soup': '🐢',
+  'gomoku': '⚫',
 };
 
 // 游戏渐变色映射
