@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getSocket } from '../services/socket';
 import { playSound } from '../services/sounds';
 
@@ -39,6 +40,7 @@ export default function GameHost({ gameId, GameComponent }) {
   const isVariablePlayers = effectiveMinPlayers !== effectiveMaxPlayers;
 
   const playerId = useMemo(getPlayerId, []);
+  const navigate = useNavigate();
 
   // 获取游戏人数配置
   useEffect(() => {
@@ -97,7 +99,7 @@ export default function GameHost({ gameId, GameComponent }) {
 
     s.on('kicked', (data) => {
       alert(data?.message || '你被踢出了房间');
-      window.location.href = '/lobby';
+      navigate('/lobby');
     });
 
     return () => {
@@ -220,8 +222,8 @@ export default function GameHost({ gameId, GameComponent }) {
   // 返回大厅
   const handleLeaveRoom = useCallback(() => {
     if (socket) socket.emit('leave_room');
-    window.location.href = '/lobby';
-  }, [socket]);
+    navigate('/lobby');
+  }, [socket, navigate]);
 
   // 返回房间（游戏结束后重新加入）
   const handleReturnToRoom = useCallback(() => {
@@ -229,7 +231,7 @@ export default function GameHost({ gameId, GameComponent }) {
     socket.emit('return_to_room', { roomId }, (response) => {
       if (response.error) {
         alert(response.error);
-        window.location.href = '/lobby';
+        navigate('/lobby');
         return;
       }
       // 成功返回房间，重置状态
@@ -485,7 +487,7 @@ export default function GameHost({ gameId, GameComponent }) {
             </div>
           )}
           <div className="error-box-actions">
-            <button className="back-btn" onClick={() => (window.location.href = '/lobby')}>
+            <button className="back-btn" onClick={() => navigate('/lobby')}>
               返回大厅
             </button>
             <button className="back-btn" onClick={handleReturnToRoom}>

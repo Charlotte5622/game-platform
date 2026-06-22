@@ -353,6 +353,9 @@ class TurtleSoupServer extends BaseGameServer {
     };
     state.questions.push(questionEntry);
 
+    // 立即同步状态，让客户端显示问题（AI思考中）
+    this.syncState(roomId);
+
     // 异步调用 AI 判别
     this.judgeQuestion(roomId, state, questionEntry);
   }

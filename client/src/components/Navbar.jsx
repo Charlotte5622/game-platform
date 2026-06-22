@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { disconnectSocket } from '../services/socket';
 import { setVolume } from '../services/sounds';
@@ -8,12 +8,12 @@ export default function Navbar() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
 
-  const [muted, setMuted] = useState(() => {
-    const stored = localStorage.getItem('muted') === 'true';
-    // 初始化时立即设置音量
-    setVolume(stored ? 0 : 0.5);
-    return stored;
-  });
+  const [muted, setMuted] = useState(() => localStorage.getItem('muted') === 'true');
+
+  // 挂载时根据 localStorage 同步音量
+  useEffect(() => {
+    setVolume(muted ? 0 : 0.5);
+  }, []);
   const toggleMute = () => {
     const next = !muted;
     setMuted(next);
