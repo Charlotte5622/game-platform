@@ -786,8 +786,23 @@ function setupSocketHandlers(io, prisma) {
         pendingDisconnects.set(socket.user.id, { roomId, timeout, socketId: socket.id });
       } else {
         // 等待中：直接移除（不影响游戏）
-        const result = roomManager.leaveRoom(socket.id);
+        let result = roomManager.leaveRoom(socket.id);
+
+        // leaveRoom 可能因 socketId 不匹配返回 null，用 roomId 兜底
+        if (!result && roomId) {
+          const room = roomManager.getRoom(roomId);
+          if (room) {
+            room.players = room.players.filter(p => p.id !== socket.user.id);
+            if (room.players.length === 0) {
+              result = { room: null, roomId, empty: true };
+            } else {
+              result = { room, roomId, empty: false };
+            }
+          }
+        }
+
         roomManager.cleanupUser(socket.user.id);
+
         if (result && !result.empty && result.room) {
           // 如果剩余玩家全是机器人，彻底销毁房间
           const remainingHumans = result.room.players.filter(p => !p.isBot);
@@ -808,6 +823,9 @@ function setupSocketHandlers(io, prisma) {
             })),
             state: result.room.state,
           });
+        } else if (result && result.empty) {
+          // 房间已空，确保清理
+          roomManager.destroyRoom(roomId);
         }
         broadcastStatsDebounced(io);
       }
