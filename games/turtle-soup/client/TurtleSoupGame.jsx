@@ -139,14 +139,14 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
   };
   const getScore = (pid) => scores?.[pid] || 0;
 
-  // 头像渲染组件
+  // 头像渲染组件（avatar是emoji，直接当文字渲染）
   const AvatarImg = ({ pid, size = 32 }) => {
     const avatar = getAvatar(pid);
     const nickname = getNickname(pid);
     if (avatar) {
-      return <img src={avatar} alt={nickname} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />;
+      return <span style={{ fontSize: size * 0.7, lineHeight: 1 }}>{avatar}</span>;
     }
-    return <span className="ts-chat-avatar-text">{nickname.charAt(0)}</span>;
+    return <span style={{ fontSize: size * 0.5, lineHeight: 1, color: '#999' }}>{nickname.charAt(0)}</span>;
   };
 
   const emitAction = (action) => {
