@@ -157,6 +157,10 @@ function isPlayersTurn(gameState, botId, gameId) {
     }
   }
 
+  if (gameId === 'gomoku') {
+    return gameState.phase === 'playing' && gameState.players?.[gameState.currentTurn] === botId;
+  }
+
   return false;
 }
 

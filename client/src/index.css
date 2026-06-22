@@ -6757,6 +6757,403 @@ input {
   }
 }
 
+
+/* =============================================
+   五子棋 (Gomoku) 样式
+   ============================================= */
+
+.gomoku {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  animation: fadeIn 0.4s ease;
+}
+
+.gomoku-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 64px);
+  gap: 16px;
+  color: var(--text-muted);
+}
+
+.gomoku-loading-spinner {
+  font-size: 64px;
+  animation: float 2s ease-in-out infinite;
+}
+
+/* 顶部信息栏 */
+.gomoku-top-bar {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.gomoku-info-tag {
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.gomoku-turn-active {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.3);
+  font-weight: 700;
+  animation: pulse 1s infinite;
+}
+
+/* 主体布局 */
+.gomoku-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+/* 棋盘 */
+.gomoku-board-outer {
+  display: flex;
+  justify-content: center;
+  padding: 0;
+}
+
+.gomoku-board-svg {
+  width: 100%;
+  max-width: 620px;
+  height: auto;
+  border-radius: 12px;
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.1),
+    0 12px 40px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* 侧边面板 */
+.gomoku-side-panel {
+  width: 100%;
+  max-width: 620px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.gomoku-side-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.gomoku-side-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.gomoku-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.gomoku-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gomoku-btn-draw {
+  background: var(--bg-input);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.gomoku-btn-draw:hover:not(:disabled) {
+  border-color: var(--secondary);
+  background: rgba(0, 206, 201, 0.1);
+}
+
+.gomoku-btn-resign {
+  background: var(--bg-input);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.gomoku-btn-resign:hover:not(:disabled) {
+  border-color: var(--danger);
+  background: rgba(231, 76, 60, 0.1);
+}
+
+/* 落子记录 */
+.gomoku-move-list {
+  max-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gomoku-move-empty {
+  color: var(--text-dim);
+  font-size: 13px;
+  text-align: center;
+  padding: 12px 0;
+}
+
+.gomoku-move-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.gomoku-move-item.black {
+  background: rgba(30, 30, 30, 0.08);
+}
+
+.gomoku-move-item.white {
+  background: rgba(220, 220, 220, 0.08);
+}
+
+.gomoku-move-num {
+  font-weight: 600;
+  color: var(--text-dim);
+  min-width: 32px;
+}
+
+.gomoku-move-dot {
+  font-size: 12px;
+}
+
+.gomoku-move-pos {
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* 错误提示 */
+.gomoku-error {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--danger);
+  color: white;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+  box-shadow: 0 4px 20px rgba(231, 76, 60, 0.4);
+}
+
+/* 结果弹窗 */
+.gomoku-result-modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--bg-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.gomoku-result-modal-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 40px 32px;
+  text-align: center;
+  min-width: 300px;
+  max-width: 400px;
+  animation: slideUp 0.4s ease;
+}
+
+.gomoku-result-win {
+  border-color: rgba(0, 184, 148, 0.4);
+  box-shadow: 0 0 40px rgba(0, 184, 148, 0.15);
+}
+
+.gomoku-result-lose {
+  border-color: rgba(231, 76, 60, 0.3);
+  box-shadow: 0 0 40px rgba(231, 76, 60, 0.1);
+}
+
+.gomoku-result-draw {
+  border-color: rgba(0, 206, 201, 0.3);
+  box-shadow: 0 0 40px rgba(0, 206, 201, 0.1);
+}
+
+.gomoku-result-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.gomoku-result-title {
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.gomoku-result-reason {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.gomoku-result-details {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin-bottom: 24px;
+}
+
+.gomoku-result-back-btn {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  color: white;
+  background: var(--primary);
+  transition: all 0.2s ease;
+}
+
+.gomoku-result-back-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+/* 求和/投降弹窗 */
+.gomoku-draw-modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--bg-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  animation: fadeIn 0.3s ease;
+}
+
+.gomoku-draw-modal-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px 32px;
+  text-align: center;
+  animation: slideUp 0.3s ease;
+}
+
+.gomoku-draw-modal-content p {
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+
+.gomoku-draw-modal-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.gomoku-draw-accept {
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  color: white;
+  background: var(--success);
+  transition: all 0.2s ease;
+}
+
+.gomoku-draw-accept:hover {
+  transform: translateY(-1px);
+}
+
+.gomoku-draw-reject {
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  color: white;
+  background: var(--danger);
+  transition: all 0.2s ease;
+}
+
+.gomoku-draw-reject:hover {
+  transform: translateY(-1px);
+}
+
+/* 落子动画 */
+@keyframes gomokuPlace {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* 桌面端：水平排列 */
+@media (min-width: 769px) {
+  .gomoku {
+    max-width: 1000px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .gomoku-top-bar {
+    width: 100%;
+    order: -1;
+  }
+
+  .gomoku-board-outer {
+    flex: 1 1 auto;
+    max-width: 620px;
+    min-width: 0;
+  }
+
+  .gomoku-board-svg {
+    max-width: 620px;
+  }
+
+  .gomoku-side-panel {
+    width: 220px;
+    max-width: 220px;
+    flex-shrink: 0;
+  }
+
+  .gomoku-move-list {
+    max-height: 400px;
+  }
+}
+
 /* ===== 手机端按钮防换行修复 ===== */
 @media (max-width: 480px) {
   /* 返回大厅/返回房间按钮防换行 */

@@ -1,0 +1,9 @@
+{
+  "id": "gomoku",
+  "name": "五子棋",
+  "description": "经典双人五子棋，15×15棋盘",
+  "minPlayers": 2,
+  "maxPlayers": 2,
+  "version": "1.0.0",
+  "author": "game-platform"
+}

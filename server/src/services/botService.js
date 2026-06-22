@@ -602,9 +602,10 @@ async function getBotAction(gameId, gameState, botId) {
     case 'turtle-soup':
       action = decideTurtleSoup(gameState, botId);
       break;
+    case 'gomoku':
+      action = decideGomoku(gameState, botId);
+      break;
   }
-
-  // 代码已决策（猜拳/叫分/简单出牌）
   if (action) {
     console.log(`[Bot] ${botId} 代码决策 (${gameId}):`, JSON.stringify(action));
     return action;
@@ -815,4 +816,127 @@ async function getChineseChessAction(gameState) {
   return { from: fallback.from, to: fallback.to };
 }
 
-module.exports = { getBotAction, callLLM, chooseBestCard, getChineseChessAction };
+
+// ========== Gomoku AI: decideGomoku ==========
+/**
+ * 五子棋 AI（纯代码评分，不依赖 LLM）
+ *
+ * 评分算法：检查每个空位的进攻/防守分数
+ * - 进攻分：己方连珠数（5=必胜，4=必杀，3=威胁）
+ * - 防守分：对手连珠数（4=必须堵，3=威胁）
+ * 选择最高分位置
+ */
+function decideGomoku(gameState, botId) {
+  const board = gameState.board;
+  const SIZE = 15;
+  const myColor = String(botId) === String(gameState.blackId) ? 'black' : 'white';
+  const enemyColor = myColor === 'black' ? 'white' : 'black';
+
+  // 四个方向增量
+  const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+
+  /**
+   * 评估某个位置在某个方向上，某颜色的连珠数
+   * 返回 { count, openEnds } — count 为连续棋子数，openEnds 为两端开放数 (0/1/2)
+   */
+  function countLine(row, col, dr, dc, color) {
+    let count = 1;
+    let openEnds = 0;
+
+    // 正方向
+    let r = row + dr, c = col + dc;
+    while (r >= 0 && r < SIZE && c >= 0 && c < SIZE && board[r][c] === color) {
+      count++;
+      r += dr;
+      c += dc;
+    }
+    if (r >= 0 && r < SIZE && c >= 0 && c < SIZE && board[r][c] === null) openEnds++;
+
+    // 反方向
+    r = row - dr;
+    c = col - dc;
+    while (r >= 0 && r < SIZE && c >= 0 && c < SIZE && board[r][c] === color) {
+      count++;
+      r -= dr;
+      c -= dc;
+    }
+    if (r >= 0 && r < SIZE && c >= 0 && c < SIZE && board[r][c] === null) openEnds++;
+
+    return { count, openEnds };
+  }
+
+  /**
+   * 评估某个位置对于某颜色的得分
+   */
+  function scoreForColor(row, col, color) {
+    let totalScore = 0;
+
+    for (const [dr, dc] of directions) {
+      const { count, openEnds } = countLine(row, col, dr, dc, color);
+
+      if (count >= 5) {
+        totalScore += 1000000; // 五连珠，必胜
+      } else if (count === 4) {
+        if (openEnds === 2) totalScore += 100000;  // 活四，必杀
+        else if (openEnds === 1) totalScore += 10000; // 冲四
+      } else if (count === 3) {
+        if (openEnds === 2) totalScore += 5000;  // 活三
+        else if (openEnds === 1) totalScore += 500; // 眠三
+      } else if (count === 2) {
+        if (openEnds === 2) totalScore += 200;  // 活二
+        else if (openEnds === 1) totalScore += 50; // 眠二
+      } else if (count === 1) {
+        if (openEnds === 2) totalScore += 10;
+      }
+    }
+
+    return totalScore;
+  }
+
+  // 收集所有空位（优先考虑已有棋子周围的空位）
+  const candidates = new Set();
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (board[r][c] !== null) {
+        // 在已有棋子周围 2 格范围内找空位
+        for (let dr = -2; dr <= 2; dr++) {
+          for (let dc = -2; dc <= 2; dc++) {
+            const nr = r + dr, nc = c + dc;
+            if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE && board[nr][nc] === null) {
+              candidates.add(`${nr},${nc}`);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 如果棋盘为空，下天元
+  if (candidates.size === 0) {
+    return { row: 7, col: 7 };
+  }
+
+  let bestScore = -1;
+  let bestMove = null;
+
+  for (const key of candidates) {
+    const [row, col] = key.split(',').map(Number);
+
+    // 进攻分（己方）
+    const attackScore = scoreForColor(row, col, myColor);
+    // 防守分（对手）
+    const defendScore = scoreForColor(row, col, enemyColor);
+
+    // 综合评分：进攻略优先于防守
+    const score = attackScore * 1.1 + defendScore;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestMove = { row, col };
+    }
+  }
+
+  return bestMove;
+}
+
+module.exports = { getBotAction, callLLM, chooseBestCard, getChineseChessAction, decideGomoku };
