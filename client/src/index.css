@@ -1325,6 +1325,26 @@ input {
   box-shadow: 0 4px 16px var(--success-glow);
 }
 
+.waiting-leave-btn {
+  flex: 1;
+  padding: 12px 16px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.25s ease;
+}
+
+.waiting-leave-btn:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: rgba(231, 76, 60, 0.08);
+}
+
 /* 错误 */
 .error-box {
   text-align: center;

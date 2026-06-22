@@ -30,6 +30,8 @@ export default function GameHost({ gameId, GameComponent }) {
   const [result, setResult] = useState(null);
   const resultEmojiRef = useRef(null);
   const defeatEmojiRef = useRef(null);
+  const playersRef = useRef(players);
+  useEffect(() => { playersRef.current = players; }, [players]);
   const [maxPlayers, setMaxPlayers] = useState(null); // 从API获取
   const [hostId, setHostId] = useState(null);
   const [allowBots, setAllowBots] = useState(true); // 默认允许，从API获取
@@ -274,7 +276,7 @@ export default function GameHost({ gameId, GameComponent }) {
 
   // 确认离开房间
   const confirmLeave = useCallback(() => {
-    const isAlone = players.length <= 1;
+    const isAlone = playersRef.current.length <= 1;
     const message = isAlone
       ? '当前房间只有你一人，离开后房间将被关闭。确认离开？'
       : '确认离开房间？';
@@ -282,7 +284,7 @@ export default function GameHost({ gameId, GameComponent }) {
     if (window.confirm(message)) {
       handleLeaveRoom();
     }
-  }, [players, handleLeaveRoom]);
+  }, [handleLeaveRoom]);
 
   // 返回房间（游戏结束后重新加入）
   const handleReturnToRoom = useCallback(() => {
@@ -321,11 +323,14 @@ export default function GameHost({ gameId, GameComponent }) {
     // 这样手机切后台再回来时，房间不会被立即销毁
 
     // 手机返回键 / 浏览器后退：确实要离开
+    // 进入房间时推入一个历史记录条目，用于检测手机返回手势
+    window.history.pushState(null, '', window.location.href);
+
     const handlePopState = () => {
       if (hasLeftRef.current) return;
 
       // 弹出确认框
-      const isAlone = players.length <= 1;
+      const isAlone = playersRef.current.length <= 1;
       const message = isAlone
         ? '当前房间只有你一人，离开后房间将被关闭。确认离开？'
         : '确认离开房间？';
@@ -351,7 +356,7 @@ export default function GameHost({ gameId, GameComponent }) {
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [socket, roomId, navigate, players]);
+  }, [socket, roomId, navigate]);
 
   // ===== 各阶段渲染 =====
 
@@ -490,7 +495,7 @@ export default function GameHost({ gameId, GameComponent }) {
                 🎮 开始游戏
               </button>
             )}
-            <button className="btn btn-secondary" onClick={confirmLeave}>
+            <button className="waiting-leave-btn" onClick={confirmLeave}>
               🚪 离开房间
             </button>
           </div>
