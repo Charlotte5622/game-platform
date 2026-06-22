@@ -395,7 +395,7 @@ input {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  border: 2.5px solid rgba(255, 255, 255, 0.2);
+  border: 2.5px solid rgba(255, 255, 255, 0.25);
   cursor: pointer;
   transition: all 0.35s cubic-bezier(0.68, -0.55, 0.27, 1.55);
   opacity: 0;
@@ -403,13 +403,12 @@ input {
   pointer-events: none;
   z-index: 1000;
 
-  /* 液体玻璃效果 */
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  /* 液体玻璃效果 — 减弱模糊以保证颜色饱满填充 */
+  backdrop-filter: blur(4px) saturate(140%);
+  -webkit-backdrop-filter: blur(4px) saturate(140%);
   box-shadow:
     0 4px 16px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+    0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .theme-option::before {
@@ -417,7 +416,7 @@ input {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, transparent 50%);
+  background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 40%);
   pointer-events: none;
 }
 
