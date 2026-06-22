@@ -815,6 +815,14 @@ function setupSocketHandlers(io, prisma) {
   });
 
   global.gameIO = io;
+
+  // 定期清理只有机器人的孤儿房间（每30秒）
+  setInterval(() => {
+    const destroyed = roomManager.cleanupOrphanRooms(botManager);
+    if (destroyed.length > 0) {
+      broadcastStatsDebounced(io);
+    }
+  }, 30000);
 }
 
 /**

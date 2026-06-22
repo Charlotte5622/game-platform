@@ -373,6 +373,25 @@ function getStats() {
   };
 }
 
+/**
+ * 清理只有机器人的孤儿房间
+ * 返回被销毁的房间 ID 列表
+ */
+function cleanupOrphanRooms(botManager) {
+  const destroyed = [];
+  for (const [roomId, room] of rooms) {
+    if (room.state !== 'playing' && room.state !== 'waiting') continue;
+    const humans = room.players.filter(p => !p.isBot);
+    if (humans.length === 0 && room.players.length > 0) {
+      console.log(`🧹 清理孤儿房间: ${room.roomCode} (${roomId}), ${room.players.length} 个机器人`);
+      if (botManager) botManager.stopRoomBots(roomId);
+      destroyRoom(roomId);
+      destroyed.push(roomId);
+    }
+  }
+  return destroyed;
+}
+
 module.exports = {
   createRoom,
   joinRoom,
@@ -395,4 +414,5 @@ module.exports = {
   isValidRoomCode,
   isRoomCodeTaken,
   getStats,
+  cleanupOrphanRooms,
 };

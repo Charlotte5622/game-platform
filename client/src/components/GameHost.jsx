@@ -256,15 +256,17 @@ export default function GameHost({ gameId, GameComponent }) {
 
   // 返回大厅
   const handleLeaveRoom = useCallback(() => {
+    let navigated = false;
     const doNavigate = () => {
+      if (navigated) return;
+      navigated = true;
       localStorage.removeItem('activeRoomId');
       localStorage.removeItem('activeGameId');
       navigate('/lobby');
     };
-    if (socket) {
+    if (socket && socket.connected) {
       socket.emit('leave_room', doNavigate);
-      // 兜底：1秒后无论如何跳转（防止 callback 丢失卡死）
-      setTimeout(doNavigate, 1000);
+      setTimeout(doNavigate, 800); // 兜底
     } else {
       doNavigate();
     }
