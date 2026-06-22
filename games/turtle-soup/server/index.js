@@ -585,12 +585,6 @@ class TurtleSoupServer extends BaseGameServer {
       }
     }
 
-    // 给提问者加分
-    for (const q of state.questions) {
-      const bonus = 3;
-      state.scores[q.pid] = (state.scores[q.pid] || 0) + bonus;
-    }
-
     state.pendingGuesses = {};
     state.guessedPlayers = {};
     state.answerRevealed = true;
