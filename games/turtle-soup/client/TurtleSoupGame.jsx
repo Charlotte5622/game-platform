@@ -129,8 +129,8 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
   const totalPlayers = gameState.players?.length || 0;
   const hasGuessed = guessedPlayers?.[playerId] || false;
 
-  const getNickname = (pid) => players.find(p => p.id === pid)?.nickname || '玩家';
-  const getAvatar = (pid) => players.find(p => p.id === pid)?.avatar || null;
+  const getNickname = (pid) => gameState.playerInfo?.[pid]?.nickname || players.find(p => p.id === pid)?.nickname || '玩家';
+  const getAvatar = (pid) => gameState.playerInfo?.[pid]?.avatar || players.find(p => p.id === pid)?.avatar || null;
   const getAvatarColor = (name) => {
     const colors = ['#f44336','#e91e63','#9c27b0','#673ab7','#3f51b5','#2196f3','#00bcd4','#009688','#4caf50','#ff9800'];
     let hash = 0;
@@ -324,7 +324,7 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
                 <div key={r.pid} className="ts-round-result-row">
                   <div className="ts-round-result-header" onClick={() => setExpandedGuesses(prev => ({ ...prev, [r.pid]: !prev[r.pid] }))}>
                     <AvatarImg pid={r.pid} size={24} />
-                    <span className="ts-round-result-name">{getNickname(r.pid)}{r.pid === playerId ? '（你）' : ''}</span>
+                    <span className="ts-round-result-name">{r.nickname || getNickname(r.pid)}{r.pid === playerId ? '（你）' : ''}</span>
                     <span className="ts-round-result-score" style={{fontWeight:'700', color: r.score >= 70 ? 'var(--success)' : r.score >= 40 ? 'var(--warning)' : 'var(--danger)'}}>
                       {r.score}分
                     </span>
@@ -464,6 +464,13 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
         ) : (
           <>
             <div className="ts-input-bar">
+              <button
+                className="ts-guess-icon-btn"
+                onClick={() => setShowGuessPanel(!showGuessPanel)}
+                title="提交猜测"
+              >
+                🎯
+              </button>
               <input
                 className="ts-input"
                 type="text"
@@ -483,14 +490,11 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
               </button>
             </div>
 
-            <div className="ts-actions-row">
-              <button
-                className="ts-guess-toggle-btn"
-                onClick={() => setShowGuessPanel(!showGuessPanel)}
-              >
-                🎯 提交猜测 {guessCount > 0 && `(${guessCount}/${totalPlayers})`}
-              </button>
-            </div>
+            {guessCount > 0 && (
+              <div className="ts-guess-progress">
+                📝 猜测进度: {guessCount}/{totalPlayers}
+              </div>
+            )}
 
             {showGuessPanel && (
               <div className="ts-guess-panel">

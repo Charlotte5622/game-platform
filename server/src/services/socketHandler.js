@@ -754,7 +754,7 @@ function setupSocketHandlers(io, prisma) {
 /**
  * 开始游戏
  */
-function startGame(io, room, prisma) {
+async function startGame(io, room, prisma) {
   // BUG-1 修复：为每个房间创建独立的游戏实例
   const gameInstance = createGameInstance(room.gameId);
   if (!gameInstance) {
@@ -768,7 +768,27 @@ function startGame(io, room, prisma) {
   roomManager.setRoomState(room.id, 'playing');
   room.startTime = Date.now(); // 记录游戏开始时间
 
-  // 游戏开始前发送一次 room_update，确保客户端有最新的玩家头像/昵称
+  // 游戏开始前：从数据库刷新所有人类玩家的头像/昵称，确保客户端拿到最新数据
+  const humanIds = room.players.filter(p => !p.isBot).map(p => p.id);
+  if (humanIds.length > 0 && prisma) {
+    try {
+      const dbUsers = await prisma.user.findMany({
+        where: { id: { in: humanIds } },
+        select: { id: true, nickname: true, avatar: true },
+      });
+      const dbMap = {};
+      dbUsers.forEach(u => { dbMap[u.id] = u; });
+      for (const p of room.players) {
+        if (dbMap[p.id]) {
+          p.nickname = dbMap[p.id].nickname || p.nickname;
+          p.avatar = dbMap[p.id].avatar || null;
+        }
+      }
+    } catch (err) {
+      console.warn('[startGame] 刷新玩家头像失败:', err.message);
+    }
+  }
+
   io.to(room.id).emit('room_update', {
     roomId: room.id,
     roomCode: room.roomCode,
@@ -781,6 +801,11 @@ function startGame(io, room, prisma) {
 
   const playerIds = room.players.map(p => p.id);
   const gameState = gameInstance.initGameState(playerIds);
+  // 注入玩家信息（昵称、头像），供游戏内广播使用
+  gameState.playerInfo = {};
+  for (const p of room.players) {
+    gameState.playerInfo[p.id] = { nickname: p.nickname || '玩家', avatar: p.avatar || null };
+  }
   roomManager.setGameState(room.id, gameState);
 
   // ========== 注入依赖 ==========

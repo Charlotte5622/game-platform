@@ -561,12 +561,12 @@ class TurtleSoupServer extends BaseGameServer {
         state.roundScores[roundNum][pid] = (state.roundScores[roundNum][pid] || 0) + score;
         state.scores[pid] = (state.scores[pid] || 0) + score;
 
-        results.push({ pid, guess: guessData.guess, score, result: `${score}分` });
+        results.push({ pid, nickname: state.playerInfo?.[pid]?.nickname || '玩家', guess: guessData.guess, score, result: `${score}分` });
       } catch (err) {
         console.error(`[TurtleSoup] AI打分失败 (${pid}):`, err.message);
         guessEntry.result = 'AI打分失败';
         guessEntry.score = 0;
-        results.push({ pid, guess: guessData.guess, score: 0, result: 'AI打分失败' });
+        results.push({ pid, nickname: state.playerInfo?.[pid]?.nickname || '玩家', guess: guessData.guess, score: 0, result: 'AI打分失败' });
       }
     }
 
