@@ -600,11 +600,18 @@ function setupSocketHandlers(io, prisma) {
     });
 
     // ========== 主动离开房间 ==========
-    socket.on('leave_room', () => {
+    socket.on('leave_room', (callback) => {
       console.log(`🚪 玩家主动离开: ${socket.user.username} (${socket.id})`);
 
+      // 清理断线宽限期
+      const pending = pendingDisconnects.get(socket.user.id);
+      if (pending) {
+        clearTimeout(pending.timeout);
+        pendingDisconnects.delete(socket.user.id);
+      }
+
       const result = roomManager.leaveRoom(socket.id);
-      roomManager.cleanupUser(socket.user.id); // 始终清理 user 映射
+      roomManager.cleanupUser(socket.user.id);
       if (result && result.roomId) socket.leave(result.roomId);
       if (result && !result.empty && result.room) {
         if (result.room.state === 'playing') {
@@ -632,6 +639,7 @@ function setupSocketHandlers(io, prisma) {
             botManager.stopRoomBots(result.roomId);
             roomManager.destroyRoom(result.roomId);
             broadcastStatsDebounced(io);
+            if (typeof callback === 'function') callback();
             return;
           }
 
@@ -648,6 +656,7 @@ function setupSocketHandlers(io, prisma) {
       }
 
       broadcastStatsDebounced(io);
+      if (typeof callback === 'function') callback();
     });
 
     // ========== 同步游戏状态（后台切换回来时调用） ==========
