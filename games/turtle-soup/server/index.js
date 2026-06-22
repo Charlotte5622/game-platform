@@ -206,8 +206,9 @@ class TurtleSoupServer extends BaseGameServer {
     });
     this.syncState(roomId);
 
-    // 检查是否所有人都投了票
-    if (Object.keys(state.votes).length >= state.players.length) {
+    // 检查是否所有人类玩家都已投票（排除bot）
+    const humanPlayers = state.players.filter(pid => !String(pid).startsWith('bot_'));
+    if (Object.keys(state.votes).length >= humanPlayers.length) {
       this.startPuzzlePhase(roomId, state);
     } else if (!state.voteTimer) {
       // 启动投票超时计时器（60秒后自动为未投票者随机分配）
@@ -452,8 +453,9 @@ class TurtleSoupServer extends BaseGameServer {
     });
     this.syncState(roomId);
 
-    // 检查是否所有玩家都已提交猜测
-    if (Object.keys(state.pendingGuesses).length >= state.players.length) {
+    // 检查是否所有人类玩家都已提交猜测（排除bot）
+    const humanPlayers = state.players.filter(pid => !String(pid).startsWith('bot_'));
+    if (Object.keys(state.pendingGuesses).length >= humanPlayers.length) {
       this.judgeAllGuesses(roomId, state);
     }
   }
@@ -666,8 +668,9 @@ class TurtleSoupServer extends BaseGameServer {
     });
     this.syncState(roomId);
 
-    // 检查是否所有人都已读
-    if (Object.keys(state.acknowledgedPlayers).length >= state.players.length) {
+    // 检查是否所有人类玩家都已读（排除bot）
+    const humanPlayers = state.players.filter(pid => !String(pid).startsWith('bot_'));
+    if (Object.keys(state.acknowledgedPlayers).length >= humanPlayers.length) {
       // 清除倒计时
       if (state.revealTimer) {
         clearTimeout(state.revealTimer);

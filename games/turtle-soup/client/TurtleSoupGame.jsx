@@ -37,6 +37,7 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
   const [roundResults, setRoundResults] = useState(null);
   const [acknowledgedPlayers, setAcknowledgedPlayers] = useState({});
   const [revealCountdown, setRevealCountdown] = useState(null);
+  const [expandedGuesses, setExpandedGuesses] = useState({});
   const chatEndRef = useRef(null);
 
   useEffect(() => {
@@ -321,10 +322,18 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
             <div className="ts-round-scores-grid">
               {roundResults.results?.map(r => (
                 <div key={r.pid} className="ts-round-result-row">
-                  <span className="ts-round-result-name">{getNickname(r.pid)}</span>
-                  <span className="ts-round-result-score" style={{fontWeight:'700', color: r.score >= 70 ? 'var(--success)' : r.score >= 40 ? 'var(--warning)' : 'var(--danger)'}}>
-                    {r.score}分
-                  </span>
+                  <div className="ts-round-result-header" onClick={() => setExpandedGuesses(prev => ({ ...prev, [r.pid]: !prev[r.pid] }))}>
+                    <span className="ts-round-result-name">{getNickname(r.pid)}</span>
+                    <span className="ts-round-result-score" style={{fontWeight:'700', color: r.score >= 70 ? 'var(--success)' : r.score >= 40 ? 'var(--warning)' : 'var(--danger)'}}>
+                      {r.score}分
+                    </span>
+                    <span className="ts-round-result-toggle">{expandedGuesses[r.pid] ? '▼' : '▶'}</span>
+                  </div>
+                  {expandedGuesses[r.pid] && (
+                    <div className="ts-round-result-guess">
+                      💭 {r.guess}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
