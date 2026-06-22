@@ -6056,6 +6056,7 @@ input {
   font-size: 13px;
   color: var(--text-dim, #888);
   margin-top: 4px;
+  white-space: nowrap;
 }
 
 .ts-chat-thinking::after {
