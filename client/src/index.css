@@ -5950,6 +5950,11 @@ input {
 
 .ts-chat-msg.ts-chat-mine {
   flex-direction: row-reverse;
+  align-self: flex-end;
+}
+
+.ts-chat-msg.ts-chat-other {
+  align-self: flex-start;
 }
 
 @keyframes ts-msg-in {
