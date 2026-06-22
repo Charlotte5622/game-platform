@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
+const { PrismaClient } = require('@prisma/client');
 
+const prisma = new PrismaClient();
 const gamesDir = path.join(__dirname, '../../../games');
 const registeredGames = new Map(); // gameId -> { meta, GameServerClass }
 
@@ -72,7 +74,7 @@ function getRegisteredGames() {
 function createGameInstance(gameId) {
   const entry = registeredGames.get(gameId);
   if (!entry || !entry.GameServerClass) return null;
-  return new entry.GameServerClass();
+  return new entry.GameServerClass({ prisma });
 }
 
 /**

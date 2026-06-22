@@ -31,3 +31,34 @@ model GameRecord {
   @@index([userId])
   @@index([gameId])
 }
+
+model TurtleSoupCategory {
+  id        String   @id
+  name      String
+  icon      String
+  color     String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  puzzles   TurtleSoupPuzzle[]
+
+  @@map("turtle_soup_categories")
+}
+
+model TurtleSoupPuzzle {
+  id         String   @id
+  categoryId String
+  title      String
+  answer     String
+  keyFacts   String[]
+  difficulty Int      @default(1)
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  category   TurtleSoupCategory @relation(fields: [categoryId], references: [id])
+
+  @@index([categoryId])
+  @@index([isActive])
+  @@map("turtle_soup_puzzles")
+}

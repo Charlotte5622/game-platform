@@ -11,7 +11,7 @@
  * AI判别：DeepSeek优先，ModelScope备用
  */
 
-const { CATEGORIES, PUZZLES } = require('./puzzles');
+// const { CATEGORIES, PUZZLES } = require('./puzzles'); // fallback，由 loadFromDB 动态加载
 
 // DeepSeek API
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
@@ -58,10 +58,29 @@ class BaseGameServer {
 // ========== 海龟汤游戏服务器 ==========
 
 class TurtleSoupServer extends BaseGameServer {
-  constructor() {
+  constructor({ prisma } = {}) {
     super();
+    this.prisma = prisma;
+    this._categoriesCache = null;
+    this._puzzlesCache = null;
     this._llmQueue = [];
     this._llmProcessing = false;
+  }
+
+  async loadFromDB() {
+    if (!this.prisma) return false;
+    try {
+      const cats = await this.prisma.turtleSoupCategory.findMany({ orderBy: { sortOrder: 'asc' } });
+      const puzzles = await this.prisma.turtleSoupPuzzle.findMany({ where: { isActive: true } });
+      if (cats.length > 0 && puzzles.length > 0) {
+        this._categoriesCache = cats.map(c => ({ id: c.id, name: c.name, icon: c.icon, color: c.color }));
+        this._puzzlesCache = puzzles.map(p => ({ id: p.id, category: p.categoryId, title: p.title, answer: p.answer, keyFacts: p.keyFacts }));
+        return true;
+      }
+    } catch (err) {
+      console.error('[TurtleSoup] DB load failed, using static data:', err.message);
+    }
+    return false;
   }
 
   // ========== 初始化 ==========
@@ -70,7 +89,7 @@ class TurtleSoupServer extends BaseGameServer {
     return {
       players: [...players],
       phase: 'voting',           // voting | playing | ended
-      categories: CATEGORIES,
+      categories: this._categoriesCache,
       votes: {},                 // pid -> categoryId
       puzzle: null,              // 当前谜题
       currentTurn: 0,            // 当前提问者索引
@@ -142,7 +161,15 @@ class TurtleSoupServer extends BaseGameServer {
     return visible;
   }
 
-  postInit(roomId) {
+  async postInit(roomId) {
+    await this.loadFromDB();
+    // 如果DB加载失败，使用静态数据
+    if (!this._categoriesCache) {
+      const { CATEGORIES, PUZZLES } = require('./puzzles');
+      this._categoriesCache = CATEGORIES;
+      this._puzzlesCache = PUZZLES;
+    }
+
     const state = this.getState(roomId);
     if (!state) return;
 
@@ -195,7 +222,7 @@ class TurtleSoupServer extends BaseGameServer {
     if (!state || state.phase !== 'voting') return;
 
     // 验证分类
-    const validCategory = CATEGORIES.find(c => c.id === categoryId);
+    const validCategory = this._categoriesCache.find(c => c.id === categoryId);
     if (!validCategory) {
       this.doBroadcastTo(roomId, pid, { type: 'error', message: '无效的分类' });
       return;
@@ -224,7 +251,7 @@ class TurtleSoupServer extends BaseGameServer {
         // 为未投票的玩家随机分配
         for (const p of currentState.players) {
           if (!currentState.votes[p]) {
-            const randomCat = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
+            const randomCat = this._categoriesCache[Math.floor(Math.random() * this._categoriesCache.length)];
             currentState.votes[p] = randomCat.id;
           }
         }
@@ -242,7 +269,7 @@ class TurtleSoupServer extends BaseGameServer {
 
   getVoteSummary(state) {
     const summary = {};
-    for (const cat of CATEGORIES) {
+    for (const cat of this._categoriesCache) {
       summary[cat.id] = 0;
     }
     for (const [, catId] of Object.entries(state.votes)) {
@@ -253,7 +280,7 @@ class TurtleSoupServer extends BaseGameServer {
 
   startPuzzlePhase(roomId, state) {
     // 使用全部CATEGORIES投票（不再按已用分类过滤）
-    const catsToVote = CATEGORIES;
+    const catsToVote = this._categoriesCache;
 
     // 统计票数，选最高票分类
     const voteSummary = this.getVoteSummary(state);
@@ -275,15 +302,15 @@ class TurtleSoupServer extends BaseGameServer {
 
     // 从该分类随机选一个谜题（排除已用谜题ID）
     if (!state.usedPuzzles) state.usedPuzzles = [];
-    let categoryPuzzles = PUZZLES.filter(p => p.category === winnerCategory && !state.usedPuzzles.includes(p.id));
+    let categoryPuzzles = this._puzzlesCache.filter(p => p.category === winnerCategory && !state.usedPuzzles.includes(p.id));
     // 如果该分类下所有谜题都用完，fallback到全库排除已用谜题
     if (categoryPuzzles.length === 0) {
-      categoryPuzzles = PUZZLES.filter(p => !state.usedPuzzles.includes(p.id));
+      categoryPuzzles = this._puzzlesCache.filter(p => !state.usedPuzzles.includes(p.id));
     }
     // 如果全库也用完了，重置
     if (categoryPuzzles.length === 0) {
       state.usedPuzzles = [];
-      categoryPuzzles = PUZZLES;
+      categoryPuzzles = this._puzzlesCache;
     }
     const puzzle = categoryPuzzles[Math.floor(Math.random() * categoryPuzzles.length)];
 
@@ -302,7 +329,7 @@ class TurtleSoupServer extends BaseGameServer {
 
     this.saveState(roomId, state);
 
-    const categoryInfo = CATEGORIES.find(c => c.id === winnerCategory);
+    const categoryInfo = this._categoriesCache.find(c => c.id === winnerCategory);
 
     // 广播谜题 + 同步状态
     for (const pid of state.players) {
