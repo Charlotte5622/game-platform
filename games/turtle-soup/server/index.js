@@ -178,6 +178,9 @@ class TurtleSoupServer extends BaseGameServer {
       if (!state.scores[pid]) state.scores[pid] = 0;
     }
 
+    // 将分类数据写入游戏状态（initGameState 时 cache 还是 null）
+    state.categories = this._categoriesCache;
+
     this.saveState(roomId, state);
 
     for (const pid of state.players) {
