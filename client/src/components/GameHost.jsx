@@ -272,6 +272,18 @@ export default function GameHost({ gameId, GameComponent }) {
     }
   }, [socket, navigate]);
 
+  // 确认离开房间
+  const confirmLeave = useCallback(() => {
+    const isAlone = players.length <= 1;
+    const message = isAlone
+      ? '当前房间只有你一人，离开后房间将被关闭。确认离开？'
+      : '确认离开房间？';
+
+    if (window.confirm(message)) {
+      handleLeaveRoom();
+    }
+  }, [players, handleLeaveRoom]);
+
   // 返回房间（游戏结束后重新加入）
   const handleReturnToRoom = useCallback(() => {
     if (!socket || !roomId) return;
@@ -311,11 +323,26 @@ export default function GameHost({ gameId, GameComponent }) {
     // 手机返回键 / 浏览器后退：确实要离开
     const handlePopState = () => {
       if (hasLeftRef.current) return;
+
+      // 弹出确认框
+      const isAlone = players.length <= 1;
+      const message = isAlone
+        ? '当前房间只有你一人，离开后房间将被关闭。确认离开？'
+        : '确认离开房间？';
+
+      // 恢复 history 状态（阻止浏览器后退）
+      window.history.pushState(null, '', window.location.href);
+
+      if (!window.confirm(message)) {
+        return; // 用户取消
+      }
+
       hasLeftRef.current = true;
       try {
         socket.emit('leave_room');
         localStorage.removeItem('activeRoomId');
         localStorage.removeItem('activeGameId');
+        navigate('/lobby');
       } catch {}
     };
 
@@ -324,7 +351,7 @@ export default function GameHost({ gameId, GameComponent }) {
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [socket, roomId]);
+  }, [socket, roomId, navigate, players]);
 
   // ===== 各阶段渲染 =====
 
@@ -463,6 +490,9 @@ export default function GameHost({ gameId, GameComponent }) {
                 🎮 开始游戏
               </button>
             )}
+            <button className="btn btn-secondary" onClick={confirmLeave}>
+              🚪 离开房间
+            </button>
           </div>
 
           {isReady && (

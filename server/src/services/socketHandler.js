@@ -807,9 +807,36 @@ function setupSocketHandlers(io, prisma) {
           return;
         }
 
-        // ========== waiting 状态宽限期（30秒） ==========
+        // ========== waiting 状态处理 ==========
         const existing = pendingDisconnects.get(socket.user.id);
         if (existing) clearTimeout(existing.timeout);
+
+        // 检查房间是否只有这一个人类玩家
+        const roomHumans = room.players.filter(p => !p.isBot && p.id !== socket.user.id);
+        const isAlone = roomHumans.length === 0;
+
+        if (isAlone) {
+          // 只有自己一个人，立即销毁，不给宽限期
+          console.log(`🤖 房间 ${roomId} 只有 ${socket.user.username} 一人，立即销毁`);
+          let result = roomManager.leaveRoom(socket.id);
+          if (!result && roomId) {
+            const r = roomManager.getRoom(roomId);
+            if (r) {
+              r.players = r.players.filter(p => p.id !== socket.user.id);
+              result = { room: r, roomId, empty: r.players.length === 0 };
+            }
+          }
+          roomManager.cleanupUser(socket.user.id);
+          if (result && result.empty) {
+            roomManager.destroyRoom(roomId);
+          } else if (result && result.room) {
+            // 剩下全是机器人
+            botManager.stopRoomBots(roomId);
+            roomManager.destroyRoom(roomId);
+          }
+          broadcastStatsDebounced(io);
+          return;
+        }
 
         console.log(`⏳ 玩家 ${socket.user.username} 在等待阶段断线，30秒宽限期`);
 
