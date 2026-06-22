@@ -64,6 +64,28 @@ export default function GameHost({ gameId, GameComponent }) {
     }
     setSocket(s);
 
+    // ===== 自动重连：检查 localStorage 中是否有未完成的房间 =====
+    const savedRoomId = localStorage.getItem('activeRoomId');
+    const savedGameId = localStorage.getItem('activeGameId');
+    if (savedRoomId && savedGameId === gameId) {
+      console.log(`🔄 检测到未完成房间 ${savedRoomId}，尝试自动重连...`);
+      // 使用 quick_match 触发服务器端的重连逻辑
+      s.emit('quick_match', { gameId }, (response) => {
+        if (response.error) {
+          console.log('🔄 自动重连失败，清除缓存:', response.error);
+          localStorage.removeItem('activeRoomId');
+          localStorage.removeItem('activeGameId');
+          return;
+        }
+        console.log('🔄 自动重连成功');
+        setRoomId(response.roomId);
+        setRoomCode(response.roomCode);
+        setPlayers(response.players);
+        if (response.hostId) setHostId(response.hostId);
+        setPhase('waiting');
+      });
+    }
+
     // ===== 房间事件 =====
     s.on('room_update', (data) => {
       setRoomId(data.roomId);
@@ -71,12 +93,20 @@ export default function GameHost({ gameId, GameComponent }) {
       setPlayers(data.players);
       if (data.hostId) setHostId(data.hostId);
       if (data.state === 'waiting') setPhase('waiting');
+      // 保存 roomId 用于后台切换后恢复
+      localStorage.setItem('activeRoomId', data.roomId);
+      localStorage.setItem('activeGameId', gameId);
     });
 
     // ===== 游戏生命周期 =====
     s.on('game_start', (data) => {
       setGameState(data.state);
       setPhase('playing');
+      // 确保 roomId 保存（重连场景）
+      if (data.roomId) {
+        localStorage.setItem('activeRoomId', data.roomId);
+        localStorage.setItem('activeGameId', gameId);
+      }
     });
 
     s.on('state_update', (data) => {
@@ -95,10 +125,15 @@ export default function GameHost({ gameId, GameComponent }) {
       setPhase('finished');
       const won = data?.winners?.includes(playerId) || String(data?.winner) === String(playerId);
       playSound(gameId, won ? 'win' : 'lose');
+      // 游戏结束，清除房间缓存
+      localStorage.removeItem('activeRoomId');
+      localStorage.removeItem('activeGameId');
     });
 
     s.on('kicked', (data) => {
       alert(data?.message || '你被踢出了房间');
+      localStorage.removeItem('activeRoomId');
+      localStorage.removeItem('activeGameId');
       navigate('/lobby');
     });
 
@@ -222,6 +257,8 @@ export default function GameHost({ gameId, GameComponent }) {
   // 返回大厅
   const handleLeaveRoom = useCallback(() => {
     if (socket) socket.emit('leave_room');
+    localStorage.removeItem('activeRoomId');
+    localStorage.removeItem('activeGameId');
     navigate('/lobby');
   }, [socket, navigate]);
 
@@ -257,31 +294,24 @@ export default function GameHost({ gameId, GameComponent }) {
     if (!socket || !roomId) return;
     hasLeftRef.current = false;
 
-    const leaveRoom = () => {
+    // 注意：不在 beforeunload 中 emit leave_room
+    // 让 socket 断开自然触发服务器的 disconnect 宽限期机制
+    // 这样手机切后台再回来时，房间不会被立即销毁
+
+    // 手机返回键 / 浏览器后退：确实要离开
+    const handlePopState = () => {
       if (hasLeftRef.current) return;
       hasLeftRef.current = true;
       try {
         socket.emit('leave_room');
-        // sendBeacon 兜底（页面卸载时 socket 可能已断）
-        if (navigator.sendBeacon) {
-          const userId = JSON.parse(localStorage.getItem('user'))?.id;
-          navigator.sendBeacon('/api/leave-room', JSON.stringify({ roomId, userId }));
-        }
+        localStorage.removeItem('activeRoomId');
+        localStorage.removeItem('activeGameId');
       } catch {}
     };
 
-    // 1. 浏览器关闭/刷新
-    const handleBeforeUnload = () => leaveRoom();
-
-    // 2. 手机返回键 / 浏览器后退
-    const handlePopState = () => leaveRoom();
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
     window.addEventListener('popstate', handlePopState);
 
     return () => {
-      leaveRoom();
-      window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('popstate', handlePopState);
     };
   }, [socket, roomId]);

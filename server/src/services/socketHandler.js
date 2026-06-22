@@ -178,6 +178,15 @@ function setupSocketHandlers(io, prisma) {
         if (existing.room.gameId === gameId && existing.room.state !== 'finished') {
           socket.join(existing.roomId);
           roomManager.updatePlayerSocket(socket.user.id, socket.id);
+          // 清除断线记录（玩家已重连）
+          const pending = pendingDisconnects.get(socket.user.id);
+          if (pending) {
+            clearTimeout(pending.timeout);
+            pendingDisconnects.delete(socket.user.id);
+            console.log(`✅ 玩家 ${socket.user.username} 重连成功，清除断线记录`);
+            // 通知其他玩家已重连
+            socket.to(existing.roomId).emit('opponent_reconnected');
+          }
           callback({
             roomId: existing.roomId,
             roomCode: existing.room.roomCode,
@@ -641,6 +650,35 @@ function setupSocketHandlers(io, prisma) {
       broadcastStatsDebounced(io);
     });
 
+    // ========== 同步游戏状态（后台切换回来时调用） ==========
+    socket.on('sync_state', ({ roomId }) => {
+      if (!roomId) return;
+      const room = roomManager.getRoom(roomId);
+      if (!room) return;
+      // 检查用户是否在这个房间
+      const isMember = room.players.some(p => p.id === socket.user.id);
+      if (!isMember) return;
+      // 同步游戏状态
+      if (room.state === 'playing' && room.gameInstance) {
+        const state = room.gameInstance.getState(roomId);
+        if (state) {
+          socket.emit('state_update', {
+            roomId,
+            state: room.gameInstance.getVisibleState(state, socket.user.id),
+          });
+        }
+      } else {
+        // 等待中：同步房间状态
+        socket.emit('room_update', {
+          roomId: room.id,
+          roomCode: room.roomCode,
+          hostId: room.hostId,
+          players: room.players.map(p => ({ id: p.id, nickname: p.nickname, avatar: p.avatar, ready: p.ready, isBot: p.isBot || false })),
+          state: room.state,
+        });
+      }
+    });
+
     // ========== 断开连接（宽限期模式） ==========
     socket.on('disconnect', () => {
       console.log(`🔌 玩家断开: ${socket.user.username} (${socket.id})`);
@@ -664,23 +702,42 @@ function setupSocketHandlers(io, prisma) {
       if (room.state === 'playing') {
         const remainingHumans = room.players.filter(p => p.id !== socket.user.id && !p.isBot);
 
-        // 如果剩余玩家全是机器人，直接结束游戏（无人可重连）
+        // 如果剩余玩家全是机器人，给予宽限期等待重连（手机切后台场景）
         if (remainingHumans.length === 0) {
-          console.log(`🤖 玩家 ${socket.user.username} 断线，剩余全是机器人，直接结束`);
-          botManager.stopRoomBots(roomId);
-          io.to(roomId).emit('game_over', {
-            type: 'game_over',
-            reason: 'player_disconnect',
-            winner: null,
-            message: '有玩家离开房间，游戏结束',
-          });
-          // 彻底销毁房间，防止机器人残留
-          roomManager.destroyRoom(roomId);
-          roomManager.cleanupUser(socket.user.id);
-          broadcastStatsDebounced(io);
+          console.log(`⏳ 玩家 ${socket.user.username} 断线，剩余全是机器人，等待重连（5分钟宽限期）`);
+
+          const existing = pendingDisconnects.get(socket.user.id);
+          if (existing) clearTimeout(existing.timeout);
+
+          // 5分钟宽限期：手机切后台后有足够时间回来
+          const timeout = setTimeout(() => {
+            pendingDisconnects.delete(socket.user.id);
+            const currentRoom = roomManager.getRoom(roomId);
+            if (!currentRoom) return;
+            // 检查用户是否已重连
+            const reconnected = currentRoom.players.find(p => p.id === socket.user.id);
+            if (reconnected && reconnected.socketId && reconnected.socketId !== socket.id) {
+              console.log(`✅ 玩家 ${socket.user.username} 已重连，保留房间`);
+              return;
+            }
+            console.log(`🤖 玩家 ${socket.user.username} 超时未重连，销毁房间`);
+            botManager.stopRoomBots(roomId);
+            io.to(roomId).emit('game_over', {
+              type: 'game_over',
+              reason: 'player_disconnect',
+              winner: null,
+              message: '玩家长时间未返回，游戏结束',
+            });
+            roomManager.destroyRoom(roomId);
+            roomManager.cleanupUser(socket.user.id);
+            broadcastStatsDebounced(io);
+          }, 5 * 60 * 1000); // 5分钟
+
+          pendingDisconnects.set(socket.user.id, { roomId, timeout, socketId: socket.id });
           return;
         }
 
+        // 有其他玩家在：30秒宽限期
         const existing = pendingDisconnects.get(socket.user.id);
         if (existing) clearTimeout(existing.timeout);
 

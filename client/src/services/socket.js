@@ -35,13 +35,20 @@ export function getSocket() {
     console.error('🔌 Socket.IO 连接错误:', err.message);
   });
 
-  // 手机端后台切换守护：页面恢复可见时确保 socket 连接，不做页面刷新
+  // 手机端后台切换守护：页面恢复可见时确保 socket 连接 + 同步游戏状态
   if (typeof document !== 'undefined') {
     visHandler = () => {
       if (document.visibilityState === 'visible' && socket) {
         if (!socket.connected) {
           console.log('📱 页面恢复可见，Socket 断开，尝试重连...');
           socket.connect();
+        } else {
+          // socket 仍连接但 JS 可能被节流，主动请求同步最新状态
+          const savedRoomId = localStorage.getItem('activeRoomId');
+          if (savedRoomId) {
+            console.log('📱 页面恢复可见，请求同步游戏状态...');
+            socket.emit('sync_state', { roomId: savedRoomId });
+          }
         }
       }
     };

@@ -155,9 +155,18 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
     window.location.href = '/lobby';
   };
 
-  const getNickname = (pid) => players.find(p => p.id === pid)?.nickname || '玩家';
-  const getAvatar = (pid) => players.find(p => p.id === pid)?.avatar || null;
+  const getNickname = (pid) => gameState.playerInfo?.[pid]?.nickname || players.find(p => p.id === pid)?.nickname || '玩家';
+  const getAvatar = (pid) => gameState.playerInfo?.[pid]?.avatar || players.find(p => p.id === pid)?.avatar || null;
   const getIsBot = (pid) => players.find(p => p.id === pid)?.isBot || false;
+
+  // 头像渲染组件（avatar是emoji，直接当文字渲染）
+  const AvatarImg = ({ pid, size = 28 }) => {
+    const avatar = getAvatar(pid);
+    const isBot = getIsBot(pid);
+    if (isBot) return <span className="uno-bot-avatar" style={{width:size,height:size,fontSize:size*0.57}}>🤖</span>;
+    if (avatar) return <span style={{fontSize: size*0.7, lineHeight: 1}}>{avatar}</span>;
+    return <span className="uno-user-avatar" style={{width:size,height:size,fontSize:size*0.43}}>{getNickname(pid).charAt(0)}</span>;
+  };
 
   // 游戏结束
   if (phase === 'ended' || (winners && winners.length > 0 && phase === 'ended')) {
@@ -174,19 +183,11 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
           <h2 className="uno-result-title">{myWin ? `第${myWin.placement}名！` : '游戏结束'}</h2>
           <div className="uno-result-standings">
             {winners?.map(w => {
-              const avatar = getAvatar(w.pid);
-              const isBot = getIsBot(w.pid);
               return (
                 <div key={w.pid} className="uno-result-row">
                   <span className="uno-result-rank">{placementEmoji[w.placement] || `#${w.placement}`}</span>
                   <div className="uno-result-avatar">
-                    {isBot ? (
-                      <span className="uno-bot-avatar" style={{width:28,height:28,fontSize:16}}>🤖</span>
-                    ) : avatar ? (
-                      <img src={avatar} alt="" style={{width:28,height:28,borderRadius:'50%',objectFit:'cover'}} />
-                    ) : (
-                      <span className="uno-user-avatar" style={{width:28,height:28,fontSize:12}}>{getNickname(w.pid).charAt(0)}</span>
-                    )}
+                    <AvatarImg pid={w.pid} size={28} />
                   </div>
                   <span className="uno-result-name">{getNickname(w.pid)}</span>
                 </div>
@@ -207,13 +208,7 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
       {/* 顶部信息 */}
       <div className="uno-top-bar">
         <div className="uno-me-info">
-          {getIsBot(playerId) ? (
-            <span className="uno-bot-avatar" style={{width:24,height:24,fontSize:14}}>🤖</span>
-          ) : getAvatar(playerId) ? (
-            <img src={getAvatar(playerId)} alt="" style={{width:24,height:24,borderRadius:'50%',objectFit:'cover'}} />
-          ) : (
-            <span className="uno-user-avatar" style={{width:24,height:24,fontSize:11}}>{getNickname(playerId).charAt(0)}</span>
-          )}
+          <AvatarImg pid={playerId} size={24} />
           <span className="uno-me-name">{getNickname(playerId)}</span>
           {isFinished && <span className="uno-me-done">✅ 已出完</span>}
         </div>
@@ -233,19 +228,11 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
           const winInfo = winners?.find(w => w.pid === pid);
           const placementEmoji = { 1: '🥇', 2: '🥈', 3: '🥉' };
           if (pid === playerId) return null;
-          const avatar = getAvatar(pid);
-          const isBot = players.find(p => p.id === pid)?.isBot;
           const isActive = playerIds[currentTurn] === pid;
           return (
             <div key={pid} className={`uno-opponent${isActive ? ' uno-opponent-active' : ''}${isDone ? ' uno-opponent-done' : ''}`}>
               <div className="uno-opponent-avatar">
-                {isBot ? (
-                  <span className="uno-bot-avatar">🤖</span>
-                ) : avatar ? (
-                  <img src={avatar} alt="" className="uno-avatar-img" />
-                ) : (
-                  <span className="uno-user-avatar">{getNickname(pid).charAt(0)}</span>
-                )}
+                <AvatarImg pid={pid} size={28} />
               </div>
               <div className="uno-opponent-info">
                 <span className="uno-opponent-name">
