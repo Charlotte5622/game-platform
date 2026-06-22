@@ -27,7 +27,7 @@ function ChessBoard({ pieces, flipped, selected, onCellClick, lastMove }) {
   // 棋子颜色
   const PIECE_COLORS = {
     red:   { bg: '#fef2f2', border: '#dc2626', text: '#dc2626' },
-    black: { bg: '#e2e8f0', border: '#334155', text: '#334155' },
+    black: { bg: '#e2e8f0', border: '#1a1a2e', text: '#1a1a2e' },
   };
 
   // 坐标标注

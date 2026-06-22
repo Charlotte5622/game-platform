@@ -821,10 +821,11 @@ async function getChineseChessAction(gameState) {
 /**
  * 五子棋 AI（纯代码评分，不依赖 LLM）
  *
- * 评分算法：检查每个空位的进攻/防守分数
- * - 进攻分：己方连珠数（5=必胜，4=必杀，3=威胁）
- * - 防守分：对手连珠数（4=必须堵，3=威胁）
- * 选择最高分位置
+ * 改进的评分算法：
+ * - 模拟落子后再评估连续棋子数
+ * - 检测含空位的威胁线（如 ●_●●●）
+ * - 正确的优先级：己方五连 > 对方四连 > 己方四连 > 其他
+ * - 空棋盘下天元(7,7)
  */
 function decideGomoku(gameState, botId) {
   const board = gameState.board;
@@ -832,73 +833,85 @@ function decideGomoku(gameState, botId) {
   const myColor = String(botId) === String(gameState.blackId) ? 'black' : 'white';
   const enemyColor = myColor === 'black' ? 'white' : 'black';
 
-  // 四个方向增量
   const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
 
   /**
-   * 评估某个位置在某个方向上，某颜色的连珠数
-   * 返回 { count, openEnds } — count 为连续棋子数，openEnds 为两端开放数 (0/1/2)
+   * 从 (row,col) 沿 (dr,dc) 方向计数连续同色棋子
+   * 返回 { count, endR, endC } — end 为第一个非同色格坐标
    */
-  function countLine(row, col, dr, dc, color) {
-    let count = 1;
-    let openEnds = 0;
-
-    // 正方向
+  function countDir(row, col, dr, dc, color) {
+    let count = 0;
     let r = row + dr, c = col + dc;
     while (r >= 0 && r < SIZE && c >= 0 && c < SIZE && board[r][c] === color) {
       count++;
       r += dr;
       c += dc;
     }
-    if (r >= 0 && r < SIZE && c >= 0 && c < SIZE && board[r][c] === null) openEnds++;
-
-    // 反方向
-    r = row - dr;
-    c = col - dc;
-    while (r >= 0 && r < SIZE && c >= 0 && c < SIZE && board[r][c] === color) {
-      count++;
-      r -= dr;
-      c -= dc;
-    }
-    if (r >= 0 && r < SIZE && c >= 0 && c < SIZE && board[r][c] === null) openEnds++;
-
-    return { count, openEnds };
+    return { count, endR: r, endC: c };
   }
 
   /**
-   * 评估某个位置对于某颜色的得分
+   * 模拟在 (row,col) 落子 color 后评估该位置的得分
+   * 临时修改 board，评估完后还原
    */
-  function scoreForColor(row, col, color) {
-    let totalScore = 0;
+  function evaluateMove(row, col, color) {
+    board[row][col] = color;
+    let score = 0;
 
     for (const [dr, dc] of directions) {
-      const { count, openEnds } = countLine(row, col, dr, dc, color);
+      // --- 1. 连续棋子评估 ---
+      const pos = countDir(row, col, dr, dc, color);
+      const neg = countDir(row, col, -dr, -dc, color);
+      const lineCount = 1 + pos.count + neg.count;
 
-      if (count >= 5) {
-        totalScore += 1000000; // 五连珠，必胜
-      } else if (count === 4) {
-        if (openEnds === 2) totalScore += 100000;  // 活四，必杀
-        else if (openEnds === 1) totalScore += 10000; // 冲四
-      } else if (count === 3) {
-        if (openEnds === 2) totalScore += 5000;  // 活三
-        else if (openEnds === 1) totalScore += 500; // 眠三
-      } else if (count === 2) {
-        if (openEnds === 2) totalScore += 200;  // 活二
-        else if (openEnds === 1) totalScore += 50; // 眠二
-      } else if (count === 1) {
-        if (openEnds === 2) totalScore += 10;
+      let openEnds = 0;
+      if (pos.endR >= 0 && pos.endR < SIZE && pos.endC >= 0 && pos.endC < SIZE && board[pos.endR][pos.endC] === null) openEnds++;
+      if (neg.endR >= 0 && neg.endR < SIZE && neg.endC >= 0 && neg.endC < SIZE && board[neg.endR][neg.endC] === null) openEnds++;
+
+      if (lineCount >= 5) {
+        score += 1000000;
+      } else if (lineCount === 4) {
+        score += openEnds === 2 ? 100000 : 10000;
+      } else if (lineCount === 3) {
+        score += openEnds === 2 ? 5000 : 500;
+      } else if (lineCount === 2) {
+        score += openEnds === 2 ? 200 : 50;
+      } else if (lineCount === 1 && openEnds === 2) {
+        score += 10;
+      }
+
+      // --- 2. 含空位的威胁线检测（滑动 5 格窗口） ---
+      for (let offset = -4; offset <= 0; offset++) {
+        let sameCount = 0;
+        let emptyCount = 0;
+        let valid = true;
+
+        for (let i = 0; i < 5; i++) {
+          const r = row + (offset + i) * dr;
+          const c = col + (offset + i) * dc;
+          if (r < 0 || r >= SIZE || c < 0 || c >= SIZE) { valid = false; break; }
+          const cell = board[r][c];
+          if (cell === color) sameCount++;
+          else if (cell === null) emptyCount++;
+          else { valid = false; break; }
+        }
+
+        if (valid && sameCount + emptyCount === 5 && sameCount === 4 && emptyCount === 1) {
+          // 差一格即五连的威胁（含空位，如 ●_●●●）
+          score += 50000;
+        }
       }
     }
 
-    return totalScore;
+    board[row][col] = null;
+    return score;
   }
 
-  // 收集所有空位（优先考虑已有棋子周围的空位）
+  // 收集候选空位（已有棋子周围 2 格范围内的空位）
   const candidates = new Set();
   for (let r = 0; r < SIZE; r++) {
     for (let c = 0; c < SIZE; c++) {
       if (board[r][c] !== null) {
-        // 在已有棋子周围 2 格范围内找空位
         for (let dr = -2; dr <= 2; dr++) {
           for (let dc = -2; dc <= 2; dc++) {
             const nr = r + dr, nc = c + dc;
@@ -911,7 +924,7 @@ function decideGomoku(gameState, botId) {
     }
   }
 
-  // 如果棋盘为空，下天元
+  // 空棋盘下天元
   if (candidates.size === 0) {
     return { row: 7, col: 7 };
   }
@@ -922,13 +935,30 @@ function decideGomoku(gameState, botId) {
   for (const key of candidates) {
     const [row, col] = key.split(',').map(Number);
 
-    // 进攻分（己方）
-    const attackScore = scoreForColor(row, col, myColor);
-    // 防守分（对手）
-    const defendScore = scoreForColor(row, col, enemyColor);
+    const attackScore = evaluateMove(row, col, myColor);
+    const defendScore = evaluateMove(row, col, enemyColor);
 
-    // 综合评分：进攻略优先于防守
-    const score = attackScore * 1.1 + defendScore;
+    // 优先级：己方五连 > 对方五连(防守) > 对方活四 > 己方活四 > 对方冲四/含空位四 > 己方冲四/含空位四 > 其他
+    let score;
+    if (attackScore >= 1000000) {
+      score = 10000000;        // 己方五连，必胜
+    } else if (defendScore >= 1000000) {
+      score = 9000000;         // 对方五连，必须堵
+    } else if (defendScore >= 100000) {
+      score = 8000000;         // 对方活四，必须堵
+    } else if (attackScore >= 100000) {
+      score = 7000000;         // 己方活四
+    } else if (defendScore >= 50000) {
+      score = 6000000;         // 对方含空位四连威胁
+    } else if (attackScore >= 50000) {
+      score = 5000000;         // 己方含空位四连威胁
+    } else if (defendScore >= 10000) {
+      score = 4000000;         // 对方冲四
+    } else if (attackScore >= 10000) {
+      score = 3000000;         // 己方冲四
+    } else {
+      score = attackScore * 1.2 + defendScore;
+    }
 
     if (score > bestScore) {
       bestScore = score;

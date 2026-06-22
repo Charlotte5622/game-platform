@@ -1726,7 +1726,7 @@ input {
 .dz-hand {
   padding: 6px 0 8px;
   overflow-x: auto;
-  overflow-y: visible;
+  overflow-y: auto;
   display: flex;
   justify-content: center;
   -webkit-overflow-scrolling: touch;
@@ -2878,8 +2878,8 @@ input {
   }
 
   .chess-history {
-    max-height: none;
-    overflow-y: visible;
+    max-height: calc(100vh - 300px);
+    overflow-y: auto;
   }
 }
 
@@ -2892,7 +2892,7 @@ input {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  max-height: 200px;
+  max-height: 300px;
   overflow-y: auto;
 }
 
@@ -2916,7 +2916,7 @@ input {
 }
 
 .chess-history-item.red { color: #dc2626; }
-.chess-history-item.black { color: #1e293b; }
+.chess-history-item.black { color: #1a1a2e; }
 
 .chess-history-piece {
   font-weight: 700;
