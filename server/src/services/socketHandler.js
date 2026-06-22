@@ -768,6 +768,17 @@ function startGame(io, room, prisma) {
   roomManager.setRoomState(room.id, 'playing');
   room.startTime = Date.now(); // 记录游戏开始时间
 
+  // 游戏开始前发送一次 room_update，确保客户端有最新的玩家头像/昵称
+  io.to(room.id).emit('room_update', {
+    roomId: room.id,
+    roomCode: room.roomCode,
+    hostId: room.hostId,
+    players: room.players.map(p => ({
+      id: p.id, nickname: p.nickname, avatar: p.avatar, ready: p.ready, isBot: p.isBot || false,
+    })),
+    state: 'playing',
+  });
+
   const playerIds = room.players.map(p => p.id);
   const gameState = gameInstance.initGameState(playerIds);
   roomManager.setGameState(room.id, gameState);

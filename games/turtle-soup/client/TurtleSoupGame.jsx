@@ -323,7 +323,8 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
               {roundResults.results?.map(r => (
                 <div key={r.pid} className="ts-round-result-row">
                   <div className="ts-round-result-header" onClick={() => setExpandedGuesses(prev => ({ ...prev, [r.pid]: !prev[r.pid] }))}>
-                    <span className="ts-round-result-name">{getNickname(r.pid)}</span>
+                    <AvatarImg pid={r.pid} size={24} />
+                    <span className="ts-round-result-name">{getNickname(r.pid)}{r.pid === playerId ? '（你）' : ''}</span>
                     <span className="ts-round-result-score" style={{fontWeight:'700', color: r.score >= 70 ? 'var(--success)' : r.score >= 40 ? 'var(--warning)' : 'var(--danger)'}}>
                       {r.score}分
                     </span>
@@ -480,19 +481,16 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
               >
                 提问
               </button>
-              {isMyTurn && (
-                <button className="ts-skip-btn" onClick={handleSkip} title="跳过回合">
-                  ⏭️
-                </button>
-              )}
             </div>
 
-            <button
-              className="ts-guess-toggle-btn"
-              onClick={() => setShowGuessPanel(!showGuessPanel)}
-            >
-              🎯 提交猜测 {guessCount > 0 && `(${guessCount}/${totalPlayers})`}
-            </button>
+            <div className="ts-actions-row">
+              <button
+                className="ts-guess-toggle-btn"
+                onClick={() => setShowGuessPanel(!showGuessPanel)}
+              >
+                🎯 提交猜测 {guessCount > 0 && `(${guessCount}/${totalPlayers})`}
+              </button>
+            </div>
 
             {showGuessPanel && (
               <div className="ts-guess-panel">

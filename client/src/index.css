@@ -6163,20 +6163,21 @@ input {
 }
 
 .ts-send-btn {
-  width: 40px;
-  height: 40px;
+  padding: 10px 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--primary, #6c5ce7);
   color: #fff;
   border: none;
-  border-radius: 50%;
+  border-radius: 20px;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 14px;
+  font-weight: 600;
   flex-shrink: 0;
   transition: background 0.2s, transform 0.15s;
   white-space: nowrap;
+  font-family: inherit;
 }
 
 .ts-send-btn:hover {
@@ -6193,25 +6194,17 @@ input {
 }
 
 .ts-skip-btn {
-  padding: 10px 20px;
-  font-size: 14px;
-  font-weight: 500;
-  background: var(--bg-card, #1a1c25);
-  color: var(--text-dim, #888);
-  border: 1px solid var(--border, rgba(255,255,255,0.1));
-  border-radius: 20px;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: inherit;
-  white-space: nowrap;
-}
-
-.ts-skip-btn:hover {
-  border-color: var(--primary, #6c5ce7);
-  color: var(--text, #e8e6e3);
+  /* 已移除跳过按钮，保留样式避免报错 */
+  display: none;
 }
 
 /* --- Guess Toggle / Panel --- */
+.ts-actions-row {
+  display: flex;
+  justify-content: center;
+  padding: 0 16px 8px;
+}
+
 .ts-guess-toggle-btn {
   padding: 8px 16px;
   font-size: 13px;
