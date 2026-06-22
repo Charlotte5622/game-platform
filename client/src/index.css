@@ -6011,6 +6011,10 @@ input {
   margin-bottom: 4px;
 }
 
+.ts-chat-mine .ts-chat-header {
+  flex-direction: row-reverse;
+}
+
 .ts-chat-name {
   font-size: 12px;
   font-weight: 600;
@@ -6051,7 +6055,9 @@ input {
   gap: 4px;
   font-size: 13px;
   color: var(--text-dim, #888);
-  margin-top: 6px;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--border, rgba(255,255,255,0.1));
 }
 
 .ts-chat-thinking::after {
