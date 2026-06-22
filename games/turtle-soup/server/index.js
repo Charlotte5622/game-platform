@@ -95,15 +95,21 @@ class TurtleSoupServer extends BaseGameServer {
   }
 
   getVisibleState(gs, pid) {
-    // 深拷贝防止客户端修改服务端状态
-    // 注意：排除所有不可序列化的字段（Timer对象会导致socket.io栈溢出）
-    const {
-      revealTimer, voteTimer, _turnTimer, _advancing, _isFinalReveal,
-      answeringInProgress,
-      ...rest
-    } = gs;
+    // 构建安全的可见状态（Timer 对象会导致 socket.io hasBinary 栈溢出）
     const visible = {
-      ...rest,
+      players: gs.players,
+      phase: gs.phase,
+      categories: gs.categories,
+      puzzle: gs.puzzle,
+      currentTurn: gs.currentTurn,
+      winner: gs.winner,
+      turnStartTime: gs.turnStartTime,
+      questionTimeout: gs.questionTimeout,
+      maxQuestions: gs.maxQuestions,
+      roundNumber: gs.roundNumber,
+      totalRounds: gs.totalRounds || 5,
+      answerRevealed: gs.answerRevealed,
+      playerInfo: gs.playerInfo,
       questions: gs.questions ? gs.questions.map(q => ({ ...q })) : [],
       guesses: gs.guesses ? gs.guesses.map(g => ({ ...g })) : [],
       votes: gs.votes ? { ...gs.votes } : {},
@@ -112,7 +118,7 @@ class TurtleSoupServer extends BaseGameServer {
       pendingGuesses: gs.pendingGuesses ? { ...gs.pendingGuesses } : {},
       guessedPlayers: gs.guessedPlayers ? { ...gs.guessedPlayers } : {},
       usedCategories: gs.usedCategories ? [...gs.usedCategories] : [],
-      totalRounds: gs.totalRounds || 5,
+      acknowledgedPlayers: gs.acknowledgedPlayers ? { ...gs.acknowledgedPlayers } : {},
     };
 
     // 隐藏谜底（除非游戏结束或汤底已揭示）
