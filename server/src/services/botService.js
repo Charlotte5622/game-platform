@@ -926,7 +926,7 @@ function decideGomoku(gameState, botId) {
 
   // 空棋盘下天元
   if (candidates.size === 0) {
-    return { row: 7, col: 7 };
+    return { type: 'place', row: 7, col: 7 };
   }
 
   let bestScore = -1;

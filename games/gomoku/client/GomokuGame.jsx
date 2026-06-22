@@ -384,7 +384,11 @@ export default function GomokuGame({ socket, roomId, playerId, gameState, onActi
                   ? '你赢了！'
                   : '你输了'}
             </h2>
-            <p className="gomoku-result-reason">{gameResult.message}</p>
+            <p className="gomoku-result-reason">
+              {gameResult.reason === 'resign'
+                ? (String(gameResult.winner) === String(playerId) ? '对手投降认负' : '你选择了投降')
+                : gameResult.message}
+            </p>
             <div className="gomoku-result-details">
               {gameResult.reason === 'win' && (
                 <span>{String(gameResult.winner) === String(playerId) ? '你五连珠获胜' : '对手五连珠获胜'}</span>
