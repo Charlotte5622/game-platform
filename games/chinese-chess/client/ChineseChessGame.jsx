@@ -232,7 +232,7 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
   const [error, setError] = useState('');
   const [myRpsChoice, setMyRpsChoice] = useState(null);
   const [turnDeadline, setTurnDeadline] = useState(null);
-  const [timeLeft, setTimeLeft] = useState(60);
+  const [timeLeft, setTimeLeft] = useState(0);
   const [drawRequestFrom, setDrawRequestFrom] = useState(null);
   const [drawRequestSent, setDrawRequestSent] = useState(false);
   const [showResignModal, setShowResignModal] = useState(false);
@@ -261,9 +261,13 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
     // 绝杀/游戏结束
     const handleCheckmate = (data) => {
       setGameResult({ type: 'checkmate', winner: data.winner, loser: data.loser, message: data.message, winnerColor: data.winnerColor });
+      setTurnDeadline(null);
+      setTimeLeft(0);
     };
     const handleGameOver = (data) => {
       setGameResult({ type: data.reason || 'game_over', winner: data.winner, loser: data.loser, message: data.message, reason: data.reason });
+      setTurnDeadline(null);
+      setTimeLeft(0);
     };
     const handleTimerSettingsUpdated = (data) => {
       if (data.settings) {
@@ -306,12 +310,16 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
   }, [socket]);
 
   useEffect(() => {
-    if (!turnDeadline) return;
-    const interval = setInterval(() => {
+    if (!turnDeadline) {
+      setTimeLeft(0);
+      return;
+    }
+    const update = () => {
       const remaining = Math.max(0, Math.ceil((turnDeadline - Date.now()) / 1000));
       setTimeLeft(remaining);
-      if (remaining <= 0) clearInterval(interval);
-    }, 500);
+    };
+    update(); // 立即更新一次
+    const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
   }, [turnDeadline]);
 

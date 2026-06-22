@@ -717,8 +717,8 @@ class ChineseChessServer extends BaseGameServer {
       if (!currentState || currentState.phase !== 'playing') return;
       if (currentState.currentTurn !== capturedTurn) return;
 
-      // 计算实际经过时间
-      const elapsed = Date.now() - capturedStartTime;
+      // 使用 deadline 计算实际经过时间（避免 500ms 缓冲导致多扣时间）
+      const elapsed = deadline - capturedStartTime;
 
       // 扣除已用时间
       if (settings.totalTime > 0 && elapsed > 0) {
