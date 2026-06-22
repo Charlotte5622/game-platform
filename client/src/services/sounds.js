@@ -193,6 +193,59 @@ export function soundSoupCorrect() {
   });
 }
 
+// ==================== 大厅/房间音效 ====================
+
+/** 欢迎/进入大厅 */
+export function soundWelcome() {
+  const notes = [523, 659, 784]; // C5 E5 G5
+  notes.forEach((f, i) => {
+    setTimeout(() => playTone(f, 0.15, 'sine', 0.3), i * 120);
+  });
+}
+
+/** 加入/创建房间 */
+export function soundRoomJoin() {
+  playTone(600, 0.1, 'triangle', 0.3);
+  setTimeout(() => playTone(900, 0.12, 'triangle', 0.3), 80);
+}
+
+/** 新玩家加入房间 */
+export function soundPlayerJoin() {
+  playTone(800, 0.1, 'sine', 0.25);
+  setTimeout(() => playTone(1000, 0.12, 'sine', 0.25), 100);
+}
+
+/** 玩家离开房间 */
+export function soundPlayerLeave() {
+  playTone(600, 0.1, 'sine', 0.2);
+  setTimeout(() => playTone(400, 0.12, 'sine', 0.2), 80);
+}
+
+/** 匹配中脉冲音 */
+export function soundMatching() {
+  playTone(500, 0.1, 'sine', 0.2);
+}
+
+/** 所有玩家就绪 */
+export function soundAllReady() {
+  playTone(1000, 0.1, 'sine', 0.3);
+  setTimeout(() => playTone(1200, 0.15, 'sine', 0.3), 100);
+}
+
+/** 游戏开始 */
+export function soundGameStart() {
+  const notes = [523, 659, 784, 1047]; // C5 E5 G5 C6
+  notes.forEach((f, i) => {
+    setTimeout(() => playTone(f, 0.15, 'sine', 0.4), i * 100);
+  });
+}
+
+/** 被踢出房间 */
+export function soundKicked() {
+  playTone(400, 0.15, 'square', 0.3);
+  setTimeout(() => playTone(250, 0.2, 'square', 0.3), 100);
+}
+
 // ==================== 通用音效 ====================
 
 /** 按钮点击 */
@@ -216,6 +269,16 @@ export function soundNotify() {
  * 音效映射表 - 按游戏ID和事件名索引
  */
 export const SOUND_MAP = {
+  lobby: {
+    welcome: soundWelcome,
+    room_join: soundRoomJoin,
+    player_join: soundPlayerJoin,
+    player_leave: soundPlayerLeave,
+    matching: soundMatching,
+    all_ready: soundAllReady,
+    game_start: soundGameStart,
+    kicked: soundKicked,
+  },
   doudizhu: {
     play_card: soundCardPlay,
     pass: soundPass,

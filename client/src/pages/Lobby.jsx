@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import GameCard from '../components/GameCard';
 import { getSocket } from '../services/socket';
+import { soundWelcome, soundClick } from '../services/sounds';
 
 // 安全解析 localStorage
 function safeGetUser() {
@@ -68,6 +69,11 @@ export default function Lobby() {
       ];
       setGames(allGames);
       setLoading(false);
+      // 首次加载播放欢迎音效
+      if (!sessionStorage.getItem('lobby-welcome-played')) {
+        soundWelcome();
+        sessionStorage.setItem('lobby-welcome-played', '1');
+      }
     }).catch(() => {
       setError('加载游戏列表失败');
       setLoading(false);
@@ -194,7 +200,7 @@ export default function Lobby() {
               key={t.id}
               className={`theme-option ${t.className}${theme === t.id ? ' active' : ''}`}
               style={getFanStyle(i, THEMES.length, fanOpen)}
-              onClick={() => { setTheme(t.id); setFanOpen(false); }}
+              onClick={() => { soundClick(); setTheme(t.id); setFanOpen(false); }}
             >
               <span className="theme-option-label">{t.label}</span>
             </button>

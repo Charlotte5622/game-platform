@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getSocket } from '../services/socket';
 import { playSound } from '../services/sounds';
+import { soundRoomJoin, soundPlayerJoin, soundPlayerLeave, soundMatching, soundGameStart, soundAllReady, soundKicked, soundClick } from '../services/sounds';
 
 /**
  * 安全解析 localStorage 中的用户信息
@@ -37,6 +38,7 @@ export default function GameHost({ gameId, GameComponent }) {
   const [allowBots, setAllowBots] = useState(true); // 默认允许，从API获取
   const [gameName, setGameName] = useState(''); // 游戏名称
   const [minPlayers, setMinPlayers] = useState(null);
+  const prevPlayersLenRef = useRef(0);
   const effectiveMaxPlayers = maxPlayers || 2; // 兜底2人
   const effectiveMinPlayers = minPlayers || 2;
   const isVariablePlayers = effectiveMinPlayers !== effectiveMaxPlayers;
@@ -89,6 +91,7 @@ export default function GameHost({ gameId, GameComponent }) {
         setPlayers(response.players);
         if (response.hostId) setHostId(response.hostId);
         setPhase('waiting');
+        soundRoomJoin();
       });
     }
 
@@ -102,10 +105,24 @@ export default function GameHost({ gameId, GameComponent }) {
       // 保存 roomId 用于后台切换后恢复
       localStorage.setItem('activeRoomId', data.roomId);
       localStorage.setItem('activeGameId', gameId);
+      // 播放玩家加入/离开音效
+      const prevLen = prevPlayersLenRef.current;
+      const newLen = data.players?.length || 0;
+      if (newLen > prevLen && prevLen > 0) {
+        soundPlayerJoin();
+      } else if (newLen < prevLen) {
+        soundPlayerLeave();
+      }
+      prevPlayersLenRef.current = newLen;
+      // 检查全员就绪
+      if (data.players && data.players.length > 0 && data.players.every(p => p.ready)) {
+        soundAllReady();
+      }
     });
 
     // ===== 游戏生命周期 =====
     s.on('game_start', (data) => {
+      soundGameStart();
       setGameState(data.state);
       setPhase('playing');
       // 确保 roomId 保存（重连场景）
@@ -137,6 +154,7 @@ export default function GameHost({ gameId, GameComponent }) {
     });
 
     s.on('kicked', (data) => {
+      soundKicked();
       alert(data?.message || '你被踢出了房间');
       localStorage.removeItem('activeRoomId');
       localStorage.removeItem('activeGameId');
@@ -158,6 +176,7 @@ export default function GameHost({ gameId, GameComponent }) {
     if (!socket) return;
     setError(null);
     setPhase('matching');
+    soundMatching();
     // 如果提供了自定义房间号，使用 create_room 事件
     if (customCode) {
       if (!/^\d{1,6}$/.test(customCode)) {
@@ -176,6 +195,7 @@ export default function GameHost({ gameId, GameComponent }) {
         setPlayers(response.players);
         if (response.hostId) setHostId(response.hostId);
         setPhase('waiting');
+        soundRoomJoin();
       });
     } else {
       // 快速匹配（自动创建或加入房间）
@@ -190,6 +210,7 @@ export default function GameHost({ gameId, GameComponent }) {
         setPlayers(response.players);
         if (response.hostId) setHostId(response.hostId);
         setPhase('waiting');
+        soundRoomJoin();
       });
     }
   }, [socket, gameId]);
@@ -211,16 +232,19 @@ export default function GameHost({ gameId, GameComponent }) {
       setPlayers(response.players);
       if (response.hostId) setHostId(response.hostId);
       setPhase('waiting');
+      soundRoomJoin();
     });
   }, [socket, gameId]);
 
   const handleReady = useCallback(() => {
+    soundClick();
     if (socket && roomId) {
       socket.emit('player_ready', { roomId, ready: true });
     }
   }, [socket, roomId]);
 
   const handleAddBots = useCallback(() => {
+    soundClick();
     if (!socket || !roomId) return;
     socket.emit('add_bots', { roomId }, (response) => {
       if (response?.error) return; // 静默忽略
@@ -237,6 +261,7 @@ export default function GameHost({ gameId, GameComponent }) {
 
   // 踢出玩家（仅房主）
   const handleKickPlayer = useCallback((targetId) => {
+    soundClick();
     if (!socket || !roomId) return;
     socket.emit('kick_player', { roomId, targetId }, (response) => {
       if (response?.error) {
@@ -247,6 +272,7 @@ export default function GameHost({ gameId, GameComponent }) {
 
   // 房主直接开始游戏（可变人数游戏）
   const handleStartGame = useCallback(() => {
+    soundClick();
     if (!socket || !roomId) return;
     socket.emit('host_start_game', { roomId }, (response) => {
       if (response?.error) {
@@ -278,6 +304,7 @@ export default function GameHost({ gameId, GameComponent }) {
 
   // 确认离开房间（弹出自定义弹窗）
   const confirmLeave = useCallback(() => {
+    soundClick();
     setLeaveConfirm(true);
   }, []);
 

@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { soundClick } from '../services/sounds';
 
 // 游戏图标映射
 const GAME_ICONS = {
@@ -28,6 +29,7 @@ export default function GameCard({ game, index = 0 }) {
   const isExternal = game.type === 'external';
 
   const handleClick = () => {
+    soundClick();
     if (isExternal) {
       // 外部游戏：通过平台代理访问，新窗口打开
       window.open(`/games/${game.id}/`, '_blank');

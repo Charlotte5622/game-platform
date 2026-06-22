@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { disconnectSocket } from '../services/socket';
-import { setVolume } from '../services/sounds';
+import { setVolume, soundClick } from '../services/sounds';
 
 export default function Navbar() {
   const { user, logout } = useAuthStore();
@@ -15,6 +15,7 @@ export default function Navbar() {
     setVolume(muted ? 0 : 0.5);
   }, []);
   const toggleMute = () => {
+    soundClick();
     const next = !muted;
     setMuted(next);
     localStorage.setItem('muted', String(next));
@@ -22,6 +23,7 @@ export default function Navbar() {
   };
 
   const handleLogout = () => {
+    soundClick();
     disconnectSocket();
     logout();
     navigate('/login');
