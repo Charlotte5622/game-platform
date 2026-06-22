@@ -6057,6 +6057,8 @@ input {
   color: var(--text-dim, #888);
   margin-top: 4px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ts-chat-thinking::after {
