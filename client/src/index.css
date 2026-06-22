@@ -2990,19 +2990,10 @@ input {
 .chess-history {
   display: flex;
   flex-direction: column;
-  gap: 4px;
   padding: 12px;
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  height: 140px;
-  overflow-y: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.chess-history::-webkit-scrollbar {
-  display: none;
+  border-radius: 8px;
+  max-height: 180px;
 }
 
 .chess-history-title {
@@ -3012,6 +3003,20 @@ input {
   margin-bottom: 4px;
   padding-bottom: 6px;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.chess-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.chess-history-list::-webkit-scrollbar {
+  display: none;
 }
 
 .chess-history-item {
