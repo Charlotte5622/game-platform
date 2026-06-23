@@ -54,14 +54,20 @@ export default function GameCard({ game, index = 0 }) {
       aria-label={`开始${game.name}`}
       style={{ animationDelay: `${index * 0.07}s` }}
     >
-      {/* hover 时的强调描边光晕 */}
+      {/* hover 时的强调描边光晕 + HUD 角标 */}
       <span className="pointer-events-none absolute inset-0 rounded-[var(--radius-lg)] opacity-0 transition-opacity duration-300 group-hover:opacity-100 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--c-accent)_45%,transparent)]" />
+      <span className="hud-frame opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      {/* 顶部强调线(hover 展开) */}
+      <span className="absolute top-0 left-0 h-0.5 w-0 bg-accent shadow-[0_0_10px_var(--c-accent)] transition-[width] duration-500 ease-out group-hover:w-full z-10" />
 
       {/* 横幅 */}
       <div className="relative h-28 overflow-hidden" style={{ background: gradient }}>
         <span className="absolute inset-0 bg-[radial-gradient(circle_at_70%_120%,rgba(255,255,255,0.25),transparent_60%)]" />
         <span className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent" />
-        <span className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent" />
+        <span className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+        <span className="absolute top-3 left-3.5 font-mono text-xs font-semibold tracking-[0.18em] text-white/75 drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]">
+          {String(index + 1).padStart(2, '0')}
+        </span>
         <span className="absolute bottom-2 right-3 text-[64px] leading-none drop-shadow-[0_4px_12px_rgba(0,0,0,0.4)] transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-6" aria-hidden="true">
           {icon}
         </span>

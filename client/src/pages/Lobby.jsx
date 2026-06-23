@@ -40,14 +40,12 @@ function getFanStyle(index, total, isOpen) {
   };
 }
 
-function StatChip({ icon, value, label }) {
+function StatReadout({ code, value, label }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-line">
-      <span className="text-lg" aria-hidden="true">{icon}</span>
-      <div className="leading-tight">
-        <div className="font-display text-xl font-bold text-accent tabular">{value}</div>
-        <div className="text-[11px] text-dim">{label}</div>
-      </div>
+    <div className="relative flex flex-col gap-1.5 px-4 py-3 rounded-lg bg-black/25 border border-line min-w-[112px]">
+      <span className="readout text-[10px] tracking-[0.2em] uppercase text-dim">{code}</span>
+      <span className="readout text-[28px] font-bold leading-none text-accent">{value}</span>
+      <span className="text-[11px] text-muted">{label}</span>
     </div>
   );
 }
@@ -95,7 +93,7 @@ export default function Lobby() {
   return (
     <div className="relative mx-auto max-w-6xl px-4 sm:px-6 pb-24">
       {/* Hero */}
-      <header className="relative overflow-hidden rounded-[var(--radius-xl)] border border-line mt-6 px-6 sm:px-10 py-10 sm:py-12 glass">
+      <header className="relative overflow-hidden rounded-[var(--radius-xl)] border border-line mt-6 px-6 sm:px-10 py-11 sm:py-14 glass">
         <div
           className="absolute inset-0 -z-10"
           style={{
@@ -103,31 +101,44 @@ export default function Lobby() {
               'radial-gradient(70% 120% at 0% 0%, color-mix(in srgb, var(--c-accent) 20%, transparent), transparent 60%), radial-gradient(60% 120% at 100% 0%, color-mix(in srgb, var(--c-accent-2) 16%, transparent), transparent 60%)',
           }}
         />
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/25 text-xs text-accent font-medium">
-          <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" /> 实时联机 · AI 对手
-        </div>
-        <h1 className="mt-4 font-display text-3xl sm:text-[2.75rem] font-bold leading-tight text-text">
-          游戏<span className="text-accent">大厅</span>
-        </h1>
-        <p className="mt-2 text-muted max-w-xl">
-          {user ? `${user.nickname}，选择你喜欢的游戏开始匹配` : '选择你喜欢的游戏，开始匹配对战'}
-        </p>
+        <span className="ghost-word -z-10 text-[40vw] sm:text-[240px] -top-8 sm:-top-16 -right-4 sm:right-6 opacity-70">ARENA</span>
+        <span className="scanline left-8 right-8 top-14" />
+        <span className="hud-frame" />
 
-        <div className="mt-7 flex flex-wrap gap-3">
-          <StatChip icon="👥" value={loading ? '—' : (stats?.onlinePlayers ?? 0)} label="在线玩家" />
-          <StatChip icon="⚔️" value={loading ? '—' : (stats?.playingRooms ?? 0)} label="进行中" />
-          <StatChip icon="⏳" value={loading ? '—' : (stats?.waitingRooms ?? 0)} label="等待中" />
+        <div className="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-9">
+          <div>
+            <div className="flex items-center gap-3">
+              <span className="eyebrow">ARENA OS · 大厅</span>
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-accent/10 border border-accent/25 text-[10px] font-mono tracking-wider text-accent uppercase">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" /> Live
+              </span>
+            </div>
+            <h1 className="mt-4 font-display text-4xl sm:text-6xl font-bold leading-[0.95] text-text">
+              游戏<span className="text-accent">大厅</span>
+            </h1>
+            <p className="mt-4 text-muted max-w-md">
+              {user ? `${user.nickname}，选择你喜欢的游戏开始匹配` : '选择你喜欢的游戏，开始匹配对战'}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <StatReadout code="PLR" value={loading ? '—' : (stats?.onlinePlayers ?? 0)} label="在线玩家" />
+            <StatReadout code="RUN" value={loading ? '—' : (stats?.playingRooms ?? 0)} label="进行中" />
+            <StatReadout code="WAIT" value={loading ? '—' : (stats?.waitingRooms ?? 0)} label="等待中" />
+          </div>
         </div>
       </header>
 
       {/* 游戏列表 */}
-      <section className="mt-10">
-        <div className="flex items-end justify-between mb-5">
-          <h2 className="font-display text-xl font-bold text-text flex items-center gap-2.5">
-            <span className="w-1 h-5 rounded-full bg-accent shadow-[0_0_10px_var(--c-accent)]" />
-            热门游戏
-          </h2>
-          {!loading && !error && <span className="text-sm text-dim tabular">{games.length} 款游戏</span>}
+      <section className="mt-12">
+        <div className="flex items-end justify-between mb-6">
+          <div>
+            <div className="eyebrow mb-2.5">// Games</div>
+            <h2 className="font-display text-2xl font-bold text-text">热门游戏</h2>
+          </div>
+          {!loading && !error && (
+            <span className="readout text-sm text-dim">[ {String(games.length).padStart(2, '0')} ]</span>
+          )}
         </div>
 
         {loading ? (

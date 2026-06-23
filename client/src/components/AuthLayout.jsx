@@ -22,6 +22,9 @@ export default function AuthLayout({ title, subtitle, children, footer }) {
               backgroundSize: '32px 32px',
             }}
           />
+          <span className="ghost-word -z-10 text-[180px] -bottom-10 -left-4 opacity-60">A</span>
+          <span className="scanline left-6 right-6 top-20" />
+          <span className="hud-frame" />
 
           <div className="flex items-center gap-2.5">
             <span className="grid place-items-center w-10 h-10 rounded-xl text-xl bg-raised border border-line-strong shadow-[0_0_22px_-4px_var(--c-accent)]">
@@ -33,10 +36,11 @@ export default function AuthLayout({ title, subtitle, children, footer }) {
           </div>
 
           <div>
-            <h2 className="font-display text-[2rem] leading-tight font-bold text-text">
+            <div className="eyebrow mb-4">Arena OS</div>
+            <h2 className="font-display text-[2.1rem] leading-[1.05] font-bold text-text">
               开局,<br />在牌桌上见。
             </h2>
-            <p className="mt-3 text-sm text-muted leading-relaxed max-w-[34ch]">
+            <p className="mt-4 text-sm text-muted leading-relaxed max-w-[34ch]">
               麻将 · 斗地主 · 象棋 · UNO · 五子棋 —— 与好友实时对战,或挑战 AI。
             </p>
           </div>
