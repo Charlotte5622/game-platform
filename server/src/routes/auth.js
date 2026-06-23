@@ -589,14 +589,20 @@ router.put('/nickname', authMiddleware, async (req, res) => {
   try {
     const nickname = normalizeNickname(req.body.nickname || '');
     if (nickname.length < 2) return sendAuthError(res, 400, 'AUTH_131');
+    const currentUser = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!currentUser) return sendAuthError(res, 404, 'AUTH_404');
+    if (nickname === currentUser.nickname) {
+      return res.json({ ok: true, nickname, user: publicUser(currentUser), remainingChanges: 5 - (currentUser.nicknameChangeCount || 0) });
+    }
+    if ((currentUser.nicknameChangeCount || 0) >= 5) return sendAuthError(res, 403, 'AUTH_133');
     const existing = await prisma.user.findUnique({ where: { nickname } });
     if (existing && existing.id !== req.user.id) return sendAuthError(res, 409, 'AUTH_132');
     const user = await prisma.user.update({
       where: { id: req.user.id },
-      data: { nickname },
+      data: { nickname, nicknameChangeCount: { increment: 1 } },
     });
     await writeAuditLog(prisma, req, req.user.id, 'nickname_update');
-    return res.json({ ok: true, nickname, user: publicUser(user) });
+    return res.json({ ok: true, nickname, user: publicUser(user), remainingChanges: 5 - (user.nicknameChangeCount || 0) });
   } catch (err) {
     console.error('[auth] nickname failed:', err);
     return sendAuthError(res, 500, 'AUTH_500');

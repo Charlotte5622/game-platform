@@ -12,6 +12,7 @@ model User {
   username            String            @unique
   passwordHash        String            @map("password")
   nickname            String            @unique
+  nicknameChangeCount Int               @default(0)
   avatar              String?
   phone               String?
   phoneHash           String?           @unique

@@ -179,6 +179,7 @@ function publicUser(user) {
     email,
     status: user.status,
     createdAt: user.createdAt,
+    nicknameChangeCount: user.nicknameChangeCount || 0,
   };
 }
 

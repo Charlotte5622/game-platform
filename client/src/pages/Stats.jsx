@@ -65,7 +65,7 @@ export default function Stats() {
     }
     try {
       const res = await api.put('/api/auth/nickname', { nickname });
-      setUser({ ...user, nickname: res.data.nickname });
+      setUser({ ...user, nickname: res.data.nickname, nicknameChangeCount: res.data.user?.nicknameChangeCount ?? (user?.nicknameChangeCount || 0) + 1 });
       setEditingNickname(false);
       setNicknameError('');
     } catch (err) {
@@ -123,9 +123,13 @@ export default function Stats() {
         ) : (
           <div className="stats-nickname-display">
             <span className="stats-nickname-text">{user?.nickname}</span>
-            <button className="stats-nickname-btn" onClick={() => { setNicknameInput(user?.nickname || ''); setEditingNickname(true); }}>
-              ✏️ 改名
-            </button>
+            {(() => { const rc = 5 - (user?.nicknameChangeCount || 0); return rc > 0 ? (
+              <button className="stats-nickname-btn" onClick={() => { setNicknameInput(user?.nickname || ''); setEditingNickname(true); }}>
+                ✏️ 改名（剩余 {rc} 次）
+              </button>
+            ) : (
+              <span className="stats-nickname-limit">已达修改上限</span>
+            ); })()}
           </div>
         )}
 
