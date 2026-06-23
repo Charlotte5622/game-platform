@@ -65,7 +65,11 @@ function PlayerPanel({ player, bid, isPassing, isBot }) {
         {isBot ? (
           <span className="dz-bot-avatar">🤖</span>
         ) : player.avatar ? (
-          <img src={player.avatar} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+          /^https?:\/\//.test(player.avatar) ? (
+            <img src={player.avatar} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+          ) : (
+            <span className="dz-user-avatar" style={{ fontSize: 24 }}>{player.avatar}</span>
+          )
         ) : (
           <span className="dz-user-avatar">{player.isLandlord ? '👑' : '👤'}</span>
         )}
@@ -257,7 +261,11 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
             {me.isBot ? (
               <span className="dz-bot-avatar" style={{width:24,height:24,fontSize:14}}>🤖</span>
             ) : me.avatar ? (
-              <img src={me.avatar} alt="" style={{width:24,height:24,borderRadius:'50%',objectFit:'cover'}} />
+              /^https?:\/\//.test(me.avatar) ? (
+                <img src={me.avatar} alt="" style={{width:24,height:24,borderRadius:'50%',objectFit:'cover'}} />
+              ) : (
+                <span className="dz-user-avatar" style={{width:24,height:24,fontSize:16}}>{me.avatar}</span>
+              )
             ) : (
               <span className="dz-user-avatar" style={{width:24,height:24,fontSize:11}}>{me.nickname?.charAt(0) || '👤'}</span>
             )}

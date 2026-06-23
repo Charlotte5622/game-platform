@@ -21,10 +21,10 @@ export default function Navbar() {
     setVolume(next ? 0 : 0.5);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     soundClick();
     disconnectSocket();
-    logout();
+    await logout();
     navigate('/login');
   };
 
@@ -42,6 +42,7 @@ export default function Navbar() {
           <>
             <NavLink to="/leaderboard" className={navClass}>排行榜</NavLink>
             <NavLink to="/stats" className={navClass}>战绩</NavLink>
+            <NavLink to="/security" className={navClass}>安全</NavLink>
             <span className="navbar-nickname" title={user.nickname}>{user.nickname}</span>
             <span className="navbar-actions">
               <button onClick={toggleMute} className="navbar-icon-btn" title={muted ? '开启音效' : '关闭音效'} aria-label={muted ? '开启音效' : '关闭音效'}>

@@ -1,39 +1,44 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import SliderCaptcha from '../components/SliderCaptcha';
 import { useAuthStore } from '../stores/authStore';
 
 export default function Login() {
-  const [username, setUsername] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  const { login, loading, error, clearError } = useAuthStore();
+  const [rememberMe, setRememberMe] = useState(false);
+  const [captchaAnswer, setCaptchaAnswer] = useState(null);
+  const { login, loading, error, clearError, captcha, requiresCaptcha, loadCaptcha } = useAuthStore();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (requiresCaptcha && !captcha) loadCaptcha();
+  }, [requiresCaptcha, captcha, loadCaptcha]);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     clearError();
-    const ok = await login(username.trim(), password);
+    const ok = await login(identifier.trim(), password, rememberMe, captchaAnswer);
     if (ok) navigate('/lobby');
   };
 
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1 className="auth-title">🎮 登录</h1>
-        <p className="auth-subtitle">欢迎回到联机游戏平台</p>
+        <h1 className="auth-title">登录</h1>
+        <p className="auth-subtitle">回到你的牌桌和房间</p>
 
         <form onSubmit={handleSubmit}>
           <div className="auth-form-group">
-            <label htmlFor="login-username">用户名</label>
+            <label htmlFor="login-identifier">手机号或昵称</label>
             <input
-              id="login-username"
+              id="login-identifier"
               type="text"
-              value={username}
-              onChange={(e) => { setUsername(e.target.value); if (error) clearError(); }}
-              placeholder="请输入用户名"
+              value={identifier}
+              onChange={(event) => { setIdentifier(event.target.value); if (error) clearError(); }}
+              placeholder="手机号 / 昵称"
               autoComplete="username"
-              minLength={3}
-              maxLength={20}
-              pattern="[A-Za-z0-9_]+"
+              maxLength={80}
               disabled={loading}
               required
             />
@@ -45,7 +50,7 @@ export default function Login() {
               id="login-password"
               type="password"
               value={password}
-              onChange={(e) => { setPassword(e.target.value); if (error) clearError(); }}
+              onChange={(event) => { setPassword(event.target.value); if (error) clearError(); }}
               placeholder="请输入密码"
               autoComplete="current-password"
               disabled={loading}
@@ -53,15 +58,37 @@ export default function Login() {
             />
           </div>
 
+          <label className="auth-check-row">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(event) => setRememberMe(event.target.checked)}
+              disabled={loading}
+            />
+            <span>记住我</span>
+          </label>
+
+          {requiresCaptcha && (
+            <SliderCaptcha
+              challenge={captcha}
+              disabled={loading}
+              onSolved={setCaptchaAnswer}
+              onReload={loadCaptcha}
+            />
+          )}
+
           {error && <p className="auth-error" role="alert">{error}</p>}
 
-          <button type="submit" className="auth-submit" disabled={loading}>
+          <button type="submit" className="auth-submit" disabled={loading || (requiresCaptcha && !captchaAnswer)}>
             {loading ? '登录中...' : '登录'}
           </button>
         </form>
 
-        <p className="auth-footer">
-          还没有账号？ <Link to="/register">立即注册</Link>
+        <p className="auth-footer auth-footer-split">
+          <Link to="/reset-password">忘记密码</Link>
+          <span>
+            没有账号？ <Link to="/register">注册</Link>
+          </span>
         </p>
       </div>
     </div>

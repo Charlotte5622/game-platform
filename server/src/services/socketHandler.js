@@ -35,28 +35,37 @@ function broadcastStatsDebounced(io) {
  * 设置 WebSocket 事件处理
  */
 function setupSocketHandlers(io, prisma) {
-  // 认证中间件（同时从数据库刷新头像）
+  // 认证中间件（同时从数据库刷新用户展示信息）
   io.use(async (socket, next) => {
     const token = socket.handshake.auth.token;
     if (!token) {
-      return next(new Error('未提供认证 Token'));
+      return next(new Error('auth_required'));
     }
 
     const user = verifySocketToken(token);
     if (!user) {
-      return next(new Error('Token 无效或已过期'));
+      return next(new Error('auth_required'));
     }
 
-    socket.user = user;
+    socket.authToken = token;
+    socket.user = {
+      ...user,
+      username: user.nickname || user.username,
+    };
 
-    // 从数据库获取最新头像（JWT中的avatar可能是旧值）
+    // 从数据库获取最新头像和昵称（JWT 中的信息可能是旧值）
     try {
       if (prisma && user.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: user.id },
-          select: { avatar: true },
+          select: { username: true, nickname: true, avatar: true, status: true },
         });
+        if (!dbUser || dbUser.status !== 'active') {
+          return next(new Error('auth_required'));
+        }
         if (dbUser) {
+          socket.user.username = dbUser.nickname || dbUser.username;
+          socket.user.nickname = dbUser.nickname;
           socket.user.avatar = dbUser.avatar || null;
         }
       }
@@ -107,6 +116,16 @@ function setupSocketHandlers(io, prisma) {
 
   io.on('connection', (socket) => {
     console.log(`🔌 玩家连接: ${socket.user.username} (${socket.id})`);
+
+    socket.use((packet, next) => {
+      const token = socket.authToken || socket.handshake.auth.token;
+      const user = verifySocketToken(token);
+      if (!user) {
+        socket.emit('auth_required', { code: 'AUTH_408', message: '操作已提交' });
+        return next(new Error('auth_required'));
+      }
+      return next();
+    });
 
     // 跟踪在线连接
     connectedSockets.set(socket.id, { userId: socket.user.id, username: socket.user.username });

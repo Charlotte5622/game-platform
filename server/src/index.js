@@ -23,6 +23,9 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 8080;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 
+app.disable('x-powered-by');
+app.set('trust proxy', 1);
+
 // Socket.IO
 const io = new Server(server, {
   cors: {
@@ -33,7 +36,31 @@ const io = new Server(server, {
 
 // 中间件
 app.use(cors({ origin: CLIENT_URL, credentials: true }));
-app.use(express.json());
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader(
+    'Content-Security-Policy',
+    [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "object-src 'none'",
+      "frame-ancestors 'self'",
+      "script-src 'self'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob:",
+      "font-src 'self' data:",
+      "media-src 'self' data: blob:",
+      "connect-src 'self' http: https: ws: wss:",
+      "frame-src 'self'",
+      "form-action 'self'",
+    ].join('; ')
+  );
+  next();
+});
+app.use(express.json({ limit: '64kb' }));
 
 // 静态文件：内置游戏资源（只响应实际存在的文件，不拦截代理请求）
 app.use('/games', express.static(path.join(__dirname, '../../games'), {

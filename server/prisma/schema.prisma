@@ -8,25 +8,108 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  password  String
-  nickname  String
-  avatar    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  games     GameRecord[]
+  id                  Int               @id @default(autoincrement())
+  username            String            @unique
+  passwordHash        String            @map("password")
+  nickname            String            @unique
+  avatar              String?
+  phone               String?
+  phoneHash           String?           @unique
+  email               String?
+  emailHash           String?           @unique
+  status              String            @default("active")
+  passwordChangedAt   DateTime?
+  deletionRequestedAt DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  games               GameRecord[]
+  refreshTokens       RefreshToken[]
+  passwordHistory     PasswordHistory[]
+  auditLogs           AuditLog[]
+
+  @@index([status])
+  @@index([deletionRequestedAt])
+}
+
+model RefreshToken {
+  id                  String    @id @default(cuid())
+  userId              Int
+  tokenHash           String    @unique
+  deviceFingerprint   String
+  deviceName          String?
+  ipHash              String?
+  userAgent           String?
+  expiresAt           DateTime
+  revoked             Boolean   @default(false)
+  revokedAt           DateTime?
+  replacedByTokenHash String?
+  createdAt           DateTime  @default(now())
+  lastUsedAt          DateTime?
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([deviceFingerprint])
+  @@index([expiresAt])
+  @@index([revoked])
+}
+
+model LoginAttempt {
+  id         Int      @id @default(autoincrement())
+  identifier String
+  success    Boolean
+  createdAt  DateTime @default(now())
+
+  @@index([identifier, createdAt])
+  @@index([success, createdAt])
+}
+
+model PasswordHistory {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  passwordHash String
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model VerificationCode {
+  id             Int      @id @default(autoincrement())
+  identifierHash String
+  purpose        String
+  codeHash       String
+  attempts       Int      @default(0)
+  consumed       Boolean  @default(false)
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+
+  @@index([identifierHash, purpose, createdAt])
+  @@index([expiresAt])
+}
+
+model AuditLog {
+  id                Int      @id @default(autoincrement())
+  userId            Int?
+  action            String
+  ipHash            String?
+  deviceFingerprint String?
+  metadata          Json?
+  createdAt         DateTime @default(now())
+  user              User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
 }
 
 model GameRecord {
   id        Int      @id @default(autoincrement())
   userId    Int
   gameId    String
-  result    String   // "win" | "lose" | "draw"
+  result    String
   score     Int      @default(0)
-  duration  Int?     // 游戏时长（秒）
+  duration  Int?
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([gameId])
@@ -40,7 +123,7 @@ model TurtleSoupCategory {
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
 
-  puzzles   TurtleSoupPuzzle[]
+  puzzles TurtleSoupPuzzle[]
 
   @@map("turtle_soup_categories")
 }
@@ -56,7 +139,7 @@ model TurtleSoupPuzzle {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  category   TurtleSoupCategory @relation(fields: [categoryId], references: [id])
+  category TurtleSoupCategory @relation(fields: [categoryId], references: [id])
 
   @@index([categoryId])
   @@index([isActive])

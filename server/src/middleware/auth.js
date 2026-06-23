@@ -1,48 +1,98 @@
 const jwt = require('jsonwebtoken');
+const { parseCookies, sendAuthError, ACCESS_TOKEN_TTL_SECONDS } = require('../services/authSecurity');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
 
-/**
- * JWT 验证中间件
- */
-function authMiddleware(req, res, next) {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: '未登录，请先登录' });
-  }
-
-  const token = authHeader.split(' ')[1];
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded; // { id, username }
-    next();
-  } catch (err) {
-    return res.status(401).json({ error: 'Token 无效或已过期，请重新登录' });
-  }
+function signToken(payload, expiresIn) {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn });
 }
 
-/**
- * 生成 JWT Token
- */
-function generateToken(user) {
-  return jwt.sign(
-    { id: user.id, username: user.username, avatar: user.avatar || null },
-    JWT_SECRET,
-    { expiresIn: '7d' }
+function generateAccessToken(user) {
+  return signToken(
+    {
+      type: 'access',
+      id: user.id,
+      username: user.username,
+      nickname: user.nickname,
+      avatar: user.avatar || null,
+    },
+    `${ACCESS_TOKEN_TTL_SECONDS}s`
   );
 }
 
-/**
- * 验证 Socket 连接的 Token
- */
+function generateRefreshToken(user, sessionId, expiresIn) {
+  return signToken(
+    {
+      type: 'refresh',
+      id: user.id,
+      sid: sessionId,
+    },
+    expiresIn
+  );
+}
+
+function verifyAccessToken(token) {
+  const decoded = jwt.verify(token, JWT_SECRET);
+  if (decoded.type !== 'access') {
+    const err = new Error('Invalid token type');
+    err.code = 'AUTH_402';
+    throw err;
+  }
+  return decoded;
+}
+
+function verifyRefreshToken(token) {
+  const decoded = jwt.verify(token, JWT_SECRET);
+  if (decoded.type !== 'refresh') {
+    const err = new Error('Invalid token type');
+    err.code = 'AUTH_403';
+    throw err;
+  }
+  return decoded;
+}
+
+function getAccessTokenFromRequest(req) {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.slice(7);
+  }
+  return parseCookies(req).access_token || null;
+}
+
+function getRefreshTokenFromRequest(req) {
+  return parseCookies(req).refresh_token || req.body?.refreshToken || null;
+}
+
+function authMiddleware(req, res, next) {
+  const token = getAccessTokenFromRequest(req);
+  if (!token) {
+    return sendAuthError(res, 401, 'AUTH_401');
+  }
+
+  try {
+    req.user = verifyAccessToken(token);
+    req.accessToken = token;
+    return next();
+  } catch (err) {
+    return sendAuthError(res, 401, err.name === 'TokenExpiredError' ? 'AUTH_408' : 'AUTH_402');
+  }
+}
+
 function verifySocketToken(token) {
   try {
-    return jwt.verify(token, JWT_SECRET);
+    return verifyAccessToken(token);
   } catch {
     return null;
   }
 }
 
-module.exports = { authMiddleware, generateToken, verifySocketToken };
+module.exports = {
+  authMiddleware,
+  generateAccessToken,
+  generateRefreshToken,
+  getAccessTokenFromRequest,
+  getRefreshTokenFromRequest,
+  verifyAccessToken,
+  verifyRefreshToken,
+  verifySocketToken,
+};

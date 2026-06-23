@@ -1118,6 +1118,270 @@ input {
   color: var(--text-muted);
 }
 
+.auth-footer-split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.auth-segment {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 18px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.auth-segment button {
+  min-height: 36px;
+  border-radius: calc(var(--radius) - 2px);
+  color: var(--text-muted);
+  background: transparent;
+  font-weight: 700;
+}
+
+.auth-segment button.active {
+  color: white;
+  background: var(--primary);
+}
+
+.auth-inline-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px;
+  gap: 8px;
+}
+
+.auth-inline-control input {
+  min-width: 0;
+}
+
+.auth-inline-control button,
+.slider-captcha-reload,
+.security-section-head button,
+.device-item button {
+  border: 1px solid var(--border);
+  background: var(--bg-card-hover);
+  color: var(--text);
+  border-radius: var(--radius);
+  font-weight: 700;
+}
+
+.auth-check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 18px;
+  color: var(--text-muted);
+  font-size: 14px;
+  user-select: none;
+}
+
+.auth-check-row input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+}
+
+.auth-note {
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+  margin: 0 0 14px;
+}
+
+.slider-captcha {
+  margin: 4px 0 16px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-input);
+}
+
+.slider-captcha-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.slider-captcha-reload {
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.slider-captcha-track {
+  position: relative;
+  height: 34px;
+  display: flex;
+  align-items: center;
+}
+
+.slider-captcha-track input {
+  width: 100%;
+  accent-color: var(--primary);
+  position: relative;
+  z-index: 2;
+}
+
+.slider-captcha-target {
+  position: absolute;
+  top: 5px;
+  width: 4px;
+  height: 24px;
+  border-radius: 2px;
+  background: var(--secondary);
+  transform: translateX(-50%);
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
+  z-index: 1;
+}
+
+.slider-captcha-status {
+  margin-top: 6px;
+  color: var(--text-dim);
+  font-size: 12px;
+  text-align: center;
+}
+
+.slider-captcha.solved {
+  border-color: var(--success);
+}
+
+.slider-captcha.solved .slider-captcha-status {
+  color: var(--success);
+}
+
+.security-page {
+  width: min(960px, calc(100% - 32px));
+  margin: 24px auto;
+  display: grid;
+  gap: 20px;
+}
+
+.security-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+
+.security-section h1,
+.security-section h2 {
+  font-size: 22px;
+  margin-bottom: 16px;
+}
+
+.security-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.security-section-head h1 {
+  margin-bottom: 0;
+}
+
+.security-section-head button,
+.device-item button {
+  min-height: 36px;
+  padding: 0 14px;
+}
+
+.device-list {
+  display: grid;
+  gap: 10px;
+}
+
+.device-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.device-item p {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin: 4px 0;
+  overflow-wrap: anywhere;
+}
+
+.device-item span {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.device-current {
+  color: var(--success) !important;
+  font-weight: 700;
+}
+
+.security-form {
+  display: grid;
+  gap: 14px;
+  max-width: 440px;
+}
+
+.security-form label {
+  display: grid;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.security-form input {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 14px;
+}
+
+@media (max-width: 560px) {
+  .auth-footer-split {
+    flex-direction: column;
+  }
+
+  .auth-inline-control {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-inline-control button {
+    min-height: 42px;
+  }
+
+  .security-page {
+    width: min(100% - 20px, 960px);
+    margin: 12px auto;
+  }
+
+  .security-section {
+    padding: 18px;
+  }
+
+  .device-item {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ============================================
    游戏容器 (GameHost)
    ============================================ */
@@ -4639,7 +4903,7 @@ input {
 
   /* 竖屏board: 左紧凑 | 中间(上+中) | 右紧凑 */
   .mj-board {
-    grid-template-columns: 50px 1fr 50px;
+    grid-template-columns: 54px minmax(0, 1fr) 54px;
     grid-template-rows: auto 1fr auto;
     gap: 6px;
     min-height: 240px;
@@ -4674,25 +4938,72 @@ input {
   .mj-table-area {
     grid-column: 2;
     grid-row: 2;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
+    grid-template-columns: 34px minmax(0, 1fr) 34px;
+    grid-template-rows: auto minmax(78px, 1fr) auto;
     align-items: center;
     padding: 4px;
+    gap: 4px;
   }
 
   .mj-table-west,
   .mj-table-east {
-    display: none;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 30px;
+    max-height: 128px;
+    overflow: hidden;
+    padding: 2px;
+    background: rgba(15, 23, 42, 0.42);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 8px;
   }
 
   .mj-table-north {
-    grid-column: 1;
+    grid-column: 2;
     grid-row: 1;
+    justify-content: center;
+    min-height: 30px;
+    overflow: hidden;
   }
 
   .mj-table-south {
+    grid-column: 2;
+    grid-row: 3;
+    justify-content: center;
+    min-height: 30px;
+    overflow: hidden;
+  }
+
+  .mj-table-west {
     grid-column: 1;
-    grid-row: 2;
+    grid-row: 1 / 4;
+  }
+
+  .mj-table-east {
+    grid-column: 3;
+    grid-row: 1 / 4;
+  }
+
+  .mj-table-west::before,
+  .mj-table-east::before {
+    position: static;
+    transform: none;
+    margin: 0 0 2px;
+    font-size: 9px;
+    line-height: 1;
+    color: rgba(226, 232, 240, 0.78);
+  }
+
+  .mj-table-west::before {
+    content: '西';
+  }
+
+  .mj-table-east::before {
+    content: '东';
   }
 
   .mj-seat-bottom {
@@ -4721,11 +5032,18 @@ input {
   }
 
   /* 手机端：弃牌区只显示最新一张 */
-  .mj-table-north .mj-tile:not(:last-child),
-  .mj-table-south .mj-tile:not(:last-child),
-  .mj-table-west .mj-tile:not(:last-child),
-  .mj-table-east .mj-tile:not(:last-child) {
+  .mj-table-north .mj-tile,
+  .mj-table-south .mj-tile,
+  .mj-table-west .mj-tile,
+  .mj-table-east .mj-tile {
     display: none;
+  }
+
+  .mj-table-north .mj-tile:nth-last-child(-n+5),
+  .mj-table-south .mj-tile:nth-last-child(-n+5),
+  .mj-table-west .mj-tile:nth-last-child(-n+4),
+  .mj-table-east .mj-tile:nth-last-child(-n+4) {
+    display: flex;
   }
 
   /* 牌缩小 */
@@ -5335,7 +5653,7 @@ input {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   padding: 16px;
   min-height: calc(100vh - 64px);
   animation: fadeIn 0.4s ease;
@@ -5362,7 +5680,15 @@ input {
   justify-content: center;
   align-items: center;
   gap: 12px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  min-height: 38px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.uno-top-bar::-webkit-scrollbar {
+  display: none;
 }
 
 .uno-me-info {
@@ -5373,6 +5699,8 @@ input {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 8px;
+  flex: 0 0 auto;
+  min-height: 34px;
 }
 
 .uno-me-name {
@@ -5394,6 +5722,11 @@ input {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 8px;
+  flex: 0 0 auto;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
 }
 
 .uno-turn-tag {
@@ -5405,6 +5738,16 @@ input {
   background: var(--bg-card);
   border: 1px solid var(--border);
   transition: all 0.3s ease;
+  flex: 0 0 auto;
+  min-width: 118px;
+  max-width: 180px;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .uno-turn-mine {
@@ -5422,6 +5765,18 @@ input {
   background: linear-gradient(135deg, var(--danger), #c0392b);
   border-radius: 8px;
   animation: pulse 1s infinite;
+  flex: 0 0 auto;
+  min-width: 112px;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.uno-draw-stack-empty {
+  visibility: hidden;
+  animation: none;
 }
 
 /* 对手区域 */
@@ -5430,6 +5785,8 @@ input {
   justify-content: center;
   gap: 12px;
   flex-wrap: wrap;
+  min-height: 62px;
+  align-content: center;
 }
 
 .uno-opponent {
@@ -5599,7 +5956,33 @@ input {
 .uno-actions {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 12px;
+  min-height: 46px;
+  flex-shrink: 0;
+}
+
+.uno-actions-waiting {
+  pointer-events: none;
+}
+
+.uno-turn-waiting {
+  min-width: 220px;
+  max-width: min(100%, 360px);
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--text-dim);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .uno-draw-btn {
@@ -5648,6 +6031,14 @@ input {
   box-shadow: none;
 }
 
+.uno-message-slot {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .uno-error {
   text-align: center;
   font-size: 14px;
@@ -5656,6 +6047,7 @@ input {
   background: var(--danger-glow);
   border-radius: 8px;
   animation: fadeIn 0.2s ease;
+  width: min(100%, 520px);
 }
 
 /* 手牌区域 */
@@ -5665,6 +6057,8 @@ input {
   justify-content: center;
   flex-wrap: wrap;
   padding: 16px 0 8px;
+  min-height: 112px;
+  align-content: flex-start;
 }
 
 .uno-hand-card-wrap {
@@ -5683,6 +6077,12 @@ input {
   cursor: default;
 }
 
+.uno-hand-disabled .uno-card:hover {
+  transform: none;
+  border-color: rgba(255,255,255,0.2);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
+}
+
 .uno-hand-disabled .uno-hand-card-wrap:hover {
   transform: none;
 }
@@ -5690,8 +6090,16 @@ input {
 .uno-hand-hint {
   text-align: center;
   font-size: 12px;
+  line-height: 18px;
   color: var(--text-dim);
   animation: pulse 2s ease-in-out infinite;
+  min-height: 18px;
+  margin: 0;
+}
+
+.uno-hand-hint-hidden {
+  visibility: hidden;
+  animation: none;
 }
 
 /* ===== UNO 卡牌 ===== */
@@ -6665,6 +7073,7 @@ input {
   color: var(--text, #e8e6e3);
   font-family: inherit;
   overflow: hidden;
+  position: relative;
 }
 
 /* --- Loading --- */
@@ -6828,6 +7237,7 @@ input {
   gap: 8px;
   padding: 8px 16px;
   flex-shrink: 0;
+  min-height: 46px;
 }
 
 .ts-info-tags {
@@ -6835,6 +7245,9 @@ input {
   gap: 6px;
   flex-wrap: wrap;
   flex: 1;
+  min-width: 0;
+  max-height: 30px;
+  overflow: hidden;
 }
 
 .ts-tag {
@@ -6857,6 +7270,16 @@ input {
   background: var(--bg-card, #1a1c25);
   border: 1px solid var(--border, rgba(255,255,255,0.08));
   color: var(--text-dim, #888);
+  flex: 0 0 auto;
+  min-width: 112px;
+  max-width: 160px;
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ts-turn-mine {
@@ -6880,6 +7303,7 @@ input {
   border: 1px solid rgba(108, 92, 231, 0.2);
   border-radius: var(--radius, 12px);
   flex-shrink: 0;
+  min-height: 86px;
 }
 
 .ts-puzzle-category {
@@ -6903,7 +7327,7 @@ input {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
-  padding: 12px 16px;
+  padding: 12px 16px 18px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -7107,14 +7531,32 @@ input {
 }
 
 /* --- Notifications --- */
+.ts-status-layer {
+  position: absolute;
+  top: 112px;
+  left: 16px;
+  right: 16px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
 .ts-notification {
   padding: 10px 16px;
   text-align: center;
   font-size: 13px;
   color: var(--text-dim, #888);
-  background: rgba(108, 92, 231, 0.06);
-  border-top: 1px solid var(--border, rgba(255,255,255,0.06));
-  flex-shrink: 0;
+  background: var(--glass-bg, rgba(26, 26, 46, 0.9));
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.22);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  max-width: min(100%, 520px);
+  animation: fadeIn 0.2s ease;
 }
 
 .ts-error {
@@ -7122,14 +7564,24 @@ input {
   text-align: center;
   font-size: 13px;
   color: var(--danger, #e17055);
-  background: rgba(225, 112, 85, 0.08);
-  border-top: 1px solid rgba(225, 112, 85, 0.2);
-  flex-shrink: 0;
+  background: rgba(225, 112, 85, 0.12);
+  border: 1px solid rgba(225, 112, 85, 0.24);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.22);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  max-width: min(100%, 520px);
+  animation: fadeIn 0.2s ease;
 }
 
 /* --- Actions / Input Bar --- */
 .ts-actions {
   flex-shrink: 0;
+  position: relative;
+  min-height: 76px;
+  z-index: 12;
+  background: var(--bg-card, #1a1c25);
+  border-top: 1px solid var(--border, rgba(255,255,255,0.06));
 }
 
 .ts-input-bar {
@@ -7138,8 +7590,7 @@ input {
   gap: 8px;
   padding: 10px 16px;
   padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-  background: var(--bg-card, #1a1c25);
-  border-top: 1px solid var(--border, rgba(255,255,255,0.06));
+  background: transparent;
 }
 
 .ts-input {
@@ -7225,6 +7676,11 @@ input {
   font-size: 12px;
   color: var(--text-dim, #888);
   padding: 2px 16px 6px;
+  min-height: 20px;
+}
+
+.ts-guess-progress-empty {
+  visibility: hidden;
 }
 
 .ts-guess-toggle-btn {
@@ -7241,8 +7697,17 @@ input {
   gap: 10px;
   padding: 16px;
   background: var(--bg-card, #1a1c25);
-  border-top: 1px solid rgba(253, 121, 168, 0.2);
+  border: 1px solid rgba(253, 121, 168, 0.22);
+  border-radius: 16px 16px 0 0;
   animation: ts-slide-up 0.25s ease;
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 100%;
+  z-index: 18;
+  box-shadow: 0 -16px 38px rgba(0,0,0,0.34);
+  max-height: min(42vh, 320px);
+  overflow-y: auto;
 }
 
 @keyframes ts-slide-up {
@@ -7336,6 +7801,7 @@ input {
   overflow-x: auto;
   flex-shrink: 0;
   -webkit-overflow-scrolling: touch;
+  min-height: 68px;
 }
 
 .ts-opponent {
@@ -7500,10 +7966,10 @@ input {
   padding: 16px 20px;
   background: rgba(108, 92, 231, 0.08);
   border-top: 1px solid rgba(108, 92, 231, 0.2);
-  animation: ts-pulse 2s ease-in-out infinite;
+  animation: ts-fade-pulse 2s ease-in-out infinite;
 }
 
-@keyframes ts-pulse {
+@keyframes ts-fade-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
 }

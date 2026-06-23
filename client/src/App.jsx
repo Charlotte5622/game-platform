@@ -1,13 +1,16 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useAuthStore } from './stores/authStore';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ResetPassword from './pages/ResetPassword';
 import Lobby from './pages/Lobby';
 import GameRoom from './pages/GameRoom';
 import Stats from './pages/Stats';
 import Leaderboard from './pages/Leaderboard';
 import EmulatorPage from './pages/EmulatorPage';
+import Security from './pages/Security';
 
 function ProtectedRoute({ children }) {
   const token = useAuthStore((s) => s.token);
@@ -16,6 +19,17 @@ function ProtectedRoute({ children }) {
 }
 
 export default function App() {
+  const syncFromStorage = useAuthStore((s) => s.syncFromStorage);
+
+  useEffect(() => {
+    window.addEventListener('auth:updated', syncFromStorage);
+    window.addEventListener('auth:logout', syncFromStorage);
+    return () => {
+      window.removeEventListener('auth:updated', syncFromStorage);
+      window.removeEventListener('auth:logout', syncFromStorage);
+    };
+  }, [syncFromStorage]);
+
   return (
     <>
       <a className="skip-link" href="#main-content">跳到主要内容</a>
@@ -24,6 +38,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route
             path="/lobby"
             element={
@@ -37,6 +52,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Stats />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/security"
+            element={
+              <ProtectedRoute>
+                <Security />
               </ProtectedRoute>
             }
           />

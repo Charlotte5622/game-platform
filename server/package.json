@@ -9,7 +9,9 @@
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
-    "db:seed": "node prisma/seed.js"
+    "db:seed": "node prisma/seed.js",
+    "db:migrate": "prisma migrate deploy",
+    "auth:purge-deleted": "node prisma/purge-deleted-users.js"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

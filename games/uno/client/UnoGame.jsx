@@ -243,9 +243,9 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
         <span className={`uno-turn-tag ${isMyTurn ? 'uno-turn-mine' : ''}`}>
           {isMyTurn ? '🟢 轮到你' : `⏳ ${getNickname(playerIds[currentTurn])}`}
         </span>
-        {drawStack > 0 && (
-          <span className="uno-draw-stack">⚠️ 需摸 {drawStack} 张</span>
-        )}
+        <span className={`uno-draw-stack${drawStack > 0 ? '' : ' uno-draw-stack-empty'}`}>
+          ⚠️ 需摸 {drawStack > 0 ? drawStack : 0} 张
+        </span>
       </div>
 
       {/* 对手信息 */}
@@ -306,19 +306,25 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
       </div>
 
       {/* 操作按钮 */}
-      {isMyTurn && !isFinished && (
-        <div className="uno-actions">
-          <button className="uno-draw-btn" onClick={handleDraw}>
-            摸牌{drawStack > 0 ? ` (${drawStack}张)` : ''}
-          </button>
-          <button
-            className="uno-uno-btn"
-            onClick={handleUno}
-            disabled={!canCallUno}
-            title={canCallUno ? '喊 UNO' : '手牌剩 2 张时会在出牌前自动喊 UNO'}
-          >
-            {hasCalledUno ? '已喊 UNO' : 'UNO!'}
-          </button>
+      {!isFinished && (
+        <div className={`uno-actions${isMyTurn ? '' : ' uno-actions-waiting'}`}>
+          {isMyTurn ? (
+            <>
+              <button className="uno-draw-btn" onClick={handleDraw}>
+                摸牌{drawStack > 0 ? ` (${drawStack}张)` : ''}
+              </button>
+              <button
+                className="uno-uno-btn"
+                onClick={handleUno}
+                disabled={!canCallUno}
+                title={canCallUno ? '喊 UNO' : '手牌剩 2 张时会在出牌前自动喊 UNO'}
+              >
+                {hasCalledUno ? '已喊 UNO' : 'UNO!'}
+              </button>
+            </>
+          ) : (
+            <div className="uno-turn-waiting">等待 {getNickname(playerIds[currentTurn])} 出牌</div>
+          )}
         </div>
       )}
 
@@ -330,7 +336,9 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
       )}
 
       {/* 错误提示 */}
-      {error && <div className="uno-error">{error}</div>}
+      <div className="uno-message-slot" aria-live="polite">
+        {error && <div className="uno-error">{error}</div>}
+      </div>
 
       {/* 手牌 */}
       {!isFinished && (
@@ -354,7 +362,11 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
         </div>
       )}
 
-      {isMyTurn && !isFinished && <p className="uno-hand-hint">点击选牌，再点击出牌</p>}
+      {!isFinished && (
+        <p className={`uno-hand-hint${isMyTurn ? '' : ' uno-hand-hint-hidden'}`}>
+          点击选牌，再点击出牌
+        </p>
+      )}
     </div>
   );
 }

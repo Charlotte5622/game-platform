@@ -1,19 +1,36 @@
 import { io } from 'socket.io-client';
+import { clearAuthSession, getStoredToken, refreshAccessToken } from './api';
 
 let socket = null;
 let visHandler = null;
+let refreshingSocket = null;
 
-/**
- * 获取 Socket.IO 单例连接
- *
- * 开发环境：Vite proxy 将 /socket.io 转发到后端，连接 window.location.origin 即可
- * 生产环境：Nginx 同理，连接 window.location.origin
- * 也可通过 VITE_SOCKET_URL 环境变量显式指定后端地址
- */
+async function refreshSocketAuth() {
+  if (!refreshingSocket) {
+    refreshingSocket = refreshAccessToken().finally(() => {
+      refreshingSocket = null;
+    });
+  }
+  return refreshingSocket;
+}
+
+async function reconnectWithFreshToken() {
+  if (!socket) return;
+  try {
+    const token = await refreshSocketAuth();
+    socket.auth = { token };
+    socket.disconnect();
+    socket.connect();
+  } catch {
+    clearAuthSession();
+    disconnectSocket();
+  }
+}
+
 export function getSocket() {
   if (socket) return socket;
 
-  const token = localStorage.getItem('token');
+  const token = getStoredToken();
   if (!token) return null;
 
   const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin;
@@ -21,32 +38,37 @@ export function getSocket() {
   socket = io(socketUrl, {
     auth: { token },
     transports: ['websocket', 'polling'],
+    autoConnect: true,
   });
 
   socket.on('connect', () => {
-    console.log('🔌 Socket.IO 已连接');
+    console.log('Socket.IO connected');
   });
 
   socket.on('disconnect', (reason) => {
-    console.log('🔌 Socket.IO 断开:', reason);
+    console.log('Socket.IO disconnected:', reason);
   });
 
   socket.on('connect_error', (err) => {
-    console.error('🔌 Socket.IO 连接错误:', err.message);
+    if (err.message === 'auth_required' || err.message.includes('Token')) {
+      reconnectWithFreshToken();
+      return;
+    }
+    console.error('Socket.IO connection error:', err.message);
   });
 
-  // 手机端后台切换守护：页面恢复可见时确保 socket 连接 + 同步游戏状态
+  socket.on('auth_required', () => {
+    reconnectWithFreshToken();
+  });
+
   if (typeof document !== 'undefined') {
-    visHandler = () => {
+    visHandler = async () => {
       if (document.visibilityState === 'visible' && socket) {
         if (!socket.connected) {
-          console.log('📱 页面恢复可见，Socket 断开，尝试重连...');
-          socket.connect();
+          await reconnectWithFreshToken();
         } else {
-          // socket 仍连接但 JS 可能被节流，主动请求同步最新状态
           const savedRoomId = localStorage.getItem('activeRoomId');
           if (savedRoomId) {
-            console.log('📱 页面恢复可见，请求同步游戏状态...');
             socket.emit('sync_state', { roomId: savedRoomId });
           }
         }
@@ -58,9 +80,6 @@ export function getSocket() {
   return socket;
 }
 
-/**
- * 断开连接
- */
 export function disconnectSocket() {
   if (socket) {
     socket.disconnect();

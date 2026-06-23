@@ -343,6 +343,11 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
         </div>
       )}
 
+      <div className="ts-status-layer" aria-live="polite">
+        {notification && <div className="ts-notification">{notification}</div>}
+        {error && <div className="ts-error">{error}</div>}
+      </div>
+
       {/* 主内容区域：聊天 或 汤底揭示 */}
       {roundResults ? (
         /* 汤底揭示 — 占据主区域，不被裁剪 */
@@ -481,9 +486,6 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
         </div>
       )}
 
-      {notification && <div className="ts-notification">{notification}</div>}
-      {error && <div className="ts-error">{error}</div>}
-
       {/* 操作栏 — 汤底揭示时隐藏 */}
       {!roundResults && (
       <div className="ts-actions">
@@ -521,11 +523,9 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
               </button>
             </div>
 
-            {guessCount > 0 && (
-              <div className="ts-guess-progress">
-                📝 猜测进度: {guessCount}/{totalPlayers}
-              </div>
-            )}
+            <div className={`ts-guess-progress${guessCount > 0 ? '' : ' ts-guess-progress-empty'}`}>
+              📝 猜测进度: {guessCount}/{totalPlayers}
+            </div>
 
             {showGuessPanel && (
               <div className="ts-guess-panel">
