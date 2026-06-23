@@ -1,0 +1,172 @@
+/* ============================================================
+   设计令牌 — "Obsidian Arena" 精致暗黑·电竞高级感
+   - 新语义令牌走 --c-* / --glow-* / --space-* 等
+   - 同时把旧变量名(--primary/--bg/...)重映射到新令牌,
+     让未改造的 5 个游戏自动继承新配色
+   ============================================================ */
+
+/* 把语义令牌暴露成 Tailwind 工具类(bg-surface / text-accent / font-display ...)。
+   inline 模式保留 var() 引用,从而支持 [data-theme] 运行时换肤。 */
+@theme inline {
+  --color-bg: var(--c-bg);
+  --color-surface: var(--c-surface);
+  --color-raised: var(--c-raised);
+  --color-overlay: var(--c-overlay);
+  --color-line: var(--c-line);
+  --color-line-strong: var(--c-line-strong);
+  --color-text: var(--c-text);
+  --color-muted: var(--c-muted);
+  --color-dim: var(--c-dim);
+  --color-accent: var(--c-accent);
+  --color-accent-2: var(--c-accent-2);
+  --color-gold: var(--c-gold);
+  --color-danger: var(--c-danger);
+  --color-success: var(--c-success);
+
+  --font-display: "Chakra Petch", "Noto Sans SC", system-ui, sans-serif;
+  --font-sans: "Noto Sans SC", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 22px;
+  --radius-xl: 30px;
+
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.35);
+  --shadow: 0 12px 40px -12px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 30px 80px -24px rgba(0, 0, 0, 0.7);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ---------- 默认主题:Obsidian Arena ---------- */
+:root {
+  /* 表面：冷调近黑 → 抬升面 */
+  --c-bg: #080a0f;
+  --c-surface: #11141d;
+  --c-raised: #181c28;
+  --c-overlay: rgba(10, 12, 18, 0.72);
+  --c-input: #0e1119;          /* 输入框底 */
+  --bg-grad-top: #0b0e16;      /* 页面氛围背景顶部色 */
+
+  /* 描边 */
+  --c-line: rgba(255, 255, 255, 0.08);
+  --c-line-strong: rgba(255, 255, 255, 0.16);
+
+  /* 文字 */
+  --c-text: #e8ecf4;
+  --c-muted: #8b93a7;
+  --c-dim: #565d70;
+
+  /* 强调：电光青 + 冷蓝副色 */
+  --c-accent: #2fe3cf;
+  --c-accent-2: #4d9bff;
+  --c-gold: #f3c87a;      /* 排名 / 胜利 / 高级感专用 */
+  --c-danger: #ff5d6c;
+  --c-success: #46e0a0;
+
+  /* 发光 / 渐变(供组件直接引用) */
+  --glow-accent: 0 0 0 1px color-mix(in srgb, var(--c-accent) 40%, transparent),
+                 0 0 28px -4px color-mix(in srgb, var(--c-accent) 55%, transparent);
+  --glow-gold: 0 0 28px -6px color-mix(in srgb, var(--c-gold) 60%, transparent);
+  --grad-accent: linear-gradient(135deg, var(--c-accent) 0%, var(--c-accent-2) 100%);
+  --grad-gold: linear-gradient(135deg, #ffe6a8 0%, var(--c-gold) 50%, #c9923f 100%);
+  --grad-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0));
+
+  /* 氛围背景的两团光晕(base.css 使用) */
+  --ambient-1: color-mix(in srgb, var(--c-accent) 16%, transparent);
+  --ambient-2: color-mix(in srgb, var(--c-accent-2) 13%, transparent);
+
+  color-scheme: dark;
+
+  /* ---------- 旧变量名重映射:让 legacy 游戏继承新系统 ---------- */
+  --primary: var(--c-accent);
+  --primary-dark: #1fb8a8;
+  --primary-glow: color-mix(in srgb, var(--c-accent) 35%, transparent);
+  --secondary: var(--c-accent-2);
+  --secondary-glow: color-mix(in srgb, var(--c-accent-2) 30%, transparent);
+  --success: var(--c-success);
+  --success-glow: color-mix(in srgb, var(--c-success) 30%, transparent);
+  --danger: var(--c-danger);
+  --danger-glow: color-mix(in srgb, var(--c-danger) 25%, transparent);
+  --warning: var(--c-gold);
+  --radius-lg: 22px;
+  --bg: var(--c-bg);
+  --bg-card: var(--c-surface);
+  --bg-card-hover: var(--c-raised);
+  --bg-input: #0e1119;
+  --bg-overlay: var(--c-overlay);
+  --text: var(--c-text);
+  --text-muted: var(--c-muted);
+  --text-dim: var(--c-dim);
+  --border: var(--c-line);
+  --border-light: var(--c-line-strong);
+  --shadow: 0 12px 40px -12px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 30px 80px -24px rgba(0, 0, 0, 0.7);
+  --glass-bg: color-mix(in srgb, var(--c-surface) 80%, transparent);
+  --glass-border: var(--c-line);
+  --theme-glow-1: var(--ambient-1);
+  --theme-glow-2: var(--ambient-2);
+}
+
+/* ---------- 白天主题:Daybreak(柔和浅色,护眼) ---------- */
+[data-theme="day"] {
+  --c-bg: #eceff5;             /* 柔和冷灰,非纯白,降低刺眼 */
+  --c-surface: #ffffff;
+  --c-raised: #f4f6fb;
+  --c-overlay: rgba(255, 255, 255, 0.72);
+  --c-input: #f3f5fa;
+  --bg-grad-top: #f4f7fc;
+
+  --c-line: rgba(18, 28, 45, 0.10);
+  --c-line-strong: rgba(18, 28, 45, 0.18);
+
+  --c-text: #18222f;
+  --c-muted: #566175;
+  --c-dim: #8a93a4;
+
+  --c-accent: #0a9e90;         /* 浅底上加深的青,保证对比度 */
+  --c-accent-2: #2f73e6;
+  --c-gold: #b07d1c;           /* 浅底上加深的金 */
+  --c-danger: #d83246;
+  --c-success: #0f9266;
+
+  --glow-accent: 0 0 0 1px color-mix(in srgb, var(--c-accent) 35%, transparent),
+                 0 0 22px -6px color-mix(in srgb, var(--c-accent) 45%, transparent);
+  --glow-gold: 0 0 22px -8px color-mix(in srgb, var(--c-gold) 50%, transparent);
+  --grad-accent: linear-gradient(135deg, var(--c-accent) 0%, var(--c-accent-2) 100%);
+  --grad-gold: linear-gradient(135deg, #f0c873 0%, var(--c-gold) 60%, #8a5f12 100%);
+  --grad-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0));
+
+  --ambient-1: color-mix(in srgb, var(--c-accent) 12%, transparent);
+  --ambient-2: color-mix(in srgb, var(--c-accent-2) 10%, transparent);
+
+  --shadow: 0 12px 36px -16px rgba(20, 35, 60, 0.28);
+  --shadow-lg: 0 28px 70px -28px rgba(20, 35, 60, 0.32);
+
+  color-scheme: light;
+
+  /* 旧变量名重映射到浅色,让 legacy 游戏一并变浅 */
+  --primary: var(--c-accent);
+  --primary-dark: #0a8478;
+  --primary-glow: color-mix(in srgb, var(--c-accent) 30%, transparent);
+  --secondary: var(--c-accent-2);
+  --secondary-glow: color-mix(in srgb, var(--c-accent-2) 26%, transparent);
+  --success: var(--c-success);
+  --danger: var(--c-danger);
+  --warning: var(--c-gold);
+  --bg: var(--c-bg);
+  --bg-card: var(--c-surface);
+  --bg-card-hover: var(--c-raised);
+  --bg-input: var(--c-input);
+  --bg-overlay: var(--c-overlay);
+  --text: var(--c-text);
+  --text-muted: var(--c-muted);
+  --text-dim: var(--c-dim);
+  --border: var(--c-line);
+  --border-light: var(--c-line-strong);
+  --glass-bg: color-mix(in srgb, var(--c-surface) 80%, transparent);
+  --glass-border: var(--c-line);
+  --theme-glow-1: var(--ambient-1);
+  --theme-glow-2: var(--ambient-2);
+}

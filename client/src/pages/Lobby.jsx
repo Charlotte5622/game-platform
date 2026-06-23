@@ -3,6 +3,7 @@ import api from '../services/api';
 import GameCard from '../components/GameCard';
 import { getSocket } from '../services/socket';
 import { soundWelcome, soundClick } from '../services/sounds';
+import { getTheme, setTheme as applyAndPersistTheme, onThemeChange } from '../services/theme';
 
 // 安全解析 localStorage
 function safeGetUser() {
@@ -13,8 +14,9 @@ function safeGetUser() {
   }
 }
 
-// 主题配置（5 种精选）
+// 主题配置（含白天模式）
 const THEMES = [
+  { id: 'day', label: '白天', className: 'theme-opt-day' },
   { id: 'midnight', label: '午夜', className: 'theme-opt-midnight' },
   { id: 'sky', label: '海风', className: 'theme-opt-sky' },
   { id: 'sakura', label: '樱桃', className: 'theme-opt-sakura' },
@@ -38,38 +40,36 @@ function getFanStyle(index, total, isOpen) {
   };
 }
 
+function StatReadout({ code, value, label }) {
+  return (
+    <div className="relative flex flex-col gap-1.5 px-4 py-3 rounded-lg bg-black/25 border border-line min-w-[112px]">
+      <span className="readout text-[10px] tracking-[0.2em] uppercase text-dim">{code}</span>
+      <span className="readout text-[28px] font-bold leading-none text-accent">{value}</span>
+      <span className="text-[11px] text-muted">{label}</span>
+    </div>
+  );
+}
+
 export default function Lobby() {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);
-  const [theme, setTheme] = useState(() => localStorage.getItem('lobby-theme') || 'midnight');
+  const [theme, setThemeState] = useState(() => getTheme());
   const [fanOpen, setFanOpen] = useState(false);
   const user = safeGetUser();
 
-  // 应用主题到 body
-  useEffect(() => {
-    if (theme === 'midnight') {
-      document.body.removeAttribute('data-theme');
-    } else {
-      document.body.setAttribute('data-theme', theme);
-    }
-    localStorage.setItem('lobby-theme', theme);
-  }, [theme]);
+  // 与导航栏切换保持同步(共用 services/theme)
+  useEffect(() => onThemeChange(setThemeState), []);
 
   useEffect(() => {
-    // 同时获取内置游戏和外部游戏
     Promise.all([
       api.get('/api/games').catch(() => ({ data: { games: [] } })),
       api.get('/api/external-games').catch(() => ({ data: { games: [] } })),
     ]).then(([builtIn, external]) => {
-      const allGames = [
-        ...builtIn.data.games,
-        ...external.data.games,
-      ];
+      const allGames = [...builtIn.data.games, ...external.data.games];
       setGames(allGames);
       setLoading(false);
-      // 首次加载播放欢迎音效
       if (!sessionStorage.getItem('lobby-welcome-played')) {
         soundWelcome();
         sessionStorage.setItem('lobby-welcome-played', '1');
@@ -79,7 +79,6 @@ export default function Lobby() {
       setLoading(false);
     });
 
-    // 获取在线统计 + 监听实时更新
     try {
       const s = getSocket();
       if (s) {
@@ -91,109 +90,91 @@ export default function Lobby() {
     } catch {}
   }, []);
 
-  if (loading) {
-    return (
-      <div className="lobby">
-        <div className="lobby-hero">
-          <div className="lobby-hero-bg" />
-          <div className="lobby-hero-glass" />
-          <div className="lobby-hero-content">
-            <div className="lobby-hero-top">
-              <h1 className="lobby-hero-title">🎮 游戏大厅</h1>
-              <p className="lobby-hero-sub">加载中...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="lobby">
-        <div className="lobby-hero">
-          <div className="lobby-hero-bg" />
-          <div className="lobby-hero-glass" />
-          <div className="lobby-hero-content">
-            <div className="lobby-hero-top">
-              <h1 className="lobby-hero-title">🎮 游戏大厅</h1>
-              <p className="lobby-hero-sub lobby-hero-error">{error}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="lobby">
-      {/* Hero 区域 */}
-      <div className="lobby-hero">
-        <div className="lobby-hero-bg" />
-        <div className="lobby-hero-glass" />
-        <div className="lobby-hero-content">
-          <div className="lobby-hero-top">
-            <h1 className="lobby-hero-title">🎮 游戏大厅</h1>
-            <p className="lobby-hero-sub">
+    <div className="relative mx-auto max-w-6xl px-4 sm:px-6 pb-24">
+      {/* Hero */}
+      <header className="relative overflow-hidden rounded-[var(--radius-xl)] border border-line mt-6 px-6 sm:px-10 py-11 sm:py-14 glass">
+        <div
+          className="absolute inset-0 -z-10"
+          style={{
+            background:
+              'radial-gradient(70% 120% at 0% 0%, color-mix(in srgb, var(--c-accent) 20%, transparent), transparent 60%), radial-gradient(60% 120% at 100% 0%, color-mix(in srgb, var(--c-accent-2) 16%, transparent), transparent 60%)',
+          }}
+        />
+        <span className="ghost-word -z-10 text-[40vw] sm:text-[240px] -top-8 sm:-top-16 -right-4 sm:right-6 opacity-70">ARENA</span>
+        <span className="scanline left-8 right-8 top-14" />
+        <span className="hud-frame" />
+
+        <div className="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-9">
+          <div>
+            <div className="flex items-center gap-3">
+              <span className="eyebrow">ARENA OS · 大厅</span>
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-accent/10 border border-accent/25 text-[10px] font-mono tracking-wider text-accent uppercase">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" /> Live
+              </span>
+            </div>
+            <h1 className="mt-4 font-display text-4xl sm:text-6xl font-bold leading-[0.95] text-text">
+              游戏<span className="text-accent">大厅</span>
+            </h1>
+            <p className="mt-4 text-muted max-w-md">
               {user ? `${user.nickname}，选择你喜欢的游戏开始匹配` : '选择你喜欢的游戏，开始匹配对战'}
             </p>
           </div>
 
-          <div className="lobby-stats">
-            <div className="lobby-stat">
-              <span className="lobby-stat-icon">👥</span>
-              <span className="lobby-stat-num">{stats?.onlinePlayers || '—'}</span>
-              <span className="lobby-stat-label">在线玩家</span>
-            </div>
-            <div className="lobby-stat-divider" />
-            <div className="lobby-stat">
-              <span className="lobby-stat-icon">⚔️</span>
-              <span className="lobby-stat-num">{stats?.playingRooms || '—'}</span>
-              <span className="lobby-stat-label">进行中</span>
-            </div>
-            <div className="lobby-stat-divider" />
-            <div className="lobby-stat">
-              <span className="lobby-stat-icon">⏳</span>
-              <span className="lobby-stat-num">{stats?.waitingRooms || '—'}</span>
-              <span className="lobby-stat-label">等待中</span>
-            </div>
+          <div className="flex flex-wrap gap-3">
+            <StatReadout code="PLR" value={loading ? '—' : (stats?.onlinePlayers ?? 0)} label="在线玩家" />
+            <StatReadout code="RUN" value={loading ? '—' : (stats?.playingRooms ?? 0)} label="进行中" />
+            <StatReadout code="WAIT" value={loading ? '—' : (stats?.waitingRooms ?? 0)} label="等待中" />
           </div>
         </div>
-      </div>
+      </header>
 
       {/* 游戏列表 */}
-      <div className="lobby-section">
-        <div className="lobby-section-header">
-          <h2 className="lobby-section-title">热门游戏</h2>
-          <span className="lobby-section-count">{games.length} 款游戏</span>
+      <section className="mt-12">
+        <div className="flex items-end justify-between mb-6">
+          <div>
+            <div className="eyebrow mb-2.5">// Games</div>
+            <h2 className="font-display text-2xl font-bold text-text">热门游戏</h2>
+          </div>
+          {!loading && !error && (
+            <span className="readout text-sm text-dim">[ {String(games.length).padStart(2, '0')} ]</span>
+          )}
         </div>
 
-        {games.length === 0 ? (
-          <div className="lobby-empty">
-            <div className="lobby-empty-icon">📦</div>
-            <p className="lobby-empty-text">暂无可用游戏</p>
-            <p className="lobby-empty-hint">请在 games/ 目录下添加游戏插件</p>
+        {loading ? (
+          <div className="grid gap-5 [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-64 rounded-[var(--radius-lg)] border border-line bg-surface/50 animate-pulse" />
+            ))}
+          </div>
+        ) : error ? (
+          <div className="grid place-items-center text-center py-20 rounded-[var(--radius-lg)] border border-dashed border-line">
+            <div className="text-4xl mb-3">📡</div>
+            <p className="text-danger">{error}</p>
+            <p className="text-sm text-dim mt-1">请检查服务连接后重试</p>
+          </div>
+        ) : games.length === 0 ? (
+          <div className="grid place-items-center text-center py-20 rounded-[var(--radius-lg)] border border-dashed border-line">
+            <div className="text-4xl mb-3">📦</div>
+            <p className="text-muted">暂无可用游戏</p>
+            <p className="text-sm text-dim mt-1">请在 games/ 目录下添加游戏插件</p>
           </div>
         ) : (
-          <div className="lobby-grid">
+          <div className="grid gap-5 [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
             {games.map((game, i) => (
               <GameCard key={game.id} game={game} index={i} />
             ))}
           </div>
         )}
-      </div>
+      </section>
 
-      {/* 底部装饰 */}
-      <div className="lobby-footer">
-        <p>🎯 更多游戏即将上线，敬请期待</p>
-      </div>
+      <footer className="mt-16 text-center text-sm text-dim">
+        🎯 更多游戏即将上线,敬请期待
+      </footer>
 
-      {/* 主题切换器 — 扇形液体玻璃 */}
+      {/* 主题切换器 — 扇形液体玻璃(沿用) */}
       <div className="theme-switcher">
-        {/* 点击遮罩关闭 */}
         {fanOpen && <div className="theme-overlay" onClick={() => setFanOpen(false)} />}
-
-        {/* 扇形选项 */}
         <div className={`theme-fan${fanOpen ? ' open' : ''}`}>
           {THEMES.map((t, i) => (
             <button
@@ -203,19 +184,14 @@ export default function Lobby() {
               title={`切换到${t.label}主题`}
               aria-label={`切换到${t.label}主题`}
               aria-pressed={theme === t.id}
-              onClick={() => { soundClick(); setTheme(t.id); setFanOpen(false); }}
+              onClick={() => { soundClick(); applyAndPersistTheme(t.id); setFanOpen(false); }}
             >
               <span className="theme-option-swatch" aria-hidden="true" />
               <span className="theme-option-label">{t.label}</span>
             </button>
           ))}
         </div>
-
-        {/* 触发按钮 */}
-        <button
-          className={`theme-trigger${fanOpen ? ' open' : ''}`}
-          onClick={() => setFanOpen(!fanOpen)}
-        >
+        <button className={`theme-trigger${fanOpen ? ' open' : ''}`} onClick={() => setFanOpen(!fanOpen)}>
           <span className="theme-trigger-icon">🎨</span>
         </button>
       </div>

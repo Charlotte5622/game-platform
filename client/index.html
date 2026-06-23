@@ -5,10 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>🎮 联机游戏平台</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet" />
   <style>
     /* ===== 首页加载动画（React 挂载后自动消失） ===== */
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    
+    body { margin: 0; }
+    .app-loader, .app-loader * { box-sizing: border-box; }
+
     .app-loader {
       position: fixed;
       inset: 0;
@@ -16,7 +20,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: #0f0f23;
+      background: radial-gradient(60% 50% at 50% 0%, rgba(47,227,207,0.10), transparent 70%), #080a0f;
       z-index: 9999;
     }
 
@@ -39,7 +43,7 @@
     .app-loader-bar {
       height: 100%;
       width: 40%;
-      background: linear-gradient(90deg, #6c5ce7, #a29bfe, #6c5ce7);
+      background: linear-gradient(90deg, #2fe3cf, #4d9bff, #2fe3cf);
       background-size: 200% 100%;
       border-radius: 4px;
       animation: loaderSlide 1.5s ease-in-out infinite, loaderShimmer 1.5s linear infinite;
