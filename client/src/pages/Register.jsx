@@ -51,8 +51,7 @@ export default function Register() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1 className="auth-title">注册</h1>
-        <p className="auth-subtitle">创建账号后直接进入大厅</p>
+        <h1 className="auth-title">注 册</h1>
 
         <form onSubmit={handleSubmit}>
           {/* 昵称 */}
