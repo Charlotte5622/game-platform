@@ -41,22 +41,41 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  const isEmulatorAsset = req.path.startsWith('/games/emulator');
+  const csp = isEmulatorAsset
+    ? [
+        "default-src 'self'",
+        "base-uri 'self'",
+        "object-src 'none'",
+        "frame-ancestors 'self'",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: https://cdn.emulatorjs.org",
+        "style-src 'self' 'unsafe-inline' https://cdn.emulatorjs.org",
+        "img-src 'self' data: blob: https://cdn.emulatorjs.org",
+        "font-src 'self' data: https://cdn.emulatorjs.org",
+        "media-src 'self' data: blob: https://cdn.emulatorjs.org",
+        "connect-src 'self' blob: http: https: ws: wss:",
+        "worker-src 'self' blob: https://cdn.emulatorjs.org",
+        "child-src 'self' blob:",
+        "frame-src 'self'",
+        "form-action 'self'",
+      ]
+    : [
+        "default-src 'self'",
+        "base-uri 'self'",
+        "object-src 'none'",
+        "frame-ancestors 'self'",
+        "script-src 'self'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: blob:",
+        "font-src 'self' data:",
+        "media-src 'self' data: blob:",
+        "connect-src 'self' http: https: ws: wss:",
+        "frame-src 'self'",
+        "form-action 'self'",
+      ];
   res.setHeader(
     'Content-Security-Policy',
-    [
-      "default-src 'self'",
-      "base-uri 'self'",
-      "object-src 'none'",
-      "frame-ancestors 'self'",
-      "script-src 'self'",
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob:",
-      "font-src 'self' data:",
-      "media-src 'self' data: blob:",
-      "connect-src 'self' http: https: ws: wss:",
-      "frame-src 'self'",
-      "form-action 'self'",
-    ].join('; ')
+    csp.join('; ')
   );
   next();
 });
@@ -65,10 +84,6 @@ app.use(express.json({ limit: '64kb' }));
 // 静态文件：内置游戏资源（只响应实际存在的文件，不拦截代理请求）
 app.use('/games', express.static(path.join(__dirname, '../../games'), {
   // 设置 fallthrough，让不存在的文件请求传递给后续中间件（代理）
-  fallthrough: true,
-}));
-// 静态文件：外部游戏（模拟器等）
-app.use('/games/emulator', express.static(path.join(__dirname, '../../external-games/emulator'), {
   fallthrough: true,
 }));
 
