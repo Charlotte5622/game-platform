@@ -79,16 +79,10 @@ export default function EmulatorPage() {
     <div className="emulator-page">
       <section className="emulator-library">
         <header className="emulator-hero">
-          <button className="emulator-back" type="button" onClick={() => { soundClick(); navigate('/lobby'); }}>
-            返回大厅
-          </button>
-
           <div className="emulator-hero-main">
             <span className="emulator-kicker">外部游戏模块</span>
             <h1 className="emulator-title">经典 ROM 游戏库</h1>
-            <p className="emulator-subtitle">
-              已接入 {meta?.available ?? roms.filter((rom) => rom.available).length} 款可玩 NES homebrew，点击卡片即可启动。
-            </p>
+
           </div>
 
           <div className="emulator-hero-stats" aria-label="游戏库统计">
@@ -105,6 +99,10 @@ export default function EmulatorPage() {
               <span>平台</span>
             </div>
           </div>
+
+          <button className="emulator-back" type="button" onClick={() => { soundClick(); navigate('/lobby'); }}>
+            返回大厅
+          </button>
         </header>
 
         <div className="emulator-toolbar">
