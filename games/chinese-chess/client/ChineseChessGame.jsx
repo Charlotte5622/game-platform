@@ -517,7 +517,7 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
       <div className="chess-top-bar">
         <span className="chess-info-tag">你: {myColor === 'red' ? '🔴 红方' : '⚫ 黑方'}</span>
         <span className={`chess-turn-tag ${isMyTurn ? 'chess-turn-mine' : ''}`}>
-          {isMyTurn ? '🟢 轮到你走棋' : `⏳ 等待 ${opponent?.nickname || '对手'} 走棋`}
+          {isMyTurn ? '🟢 轮到你走棋' : '⏳ 等待对方走棋'}
         </span>
         {turnDeadline && <span className={`chess-timer${timeLeft <= 10 ? ' chess-timer-urgent' : ''}`}>⏱️ {timeLeft}s</span>}
         {check && <span className="chess-check-tag">⚠️ 将军!</span>}
