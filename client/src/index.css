@@ -4323,7 +4323,10 @@ input {
   }
 
   /* 手机端：弃牌区只显示最新一张 */
-  .mj-seat-discard .mj-tile:not(:last-child) {
+  .mj-table-north .mj-tile:not(:last-child),
+  .mj-table-south .mj-tile:not(:last-child),
+  .mj-table-west .mj-tile:not(:last-child),
+  .mj-table-east .mj-tile:not(:last-child) {
     display: none;
   }
 
