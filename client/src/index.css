@@ -4317,14 +4317,14 @@ input {
   }
 
   /* 弃牌区域 — 竖屏隐藏侧边弃牌(太窄) */
-  .mj-seat-left .mj-seat-discard,
-  .mj-seat-right .mj-seat-discard {
-    display: none;
-  }
-
   .mj-seat-discard {
     gap: 1px;
     padding: 2px;
+  }
+
+  /* 手机端：弃牌区只显示最新一张 */
+  .mj-seat-discard .mj-tile:not(:last-child) {
+    display: none;
   }
 
   /* 牌缩小 */
