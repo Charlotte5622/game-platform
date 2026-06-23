@@ -1,6 +1,15 @@
 {
   "games": [
     {
+      "id": "emulator",
+      "name": "经典游戏",
+      "description": "浏览器模拟器，支持 FC/SFC/GBA/NDS 等经典游戏",
+      "proxyMode": "static",
+      "minPlayers": 1,
+      "maxPlayers": 2,
+      "enabled": true
+    },
+    {
       "id": "uno-demo",
       "name": "UNO Demo",
       "description": "外部游戏接入演示 - UNO卡牌",

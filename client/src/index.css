@@ -7832,3 +7832,42 @@ input {
     max-width: calc(100% - 44px);
   }
 }
+
+/* 模拟器游戏 */
+.emulator-rom-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  padding: 16px;
+}
+
+.emulator-rom-card {
+  background: rgba(255,255,255,0.05);
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.emulator-rom-card:hover {
+  background: rgba(255,255,255,0.1);
+  transform: translateY(-2px);
+}
+
+.emulator-rom-card .rom-icon {
+  font-size: 36px;
+  margin-bottom: 8px;
+}
+
+.emulator-rom-card .rom-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.emulator-rom-card .rom-platform {
+  font-size: 11px;
+  color: #999;
+  margin-top: 4px;
+}

@@ -1,5 +1,6 @@
 require('dotenv').config({ path: '../config/.env' });
 
+const fs = require('fs');
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -49,6 +50,21 @@ app.use('/api/leaderboard', leaderboardRoutes);
 // 健康检查
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// ROM list API for emulator games
+app.get('/api/roms', (req, res) => {
+  const romsPath = path.join(__dirname, '../../external-games/emulator/roms.json');
+  try {
+    if (fs.existsSync(romsPath)) {
+      const roms = JSON.parse(fs.readFileSync(romsPath, 'utf-8'));
+      res.json(roms);
+    } else {
+      res.json({ roms: [] });
+    }
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load ROM list' });
+  }
 });
 
 // 离开房间（sendBeacon 端点，页面卸载时调用）

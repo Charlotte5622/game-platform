@@ -37,10 +37,10 @@ function loadExternalGames() {
       externalGames.set(game.id, {
         ...game,
         proxyMode,
-        baseUrl: `http://${game.host || 'localhost'}:${game.port}`,
+        baseUrl: game.port ? `http://${game.host || 'localhost'}:${game.port}` : null,
       });
 
-      console.log(`  ✅ ${game.name} (${game.id}) -> :${game.port} [${proxyMode}]`);
+      console.log(`  ✅ ${game.name} (${game.id}) ${game.port ? `-> :${game.port}` : '[静态]'} [${proxyMode}]`);
     }
 
     console.log(`🔌 共加载 ${externalGames.size} 个外部游戏\n`);
@@ -81,7 +81,13 @@ function registerExternalGameProxy(app, io, gameId) {
 
   const { baseUrl, proxyMode } = game;
 
-  if (proxyMode === 'iframe') {
+  if (proxyMode === 'static') {
+    // Static mode: serve files from the game directory
+    const express = require('express');
+    const staticPath = path.join(__dirname, '../../../external-games', gameId);
+    app.use(`/games/${gameId}`, express.static(staticPath));
+    console.log(`  📁 静态托管: /games/${gameId} -> ${staticPath}`);
+  } else if (proxyMode === 'iframe') {
     // iframe 模式：只代理 HTTP，不处理 WebSocket
     // 游戏自行管理 WebSocket 连接
     app.use(`/games/${gameId}`, createProxyMiddleware({
