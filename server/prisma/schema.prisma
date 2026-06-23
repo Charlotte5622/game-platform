@@ -17,6 +17,8 @@ model User {
   phoneHash           String?           @unique
   email               String?
   emailHash           String?           @unique
+  githubId            String?           @unique
+  githubUsername      String?
   status              String            @default("active")
   passwordChangedAt   DateTime?
   deletionRequestedAt DateTime?

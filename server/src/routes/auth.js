@@ -109,6 +109,16 @@ async function createUniqueUsername(nickname) {
   return `player_${crypto.randomBytes(8).toString('hex')}`;
 }
 
+async function createUniqueNickname(base) {
+  const cleaned = normalizeNickname(base).replace(/[^\w\u4e00-\u9fff]/g, '') || 'player';
+  for (let i = 0; i < 8; i += 1) {
+    const candidate = i === 0 ? cleaned.slice(0, 20) : `${cleaned.slice(0, 16)}${crypto.randomBytes(2).toString('hex')}`;
+    const exists = await prisma.user.findUnique({ where: { nickname: candidate } });
+    if (!exists) return candidate;
+  }
+  return `player_${crypto.randomBytes(6).toString('hex')}`;
+}
+
 function buildSessionTokens(user, req, rememberMe = false) {
   const sessionId = crypto.randomUUID();
   const refreshDays = rememberMe ? REMEMBER_REFRESH_DAYS : DEFAULT_REFRESH_DAYS;
@@ -696,6 +706,134 @@ router.get('/stats', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error('[auth] stats failed:', err);
     return sendAuthError(res, 500, 'AUTH_500');
+  }
+});
+
+router.get('/github', (req, res) => {
+  const clientId = process.env.GITHUB_CLIENT_ID;
+  if (!clientId) return sendAuthError(res, 503, 'AUTH_503', { message: 'GitHub 登录暂不可用' });
+
+  const callbackUrl = process.env.GITHUB_CALLBACK_URL || `${req.protocol}://${req.get('host')}/api/auth/github/callback`;
+  const state = crypto.randomUUID();
+  res.cookie('gh_oauth_state', state, {
+    httpOnly: true,
+    secure: false,
+    sameSite: 'lax',
+    maxAge: 5 * 60 * 1000,
+    path: '/',
+  });
+
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: callbackUrl,
+    scope: 'read:user user:email',
+    state,
+  });
+
+  return res.redirect(`https://github.com/login/oauth/authorize?${params}`);
+});
+
+router.get('/github/callback', async (req, res) => {
+  const { code, state } = req.query;
+  const cookies = {};
+  (req.headers.cookie || '').split(';').forEach(c => {
+    const [k, v] = c.trim().split('=');
+    if (k && v) cookies[k] = v;
+  });
+  const storedState = cookies.gh_oauth_state;
+
+  if (!code || !state || state !== storedState) {
+    return res.redirect('/login?error=github_auth_failed');
+  }
+
+  const clientId = process.env.GITHUB_CLIENT_ID;
+  const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    return res.redirect('/login?error=github_not_configured');
+  }
+
+  try {
+    // Exchange code for access token
+    const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ client_id: clientId, client_secret: clientSecret, code }),
+    });
+    const tokenData = await tokenRes.json();
+    if (tokenData.error) {
+      console.error('[auth] GitHub token exchange failed:', tokenData.error_description);
+      return res.redirect('/login?error=github_token_failed');
+    }
+    const githubToken = tokenData.access_token;
+
+    // Fetch GitHub user profile + emails
+    const [userRes, emailRes] = await Promise.all([
+      fetch('https://api.github.com/user', {
+        headers: { Authorization: `Bearer ${githubToken}`, 'User-Agent': 'game-platform', Accept: 'application/vnd.github+json' },
+      }),
+      fetch('https://api.github.com/user/emails', {
+        headers: { Authorization: `Bearer ${githubToken}`, 'User-Agent': 'game-platform', Accept: 'application/vnd.github+json' },
+      }),
+    ]);
+
+    const githubUser = await userRes.json();
+    const emails = await emailRes.json();
+    if (!githubUser.id) return res.redirect('/login?error=github_profile_failed');
+
+    const githubId = String(githubUser.id);
+    const githubName = githubUser.login || '';
+    const primaryEmail = (emails.find(e => e.primary && e.verified)?.email) || '';
+    const avatarUrl = githubUser.avatar_url || '';
+
+    // Find or create user
+    let user = await prisma.user.findUnique({ where: { githubId } });
+
+    if (!user && primaryEmail) {
+      const emailHash = hashValue(normalizeEmail(primaryEmail), 'email');
+      user = await prisma.user.findUnique({ where: { emailHash } });
+      if (user) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { githubId, githubUsername: githubName },
+        });
+        await writeAuditLog(prisma, req, user.id, 'github_linked');
+      }
+    }
+
+    if (!user) {
+      const nickname = await createUniqueNickname(githubName || `gh_${githubId}`);
+      const username = await createUniqueUsername(nickname);
+      const randomPasswordHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), PASSWORD_ROUNDS);
+      const userData = {
+        username,
+        passwordHash: randomPasswordHash,
+        nickname,
+        avatar: getRandomAvatar(githubId),
+        githubId,
+        githubUsername: githubName,
+        passwordHistory: { create: { passwordHash: randomPasswordHash } },
+      };
+      if (primaryEmail) {
+        const normalizedEmail = normalizeEmail(primaryEmail);
+        userData.email = encryptValue(normalizedEmail);
+        userData.emailHash = hashValue(normalizedEmail, 'email');
+      }
+      user = await prisma.user.create({ data: userData });
+      await writeAuditLog(prisma, req, user.id, 'register_github');
+    }
+
+    if (user.status !== 'active') return res.redirect('/login?error=account_disabled');
+
+    // Create session
+    const tokens = await createSession(user, req, res, true);
+    await writeAuditLog(prisma, req, user.id, 'login_github');
+
+    // Redirect to frontend callback page
+    const clientUrl = process.env.CLIENT_URL || 'http://119.29.147.165:3001';
+    return res.redirect(`${clientUrl}/auth/callback#token=${tokens.accessToken}`);
+  } catch (err) {
+    console.error('[auth] GitHub callback failed:', err);
+    return res.redirect('/login?error=github_failed');
   }
 });
 

@@ -11,6 +11,7 @@ import Stats from './pages/Stats';
 import Leaderboard from './pages/Leaderboard';
 import EmulatorPage from './pages/EmulatorPage';
 import Security from './pages/Security';
+import AuthCallback from './pages/AuthCallback';
 
 function ProtectedRoute({ children }) {
   const token = useAuthStore((s) => s.token);
@@ -95,6 +96,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="*" element={<Navigate to="/lobby" replace />} />
         </Routes>
       </main>
