@@ -4,13 +4,13 @@ import SliderCaptcha from '../components/SliderCaptcha';
 import { useAuthStore } from '../stores/authStore';
 
 export default function Register() {
-  const [method, setMethod] = useState('phone');
-  const [contact, setContact] = useState('');
+  const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [nickname, setNickname] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
+  const [countdown, setCountdown] = useState(0);
   const [captchaAnswer, setCaptchaAnswer] = useState(null);
   const { register, sendCode, loading, error, clearError, captcha, requiresCaptcha, loadCaptcha } = useAuthStore();
   const navigate = useNavigate();
@@ -19,19 +19,26 @@ export default function Register() {
     if (requiresCaptcha && !captcha) loadCaptcha();
   }, [requiresCaptcha, captcha, loadCaptcha]);
 
-  const contactPayload = method === 'phone' ? { phone: contact.trim() } : { email: contact.trim() };
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdown]);
 
   const handleSendCode = async () => {
     clearError();
-    const ok = await sendCode({ ...contactPayload, purpose: 'register' });
-    if (ok) setCodeSent(true);
+    const ok = await sendCode({ email: email.trim(), purpose: 'register' });
+    if (ok) {
+      setCodeSent(true);
+      setCountdown(60);
+    }
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     clearError();
     const ok = await register({
-      ...contactPayload,
+      email: email.trim(),
       code: code.trim(),
       nickname: nickname.trim(),
       password,
@@ -48,31 +55,29 @@ export default function Register() {
         <p className="auth-subtitle">创建账号后直接进入大厅</p>
 
         <form onSubmit={handleSubmit}>
-          <div className="auth-segment" role="tablist" aria-label="注册方式">
-            <button type="button" className={method === 'phone' ? 'active' : ''} onClick={() => setMethod('phone')}>
-              手机号
-            </button>
-            <button type="button" className={method === 'email' ? 'active' : ''} onClick={() => setMethod('email')}>
-              邮箱
-            </button>
-          </div>
-
+          {/* 邮箱 + 验证码 — 企业风格：一行布局 */}
           <div className="auth-form-group">
-            <label htmlFor="register-contact">{method === 'phone' ? '手机号' : '邮箱'}</label>
-            <div className="auth-inline-control">
+            <label htmlFor="register-email">邮箱地址</label>
+            <div className="auth-code-row">
               <input
-                id="register-contact"
-                type={method === 'phone' ? 'tel' : 'email'}
-                value={contact}
-                onChange={(event) => { setContact(event.target.value); setCodeSent(false); if (error) clearError(); }}
-                placeholder={method === 'phone' ? '请输入手机号' : 'name@example.com'}
-                autoComplete={method === 'phone' ? 'tel' : 'email'}
+                id="register-email"
+                type="email"
+                className="auth-code-input"
+                value={email}
+                onChange={(event) => { setEmail(event.target.value); setCodeSent(false); if (error) clearError(); }}
+                placeholder="name@example.com"
+                autoComplete="email"
                 maxLength={120}
                 disabled={loading}
                 required
               />
-              <button type="button" onClick={handleSendCode} disabled={loading || !contact.trim()}>
-                {codeSent ? '已发送' : '验证码'}
+              <button
+                type="button"
+                className="auth-code-btn"
+                onClick={handleSendCode}
+                disabled={loading || !email.trim() || countdown > 0}
+              >
+                {countdown > 0 ? `${countdown}s` : codeSent ? '重新发送' : '获取验证码'}
               </button>
             </div>
           </div>
@@ -85,7 +90,7 @@ export default function Register() {
               inputMode="numeric"
               value={code}
               onChange={(event) => { setCode(event.target.value); if (error) clearError(); }}
-              placeholder="6 位验证码"
+              placeholder="请输入 6 位验证码"
               autoComplete="one-time-code"
               maxLength={8}
               disabled={loading}
@@ -115,7 +120,7 @@ export default function Register() {
               type="password"
               value={password}
               onChange={(event) => { setPassword(event.target.value); if (error) clearError(); }}
-              placeholder="大小写字母 + 数字 + 特殊字符"
+              placeholder="大小写字母 + 数字 + 特殊字符，至少 8 位"
               autoComplete="new-password"
               disabled={loading}
               minLength={8}
