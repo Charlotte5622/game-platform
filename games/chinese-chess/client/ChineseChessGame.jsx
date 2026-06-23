@@ -521,21 +521,19 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
         </span>
         {turnDeadline && <span className={`chess-timer${timeLeft <= 10 ? ' chess-timer-urgent' : ''}`}>⏱️ {timeLeft}s</span>}
         {check && <span className="chess-check-tag">⚠️ 将军!</span>}
-      </div>
-
-      {/* 刚走的棋提示 */}
-      {gameState.lastMove && (
-        <div className="chess-last-move">
-          <span className="chess-last-move-label">上一步:</span>
-          <span className={`chess-last-move-text ${gameState.lastMove.color}`}>
-            {gameState.lastMove.piece}
-            {gameState.lastMove.from.col},{gameState.lastMove.from.row}
-            →{gameState.lastMove.to.col},{gameState.lastMove.to.row}
-            {gameState.lastMove.captured && ` 吃${gameState.lastMove.captured}`}
+        {gameState.lastMove && (
+          <span className="chess-last-move-inline">
+            <span className="chess-last-move-label">上一步:</span>
+            <span className={`chess-last-move-text ${gameState.lastMove.color}`}>
+              {gameState.lastMove.piece}
+              {gameState.lastMove.from.col},{gameState.lastMove.from.row}
+              →{gameState.lastMove.to.col},{gameState.lastMove.to.row}
+              {gameState.lastMove.captured && ` 吃${gameState.lastMove.captured}`}
+            </span>
+            {isMyTurn && !check && <span className="chess-your-turn-hint">← 轮到你了</span>}
           </span>
-          {isMyTurn && !check && <span className="chess-your-turn-hint">← 轮到你了</span>}
-        </div>
-      )}
+        )}
+      </div>
 
       {/* 将军警告横幅 */}
       {check && isMyTurn && (

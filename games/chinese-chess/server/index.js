@@ -749,25 +749,27 @@ class ChineseChessServer extends BaseGameServer {
         return;
       }
 
-      // 步时超时，跳过回合
-      console.log(`[Chess] 玩家 ${currentPlayer} 步时超时，跳过`);
-
-      const nextColor = currentState.turnColor === 'red' ? 'black' : 'red';
-      currentState.turnColor = nextColor;
-      currentState.currentTurn = currentState.players.findIndex(p => currentState.colorMap[String(p)] === nextColor);
-      this.startTurnTimer(roomId, currentState);
+      // 步时超时，判负
+      console.log(`[Chess] 玩家 ${currentPlayer} 步时超时，判负`);
+      const winnerPid = currentState.players.find(p => p !== currentPlayer);
+      currentState.phase = 'ended';
+      this.saveState(roomId, currentState);
 
       this.doBroadcast(roomId, {
-        type: 'turn_timeout',
-        timeoutPlayer: currentPlayer,
-        message: '走棋超时，轮到对方',
+        type: 'game_over',
+        reason: 'timeout_loss',
+        winner: winnerPid,
+        loser: currentPlayer,
+        message: '走棋超时，判负',
       });
 
-      this.saveState(roomId, currentState);
-      this.broadcastState(roomId, currentState);
-
-      // 如果下一个是 bot，触发 AI 走棋
-      this.makeBotMove(roomId);
+      if (this.onGameOver) {
+        this.onGameOver(roomId, {
+          winners: [winnerPid],
+          scores: { [winnerPid]: 10, [currentPlayer]: -10 },
+        });
+      }
+      return;
     }, (deadline - Date.now()) + 500); // 500ms 缓冲
   }
 
