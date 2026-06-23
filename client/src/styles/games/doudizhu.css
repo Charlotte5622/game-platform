@@ -11,6 +11,20 @@
   max-width: 920px;
   margin: 0 auto;
   padding: 16px;
+
+  /* 牌桌永远是深色毡台 —— 在此固定一套暗色令牌,
+     这样即使页面切到白天模式,桌面文字/描边仍按深色渲染,避免深色字压深色毡。 */
+  --c-surface: #11141d;
+  --c-raised: #181c28;
+  --c-input: #0e1119;
+  --c-line: rgba(255, 255, 255, 0.08);
+  --c-line-strong: rgba(255, 255, 255, 0.16);
+  --c-text: #e8ecf4;
+  --c-muted: #97a0b4;
+  --c-dim: #6b7488;
+  --c-accent: #2fe3cf;
+  --c-accent-2: #4d9bff;
+  --c-gold: #f3c87a;
 }
 
 /* ---------- 牌桌:深色毡台 + 电光描边 ---------- */

@@ -3,6 +3,7 @@ import api from '../services/api';
 import GameCard from '../components/GameCard';
 import { getSocket } from '../services/socket';
 import { soundWelcome, soundClick } from '../services/sounds';
+import { getTheme, setTheme as applyAndPersistTheme, onThemeChange } from '../services/theme';
 
 // 安全解析 localStorage
 function safeGetUser() {
@@ -13,8 +14,9 @@ function safeGetUser() {
   }
 }
 
-// 主题配置（5 种精选）
+// 主题配置（含白天模式）
 const THEMES = [
+  { id: 'day', label: '白天', className: 'theme-opt-day' },
   { id: 'midnight', label: '午夜', className: 'theme-opt-midnight' },
   { id: 'sky', label: '海风', className: 'theme-opt-sky' },
   { id: 'sakura', label: '樱桃', className: 'theme-opt-sakura' },
@@ -55,18 +57,12 @@ export default function Lobby() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);
-  const [theme, setTheme] = useState(() => localStorage.getItem('lobby-theme') || 'midnight');
+  const [theme, setThemeState] = useState(() => getTheme());
   const [fanOpen, setFanOpen] = useState(false);
   const user = safeGetUser();
 
-  useEffect(() => {
-    if (theme === 'midnight') {
-      document.body.removeAttribute('data-theme');
-    } else {
-      document.body.setAttribute('data-theme', theme);
-    }
-    localStorage.setItem('lobby-theme', theme);
-  }, [theme]);
+  // 与导航栏切换保持同步(共用 services/theme)
+  useEffect(() => onThemeChange(setThemeState), []);
 
   useEffect(() => {
     Promise.all([
@@ -177,7 +173,7 @@ export default function Lobby() {
               title={`切换到${t.label}主题`}
               aria-label={`切换到${t.label}主题`}
               aria-pressed={theme === t.id}
-              onClick={() => { soundClick(); setTheme(t.id); setFanOpen(false); }}
+              onClick={() => { soundClick(); applyAndPersistTheme(t.id); setFanOpen(false); }}
             >
               <span className="theme-option-swatch" aria-hidden="true" />
               <span className="theme-option-label">{t.label}</span>

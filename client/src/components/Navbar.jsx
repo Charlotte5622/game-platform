@@ -3,15 +3,24 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { disconnectSocket } from '../services/socket';
 import { setVolume, soundClick } from '../services/sounds';
+import { isLight, toggleLight, onThemeChange } from '../services/theme';
 
 export default function Navbar() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [muted, setMuted] = useState(() => localStorage.getItem('muted') === 'true');
+  const [light, setLight] = useState(() => isLight());
 
   useEffect(() => {
     setVolume(muted ? 0 : 0.5);
   }, []);
+
+  useEffect(() => onThemeChange(() => setLight(isLight())), []);
+
+  const handleToggleTheme = () => {
+    soundClick();
+    toggleLight();
+  };
 
   const toggleMute = () => {
     soundClick();
@@ -52,6 +61,15 @@ export default function Navbar() {
       </Link>
 
       <div className="flex items-center gap-1 sm:gap-2">
+        <button
+          onClick={handleToggleTheme}
+          className="grid place-items-center w-9 h-9 rounded-lg text-muted hover:text-text border border-transparent hover:border-line hover:bg-raised/60 transition-colors"
+          title={light ? '切换到夜间模式' : '切换到白天模式'}
+          aria-label={light ? '切换到夜间模式' : '切换到白天模式'}
+        >
+          {light ? '🌙' : '☀️'}
+        </button>
+
         {user ? (
           <>
             <NavLink to="/leaderboard" className={linkClass}>排行榜</NavLink>

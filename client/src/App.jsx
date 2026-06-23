@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useAuthStore } from './stores/authStore';
+import { applyTheme, getTheme } from './services/theme';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -21,6 +22,11 @@ function ProtectedRoute({ children }) {
 
 export default function App() {
   const syncFromStorage = useAuthStore((s) => s.syncFromStorage);
+
+  // 全局应用持久化的主题(登录页等所有页面生效)
+  useEffect(() => {
+    applyTheme(getTheme());
+  }, []);
 
   useEffect(() => {
     window.addEventListener('auth:updated', syncFromStorage);
