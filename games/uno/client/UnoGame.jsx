@@ -71,18 +71,31 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
     const handleDrewCard = () => {
       setSelectedCard(null);
     };
+    const handleInfo = (data) => {
+      setError(data.message);
+      setTimeout(() => setError(''), 2500);
+    };
     const handleUnoCalled = (data) => {
       const p = players.find(pl => pl.id === data.playerId);
       setError(`${p?.nickname || '玩家'} 喊了 UNO!`);
       setTimeout(() => setError(''), 3000);
     };
+    const handleUnoPenalty = (data) => {
+      const p = players.find(pl => pl.id === data.playerId);
+      setError(data.message || `${p?.nickname || '玩家'} 未喊 UNO，罚摸 ${data.count || 2} 张`);
+      setTimeout(() => setError(''), 3000);
+    };
     socket.on('error', handleError);
     socket.on('drew_card', handleDrewCard);
+    socket.on('info', handleInfo);
     socket.on('uno_called', handleUnoCalled);
+    socket.on('uno_penalty', handleUnoPenalty);
     return () => {
       socket.off('error', handleError);
       socket.off('drew_card', handleDrewCard);
+      socket.off('info', handleInfo);
       socket.off('uno_called', handleUnoCalled);
+      socket.off('uno_penalty', handleUnoPenalty);
     };
   }, [socket, players]);
 
@@ -106,10 +119,18 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
   const topCard = discard?.[discard.length - 1];
   const isFinished = finishedPlayers?.[playerId];
   const myPlacement = winners?.find(w => w.pid === playerId)?.placement;
+  const hasCalledUno = !!gameState.calledUno?.[playerId];
+  const canCallUno = isMyTurn && !isFinished && myHand?.length > 0 && myHand?.length <= 2 && !hasCalledUno;
 
   const emitAction = (action) => {
     if (socket && roomId) {
       socket.emit('game_action', { roomId, action });
+    }
+  };
+
+  const callUnoBeforeLastCard = () => {
+    if (myHand?.length === 2 && !hasCalledUno) {
+      emitAction({ type: 'uno' });
     }
   };
 
@@ -125,6 +146,7 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
     }
 
     playSound('uno', 'play_card');
+    callUnoBeforeLastCard();
     emitAction({ type: 'play_card', cardIndex: index });
     setSelectedCard(null);
   };
@@ -132,6 +154,7 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
   const handleColorChoice = (color) => {
     if (pendingWildIndex !== null) {
       playSound('uno', 'play_card');
+      callUnoBeforeLastCard();
       emitAction({ type: 'play_card', cardIndex: pendingWildIndex, chosenColor: color });
       setPendingWildIndex(null);
       setShowColorPicker(false);
@@ -146,6 +169,7 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
   };
 
   const handleUno = () => {
+    if (!canCallUno) return;
     playSound('uno', 'uno');
     emitAction({ type: 'uno' });
   };
@@ -287,8 +311,13 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
           <button className="uno-draw-btn" onClick={handleDraw}>
             摸牌{drawStack > 0 ? ` (${drawStack}张)` : ''}
           </button>
-          <button className="uno-uno-btn" onClick={handleUno}>
-            UNO!
+          <button
+            className="uno-uno-btn"
+            onClick={handleUno}
+            disabled={!canCallUno}
+            title={canCallUno ? '喊 UNO' : '手牌剩 2 张时会在出牌前自动喊 UNO'}
+          >
+            {hasCalledUno ? '已喊 UNO' : 'UNO!'}
           </button>
         </div>
       )}

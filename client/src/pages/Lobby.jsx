@@ -15,18 +15,18 @@ function safeGetUser() {
 
 // 主题配置（5 种精选）
 const THEMES = [
-  { id: 'midnight', label: '午夜',   className: 'theme-opt-midnight' },
-  { id: 'sky',      label: '晴空',   className: 'theme-opt-sky' },
-  { id: 'sakura',   label: '樱落',   className: 'theme-opt-sakura' },
-  { id: 'nord',     label: 'Nord',   className: 'theme-opt-nord' },
-  { id: 'snow',     label: '雪境',   className: 'theme-opt-snow' },
+  { id: 'midnight', label: '午夜', className: 'theme-opt-midnight' },
+  { id: 'sky', label: '海风', className: 'theme-opt-sky' },
+  { id: 'sakura', label: '樱桃', className: 'theme-opt-sakura' },
+  { id: 'nord', label: '极境', className: 'theme-opt-nord' },
+  { id: 'snow', label: '雪境', className: 'theme-opt-snow' },
 ];
 
 // 扇形展开：从右下角按钮向左上方展开
 function getFanStyle(index, total, isOpen) {
-  const radius = 100;
-  const startAngle = -90;
-  const endAngle = -180;
+  const radius = 112;
+  const startAngle = -94;
+  const endAngle = -184;
   const step = total > 1 ? (endAngle - startAngle) / (total - 1) : 0;
   const angle = startAngle + step * index;
   const rad = (angle * Math.PI) / 180;
@@ -200,8 +200,12 @@ export default function Lobby() {
               key={t.id}
               className={`theme-option ${t.className}${theme === t.id ? ' active' : ''}`}
               style={getFanStyle(i, THEMES.length, fanOpen)}
+              title={`切换到${t.label}主题`}
+              aria-label={`切换到${t.label}主题`}
+              aria-pressed={theme === t.id}
               onClick={() => { soundClick(); setTheme(t.id); setFanOpen(false); }}
             >
+              <span className="theme-option-swatch" aria-hidden="true" />
               <span className="theme-option-label">{t.label}</span>
             </button>
           ))}
