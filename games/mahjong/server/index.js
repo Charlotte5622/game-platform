@@ -135,6 +135,22 @@ class MahjongServer extends BaseGameServer {
     visible.melds = gameState.melds;
     visible.discards = gameState.discards;
 
+    // 所有牌的类型列表（用于记牌器）
+    const { SUITS, WINDS, DRAGONS, SUIT_NAMES, WIND_NAMES, DRAGON_NAMES, NUM_NAMES } = require('./tiles');
+    const allTileTypes = [];
+    for (const suit of SUITS) {
+      for (let num = 1; num <= 9; num++) {
+        allTileTypes.push({ type: 'number', suit, number: num, display: `${NUM_NAMES[num]}${SUIT_NAMES[suit]}`, count: 4 });
+      }
+    }
+    for (const wind of WINDS) {
+      allTileTypes.push({ type: 'wind', wind, display: WIND_NAMES[wind], count: 4 });
+    }
+    for (const dragon of DRAGONS) {
+      allTileTypes.push({ type: 'dragon', dragon, display: DRAGON_NAMES[dragon], count: 4 });
+    }
+    visible.allTileTypes = allTileTypes;
+
     // 隐藏手牌详情
     delete visible.hands;
     delete visible.wall; // 墙牌不暴露

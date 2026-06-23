@@ -605,6 +605,9 @@ async function getBotAction(gameId, gameState, botId) {
     case 'gomoku':
       action = decideGomoku(gameState, botId);
       break;
+    case 'mahjong':
+      action = decideMahjong(gameState, botId);
+      break;
   }
   if (action) {
     console.log(`[Bot] ${botId} 代码决策 (${gameId}):`, JSON.stringify(action));
@@ -969,4 +972,161 @@ function decideGomoku(gameState, botId) {
   return bestMove ? { type: 'place', row: bestMove.row, col: bestMove.col } : null;
 }
 
-module.exports = { getBotAction, callLLM, chooseBestCard, getChineseChessAction, decideGomoku };
+// ========== 麻将 AI: decideMahjong ==========
+/**
+ * 麻将 AI 决策（纯代码逻辑，不依赖 LLM）
+ *
+ * 策略：
+ * 1. 如果能和牌 → 返回 {type:'win'}
+ * 2. 如果能碰/杠 → 50%概率碰/杠，50%过
+ * 3. 出牌策略：优先出孤张（没有相邻牌的），其次出边张，最后出中间张
+ * 4. 孤张判断：检查手牌中同花色相邻数字的牌，没有相邻的优先出
+ */
+function decideMahjong(gameState, botId) {
+  const hand = gameState.myHand || [];
+  if (hand.length === 0) return null;
+
+  // ========== 需要响应（别人打牌后） ==========
+  if (gameState.waitingAction) {
+    const responder = gameState.waitingAction.responders?.find(r => r.pid === botId);
+    if (!responder) return null;
+
+    const actions = responder.actions;
+
+    // 1. 能和就和
+    if (actions.includes('win')) {
+      return { type: 'win' };
+    }
+
+    // 2. 能杠 → 50%概率杠
+    if (actions.includes('kong') && Math.random() < 0.5) {
+      return { type: 'kong' };
+    }
+
+    // 3. 能碰 → 50%概率碰
+    if (actions.includes('pung') && Math.random() < 0.5) {
+      return { type: 'pung' };
+    }
+
+    // 4. 能吃 → 50%概率吃（随机选一种吃法）
+    if (actions.includes('chow') && Math.random() < 0.5) {
+      const { canChow } = require('../../../games/mahjong/server/handValidator');
+      const chowOptions = canChow(hand, gameState.waitingAction.discardedTile);
+      if (chowOptions && chowOptions.length > 0) {
+        const option = chowOptions[Math.floor(Math.random() * chowOptions.length)];
+        return { type: 'chow', tiles: option };
+      }
+    }
+
+    // 5. 过
+    return { type: 'pass' };
+  }
+
+  // ========== 轮到自己出牌 ==========
+  const { checkWin, canConcealedKong } = require('../../../games/mahjong/server/handValidator');
+
+  // 检查能否自摸
+  if (hand.length % 3 === 2 && checkWin(hand).isWin) {
+    return { type: 'win' };
+  }
+
+  // 检查暗杠
+  const concealedKongs = canConcealedKong(hand);
+  if (concealedKongs.length > 0 && Math.random() < 0.5) {
+    return { type: 'kong', concealed: true };
+  }
+
+  // 出牌策略：优先出孤张
+  const tileToDiscard = chooseDiscardTile(hand);
+  if (tileToDiscard) {
+    return { type: 'discard', tile: tileToDiscard };
+  }
+
+  // 兜底：出第一张
+  return { type: 'discard', tile: hand[0] };
+}
+
+/**
+ * 选择要打出的牌
+ * 优先级：孤张 > 边张 > 中间张
+ * 同优先级时：无对子的 > 有对子的；字牌优先出
+ */
+function chooseDiscardTile(hand) {
+  if (hand.length === 0) return null;
+
+  const { getTileTypeKey } = require('../../../games/mahjong/server/tiles');
+
+  // 构建同花色数字集合（用于判断相邻）
+  const suitNumbers = {};
+  for (const tile of hand) {
+    if (tile.type === 'number') {
+      const key = tile.suit;
+      if (!suitNumbers[key]) suitNumbers[key] = new Set();
+      suitNumbers[key].add(tile.number);
+    }
+  }
+
+  // 统计每种牌在手中的数量
+  const typeCount = {};
+  for (const tile of hand) {
+    const key = getTileTypeKey(tile);
+    typeCount[key] = (typeCount[key] || 0) + 1;
+  }
+
+  // 计算每张牌的"孤立度"得分（越高越应该先出）
+  const scored = hand.map(tile => {
+    let isolationScore = 0;
+
+    if (tile.type === 'number') {
+      const nums = suitNumbers[tile.suit];
+      const n = tile.number;
+      const hasLeft = nums.has(n - 1);    // 左邻
+      const hasRight = nums.has(n + 1);   // 右邻
+      const hasLeft2 = nums.has(n - 2);   // 左隔一
+      const hasRight2 = nums.has(n + 2);  // 右隔一
+
+      if (!hasLeft && !hasRight) {
+        // 孤张：完全没有相邻牌
+        isolationScore = 100;
+        if (!hasLeft2 && !hasRight2) {
+          isolationScore = 120; // 完全孤立
+        }
+      } else if ((hasLeft && !hasRight) || (!hasLeft && hasRight)) {
+        // 边张：只有一侧有相邻
+        isolationScore = 50;
+        if (n === 1 || n === 9) {
+          isolationScore = 60; // 1/9边张更差
+        }
+      } else {
+        // 中间张：两侧都有相邻
+        isolationScore = 10;
+      }
+    } else {
+      // 字牌（风牌/箭牌）
+      const key = getTileTypeKey(tile);
+      const count = typeCount[key] || 0;
+      if (count === 1) {
+        isolationScore = 90; // 单张字牌，很孤立
+      } else if (count === 2) {
+        isolationScore = 30; // 对子字牌，留着
+      } else {
+        isolationScore = 5;  // 三张以上，留着
+      }
+    }
+
+    // 对子/刻子扣分（留着更有用）
+    const key = getTileTypeKey(tile);
+    const count = typeCount[key] || 0;
+    if (count >= 3) isolationScore -= 40;
+    else if (count >= 2) isolationScore -= 20;
+
+    return { tile, score: isolationScore };
+  });
+
+  // 按孤立度降序排列，优先出最孤立的
+  scored.sort((a, b) => b.score - a.score);
+
+  return scored[0].tile;
+}
+
+module.exports = { getBotAction, callLLM, chooseBestCard, getChineseChessAction, decideGomoku, decideMahjong };

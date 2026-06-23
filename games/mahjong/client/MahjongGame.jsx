@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 // 花色颜色
 const SUIT_COLORS = {
@@ -124,6 +124,75 @@ function OpponentPanel({ player, melds, isCurrent, wind, compact }) {
 }
 
 /**
+ * 记牌器组件
+ * 显示每种牌剩余未出现的数量
+ */
+function TileCounter({ allTileTypes, myHand, discards, melds, visible }) {
+  if (!visible || !allTileTypes) return null;
+
+  // 统计已出现的牌（手牌 + 弃牌 + 明牌）
+  const seenCount = {};
+  const addSeen = (tiles) => {
+    if (!tiles) return;
+    for (const t of tiles) {
+      const key = t.display;
+      seenCount[key] = (seenCount[key] || 0) + 1;
+    }
+  };
+
+  addSeen(myHand);
+  if (discards) {
+    for (const pid of Object.keys(discards)) {
+      addSeen(discards[pid]);
+    }
+  }
+  if (melds) {
+    for (const pid of Object.keys(melds)) {
+      for (const meld of (melds[pid] || [])) {
+        addSeen(meld.tiles);
+      }
+    }
+  }
+
+  // 按花色分组
+  const groups = { wan: [], tiao: [], tong: [], wind: [], dragon: [] };
+  for (const tileType of allTileTypes) {
+    const key = tileType.display;
+    const total = tileType.count || 4;
+    const used = seenCount[key] || 0;
+    const remaining = total - used;
+    if (tileType.type === 'number') {
+      groups[tileType.suit].push({ display: key, remaining, color: SUIT_COLORS[tileType.suit] });
+    } else if (tileType.type === 'wind') {
+      groups.wind.push({ display: key, remaining, color: SPECIAL_COLORS[tileType.wind] || '#1e293b' });
+    } else if (tileType.type === 'dragon') {
+      groups.dragon.push({ display: key, remaining, color: SPECIAL_COLORS[tileType.dragon] || '#1e293b' });
+    }
+  }
+
+  const groupLabels = { wan: '万', tiao: '条', tong: '筒', wind: '风', dragon: '箭' };
+
+  return (
+    <div className="mj-tile-counter">
+      <div className="mj-tile-counter-title">记牌器</div>
+      {Object.entries(groups).map(([groupKey, tiles]) => (
+        tiles.length > 0 && (
+          <div key={groupKey} className="mj-tc-group">
+            <span className="mj-tc-group-label">{groupLabels[groupKey]}</span>
+            {tiles.map((t, i) => (
+              <span key={i} className="mj-tc-item" style={{ color: t.remaining > 0 ? t.color : '#64748b' }}>
+                <span className="mj-tc-name">{t.display}</span>
+                <span className="mj-tc-count">{t.remaining}</span>
+              </span>
+            ))}
+          </div>
+        )
+      ))}
+    </div>
+  );
+}
+
+/**
  * 麻将游戏主组件
  */
 export default function MahjongGame({ socket, roomId, playerId, gameState, onAction, players }) {
@@ -132,6 +201,9 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
   const [actionHint, setActionHint] = useState(null);
   const [responseData, setResponseData] = useState(null);
   const [showChowPicker, setShowChowPicker] = useState(false);
+  const [showTileCounter, setShowTileCounter] = useState(false);
+  const [actionEffect, setActionEffect] = useState(null);
+  const processedEvents = useRef(new Set());
 
   // 监听 action_hint + action_required
   useEffect(() => {
@@ -158,6 +230,28 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
     };
   }, [socket]);
 
+  // 听碰/杠/吃动作，显示特效
+  useEffect(() => {
+    if (!socket) return;
+    const ACTION_LABELS = { pung: '碰！', kong: '杠！', chow: '吃！' };
+    const handleAction = (data) => {
+      if (!ACTION_LABELS[data.type]) return;
+      const eventKey = `${data.type}_${data.playerId}_${gameState?.currentTurn}`;
+      if (processedEvents.current.has(eventKey)) return;
+      processedEvents.current.add(eventKey);
+      setActionEffect(ACTION_LABELS[data.type]);
+      setTimeout(() => setActionEffect(null), 1500);
+    };
+    socket.on('pung', handleAction);
+    socket.on('kong', handleAction);
+    socket.on('chow', handleAction);
+    return () => {
+      socket.off('pung', handleAction);
+      socket.off('kong', handleAction);
+      socket.off('chow', handleAction);
+    };
+  }, [socket, gameState?.currentTurn]);
+
   // 状态变化时重置选择
   useEffect(() => {
     setSelectedTile(null);
@@ -177,7 +271,7 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
 
   const {
     myHand, handCounts, melds, discards, wallCount,
-    currentTurn, dealer, lastDiscard,
+    currentTurn, dealer, lastDiscard, allTileTypes,
   } = gameState;
 
   const isMyTurn = gameState.players[currentTurn] === playerId;
@@ -287,42 +381,48 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
           {/* 中央 — 弃牌池 */}
           <div className="mj-center">
             <div className="mj-discard-pool">
-              {/* 北家弃牌 */}
-              {discards?.[top.id] && discards[top.id].length > 0 && (
-                <div className="mj-discard-row">
-                  <span className="mj-discard-label" style={{ color: WIND_COLORS[top.wind] }}>{top.wind}</span>
-                  {discards[top.id].slice(-8).map((t, i) => (
-                    <MjTile key={t.id || i} tile={t} small />
-                  ))}
-                </div>
-              )}
-              {/* 西家弃牌 */}
-              {discards?.[left.id] && discards[left.id].length > 0 && (
-                <div className="mj-discard-row">
-                  <span className="mj-discard-label" style={{ color: WIND_COLORS[left.wind] }}>{left.wind}</span>
-                  {discards[left.id].slice(-8).map((t, i) => (
-                    <MjTile key={t.id || i} tile={t} small />
-                  ))}
-                </div>
-              )}
-              {/* 东家弃牌 */}
-              {discards?.[right.id] && discards[right.id].length > 0 && (
-                <div className="mj-discard-row">
-                  <span className="mj-discard-label" style={{ color: WIND_COLORS[right.wind] }}>{right.wind}</span>
-                  {discards[right.id].slice(-8).map((t, i) => (
-                    <MjTile key={t.id || i} tile={t} small />
-                  ))}
-                </div>
-              )}
-              {/* 南家弃牌(我) */}
-              {discards?.[playerId] && discards[playerId].length > 0 && (
-                <div className="mj-discard-row mj-discard-mine">
-                  <span className="mj-discard-label" style={{ color: WIND_COLORS[myWind] }}>{myWind}</span>
-                  {discards[playerId].slice(-8).map((t, i) => (
-                    <MjTile key={t.id || i} tile={t} small />
-                  ))}
-                </div>
-              )}
+              {/* 上方：北家 + 西家 */}
+              <div className="mj-discard-half mj-discard-top-half">
+                {/* 北家弃牌 */}
+                {discards?.[top.id] && discards[top.id].length > 0 && (
+                  <div className="mj-discard-row">
+                    <span className="mj-discard-label" style={{ color: WIND_COLORS[top.wind] }}>{top.wind}</span>
+                    {discards[top.id].map((t, i) => (
+                      <MjTile key={t.id || i} tile={t} small />
+                    ))}
+                  </div>
+                )}
+                {/* 西家弃牌 */}
+                {discards?.[left.id] && discards[left.id].length > 0 && (
+                  <div className="mj-discard-row">
+                    <span className="mj-discard-label" style={{ color: WIND_COLORS[left.wind] }}>{left.wind}</span>
+                    {discards[left.id].map((t, i) => (
+                      <MjTile key={t.id || i} tile={t} small />
+                    ))}
+                  </div>
+                )}
+              </div>
+              {/* 下方：东家 + 南家 */}
+              <div className="mj-discard-half mj-discard-bottom-half">
+                {/* 东家弃牌 */}
+                {discards?.[right.id] && discards[right.id].length > 0 && (
+                  <div className="mj-discard-row">
+                    <span className="mj-discard-label" style={{ color: WIND_COLORS[right.wind] }}>{right.wind}</span>
+                    {discards[right.id].map((t, i) => (
+                      <MjTile key={t.id || i} tile={t} small />
+                    ))}
+                  </div>
+                )}
+                {/* 南家弃牌(我) */}
+                {discards?.[playerId] && discards[playerId].length > 0 && (
+                  <div className="mj-discard-row mj-discard-mine">
+                    <span className="mj-discard-label" style={{ color: WIND_COLORS[myWind] }}>{myWind}</span>
+                    {discards[playerId].map((t, i) => (
+                      <MjTile key={t.id || i} tile={t} small />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             {error && <div className="mj-error">{error}</div>}
           </div>
@@ -428,6 +528,31 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
         </div>
         {isMyTurn && <p className="mj-hand-hint">点击选牌，双击打出</p>}
       </div>
+
+      {/* 吃碰杠特效 */}
+      {actionEffect && (
+        <div className="mj-action-effect">
+          <span className="mj-action-effect-text">{actionEffect}</span>
+        </div>
+      )}
+
+      {/* 记牌器切换按钮 */}
+      <button
+        className="mj-tc-toggle"
+        onClick={() => setShowTileCounter(v => !v)}
+        title="记牌器"
+      >
+        📊
+      </button>
+
+      {/* 记牌器 */}
+      <TileCounter
+        allTileTypes={allTileTypes}
+        myHand={myHand}
+        discards={discards}
+        melds={melds}
+        visible={showTileCounter}
+      />
     </div>
   );
 }
