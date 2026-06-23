@@ -87,7 +87,7 @@ export default function EmulatorPage() {
           </div>
 
           <div className="emulator-hero-body">
-            <h1 className="emulator-title">经典 ROM 游戏库</h1>
+            <h1 className="emulator-title">单人游戏合集</h1>
 
             <div className="emulator-hero-stats" aria-label="游戏库统计">
               <div>

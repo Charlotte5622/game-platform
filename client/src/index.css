@@ -8960,7 +8960,12 @@ input {
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding-bottom: 2px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.emulator-filter::-webkit-scrollbar {
+  display: none;
 }
 
 .emulator-filter button {

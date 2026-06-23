@@ -72,7 +72,7 @@ export default function GameCard({ game, index = 0 }) {
         </div>
 
         <span className="game-card-play" style={{ background: gradient }} aria-hidden="true">
-          开始游戏 →
+          {isExternal ? '进入合集 →' : '开始游戏 →'}
         </span>
       </div>
     </div>
