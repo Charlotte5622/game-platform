@@ -12,7 +12,7 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     clearError();
-    const ok = await register(username, password, nickname);
+    const ok = await register(username.trim(), password, nickname.trim());
     if (ok) navigate('/lobby');
   };
 
@@ -24,12 +24,16 @@ export default function Register() {
 
         <form onSubmit={handleSubmit}>
           <div className="auth-form-group">
-            <label>用户名</label>
+            <label htmlFor="register-username">用户名</label>
             <input
+              id="register-username"
               type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => { setUsername(e.target.value); if (error) clearError(); }}
               placeholder="3-20 个字符"
+              autoComplete="username"
+              pattern="[A-Za-z0-9_]+"
+              disabled={loading}
               required
               minLength={3}
               maxLength={20}
@@ -37,29 +41,36 @@ export default function Register() {
           </div>
 
           <div className="auth-form-group">
-            <label>昵称</label>
+            <label htmlFor="register-nickname">昵称</label>
             <input
+              id="register-nickname"
               type="text"
               value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
+              onChange={(e) => { setNickname(e.target.value); if (error) clearError(); }}
               placeholder="其他玩家看到的名字"
+              autoComplete="nickname"
+              maxLength={20}
+              disabled={loading}
               required
             />
           </div>
 
           <div className="auth-form-group">
-            <label>密码</label>
+            <label htmlFor="register-password">密码</label>
             <input
+              id="register-password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); if (error) clearError(); }}
               placeholder="至少 6 个字符"
+              autoComplete="new-password"
+              disabled={loading}
               required
               minLength={6}
             />
           </div>
 
-          {error && <p className="auth-error">{error}</p>}
+          {error && <p className="auth-error" role="alert">{error}</p>}
 
           <button type="submit" className="auth-submit" disabled={loading}>
             {loading ? '注册中...' : '注册'}

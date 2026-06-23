@@ -124,7 +124,7 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  font-family: 'HarmonyOS Sans SC', 'MiSans', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--bg);
   background-image:
     radial-gradient(ellipse at 20% 50%, var(--theme-glow-1) 0%, transparent 50%),
@@ -133,6 +133,7 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   transition: background 0.6s ease, color 0.3s ease;
+  text-rendering: optimizeLegibility;
 }
 
 a {
@@ -153,9 +154,41 @@ button {
   outline: none;
 }
 
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--secondary);
+  outline-offset: 3px;
+}
+
+button:active,
+[role="button"]:active {
+  transform: translateY(1px);
+}
+
 input {
   font-family: inherit;
   outline: none;
+}
+
+.skip-link {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 2000;
+  transform: translateY(-140%);
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--secondary);
+  color: #07131f;
+  font-weight: 800;
+  box-shadow: var(--shadow);
+  transition: transform var(--transition);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
 }
 
 /* ---------- 动画 ---------- */
@@ -229,11 +262,20 @@ input {
   text-decoration: none;
   letter-spacing: -0.3px;
   transition: color var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .navbar-logo:hover {
   color: var(--secondary);
   text-decoration: none;
+}
+
+.navbar-logo-mark {
+  line-height: 1;
+  flex: 0 0 auto;
 }
 
 .navbar-right {
@@ -272,6 +314,32 @@ input {
   color: var(--secondary);
   font-weight: 600;
   font-size: 14px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.navbar-link {
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 650;
+  padding: 8px 10px;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: color var(--transition), background var(--transition), box-shadow var(--transition);
+  white-space: nowrap;
+}
+
+.navbar-link:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.navbar-link.active {
+  color: var(--secondary);
+  background: rgba(0, 206, 201, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(0, 206, 201, 0.18);
 }
 
 .navbar-logout {
@@ -676,9 +744,11 @@ input {
   position: relative;
   overflow: hidden;
   animation: slideUp 0.5s ease both;
+  min-height: 100%;
 }
 
-.game-card:hover {
+.game-card:hover,
+.game-card:focus-visible {
   transform: translateY(-6px);
   border-color: rgba(255, 255, 255, 0.1);
   box-shadow:
@@ -721,6 +791,7 @@ input {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 230px;
 }
 
 .game-card-name {
@@ -734,6 +805,7 @@ input {
   color: var(--text-muted);
   line-height: 1.6;
   min-height: 44px;
+  text-wrap: pretty;
 }
 
 .game-card-meta {
@@ -752,8 +824,15 @@ input {
   border: 1px solid var(--border);
 }
 
+.game-card-tag-external {
+  background: #e17055;
+  color: #fff;
+  border-color: transparent;
+}
+
 .game-card-play {
-  margin-top: 4px;
+  display: block;
+  margin-top: auto;
   padding: 12px 24px;
   color: white;
   border-radius: 10px;
@@ -848,6 +927,11 @@ input {
   box-shadow: 0 0 0 3px var(--primary-glow);
 }
 
+.auth-form-group input:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
 .auth-form-group input::placeholder {
   color: var(--text-dim);
 }
@@ -860,6 +944,8 @@ input {
   padding: 10px;
   background: var(--danger-glow);
   border-radius: 8px;
+  text-align: left;
+  line-height: 1.5;
 }
 
 .auth-submit {
@@ -882,6 +968,49 @@ input {
 .auth-submit:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.game-not-found {
+  min-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 20px;
+  text-align: center;
+}
+
+.game-not-found-icon {
+  font-size: 56px;
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.22));
+}
+
+.game-not-found h2 {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.game-not-found p {
+  max-width: 420px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.game-not-found-link {
+  margin-top: 10px;
+  padding: 12px 22px;
+  border-radius: 10px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  font-weight: 750;
+  box-shadow: 0 6px 24px var(--primary-glow);
+}
+
+.game-not-found-link:hover {
+  color: #fff;
+  transform: translateY(-1px);
 }
 
 .auth-footer {
@@ -3465,6 +3594,14 @@ input {
   .navbar-logo {
     font-size: 15px;
     flex-shrink: 0;
+    gap: 6px;
+  }
+
+  .navbar-logo span:last-child {
+    max-width: 108px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .navbar-right {
@@ -3479,6 +3616,12 @@ input {
     padding: 0;
     white-space: nowrap;
     flex-shrink: 0;
+  }
+
+  .navbar-link {
+    font-size: 12px;
+    padding: 7px 8px;
+    border-radius: 8px;
   }
 
   .navbar-nickname {
@@ -3553,6 +3696,7 @@ input {
 
   .game-card-body {
     padding: 16px 20px 20px;
+    min-height: 210px;
   }
 
   /* 认证 */
@@ -7833,41 +7977,13 @@ input {
   }
 }
 
-/* 模拟器游戏 */
-.emulator-rom-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 12px;
-  padding: 16px;
-}
-
-.emulator-rom-card {
-  background: rgba(255,255,255,0.05);
-  border-radius: 12px;
-  padding: 12px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.emulator-rom-card:hover {
-  background: rgba(255,255,255,0.1);
-  transform: translateY(-2px);
-}
-
-.emulator-rom-card .rom-icon {
-  font-size: 36px;
-  margin-bottom: 8px;
-}
-
-.emulator-rom-card .rom-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #fff;
-}
-
-.emulator-rom-card .rom-platform {
-  font-size: 11px;
-  color: #999;
-  margin-top: 4px;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

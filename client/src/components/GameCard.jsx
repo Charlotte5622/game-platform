@@ -1,18 +1,16 @@
 import { useNavigate } from 'react-router-dom';
 import { soundClick } from '../services/sounds';
 
-// 游戏图标映射
 const GAME_ICONS = {
   doudizhu: '🃏',
   mahjong: '🀄',
   'chinese-chess': '♟️',
-  'uno': '🎴',
+  uno: '🎴',
   'uno-demo': '🎴',
   'turtle-soup': '🐢',
-  'gomoku': '⚫',
+  gomoku: '⚫',
 };
 
-// 游戏渐变色映射
 const GAME_GRADIENTS = [
   'linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%)',
   'linear-gradient(135deg, #00b894 0%, #55efc4 100%)',
@@ -27,14 +25,21 @@ export default function GameCard({ game, index = 0 }) {
   const icon = GAME_ICONS[game.id] || '🎮';
   const gradient = GAME_GRADIENTS[index % GAME_GRADIENTS.length];
   const isExternal = game.type === 'external';
+  const playerRange = game.minPlayers === game.maxPlayers ? `${game.minPlayers} 人` : `${game.minPlayers}-${game.maxPlayers} 人`;
 
   const handleClick = () => {
     soundClick();
     if (isExternal) {
-      // 外部游戏：通过平台代理访问，新窗口打开
-      window.open(`/games/${game.id}/`, '_blank');
+      window.open(`/games/${game.id}/`, '_blank', 'noopener,noreferrer');
     } else {
       navigate(`/game/${game.id}`);
+    }
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleClick();
     }
   };
 
@@ -42,27 +47,30 @@ export default function GameCard({ game, index = 0 }) {
     <div
       className="game-card"
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-label={`开始${game.name}`}
       style={{ animationDelay: `${index * 0.08}s` }}
     >
-      {/* 顶部渐变条 */}
       <div className="game-card-banner" style={{ background: gradient }}>
-        <span className="game-card-banner-icon">{icon}</span>
+        <span className="game-card-banner-icon" aria-hidden="true">{icon}</span>
       </div>
 
-      {/* 内容 */}
       <div className="game-card-body">
         <h3 className="game-card-name">{game.name}</h3>
         <p className="game-card-desc">{game.description}</p>
 
-        <div className="game-card-meta">
-          <span className="game-card-tag">👥 {game.minPlayers}-{game.maxPlayers} 人</span>
+        <div className="game-card-meta" aria-label="游戏信息">
+          <span className="game-card-tag">👥 {playerRange}</span>
+          {game.allowBots === false && <span className="game-card-tag">真人局</span>}
           {game.version && <span className="game-card-tag">v{game.version}</span>}
-          {isExternal && <span className="game-card-tag" style={{background:'#e17055',color:'#fff'}}>外部</span>}
+          {isExternal && <span className="game-card-tag game-card-tag-external">外部</span>}
         </div>
 
-        <button className="game-card-play" style={{ background: gradient }}>
+        <span className="game-card-play" style={{ background: gradient }} aria-hidden="true">
           开始游戏 →
-        </button>
+        </span>
       </div>
     </div>
   );

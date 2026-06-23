@@ -11,7 +11,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     clearError();
-    const ok = await login(username, password);
+    const ok = await login(username.trim(), password);
     if (ok) navigate('/lobby');
   };
 
@@ -23,28 +23,37 @@ export default function Login() {
 
         <form onSubmit={handleSubmit}>
           <div className="auth-form-group">
-            <label>用户名</label>
+            <label htmlFor="login-username">用户名</label>
             <input
+              id="login-username"
               type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => { setUsername(e.target.value); if (error) clearError(); }}
               placeholder="请输入用户名"
+              autoComplete="username"
+              minLength={3}
+              maxLength={20}
+              pattern="[A-Za-z0-9_]+"
+              disabled={loading}
               required
             />
           </div>
 
           <div className="auth-form-group">
-            <label>密码</label>
+            <label htmlFor="login-password">密码</label>
             <input
+              id="login-password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); if (error) clearError(); }}
               placeholder="请输入密码"
+              autoComplete="current-password"
+              disabled={loading}
               required
             />
           </div>
 
-          {error && <p className="auth-error">{error}</p>}
+          {error && <p className="auth-error" role="alert">{error}</p>}
 
           <button type="submit" className="auth-submit" disabled={loading}>
             {loading ? '登录中...' : '登录'}

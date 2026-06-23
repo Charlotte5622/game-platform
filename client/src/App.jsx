@@ -17,8 +17,9 @@ function ProtectedRoute({ children }) {
 export default function App() {
   return (
     <>
+      <a className="skip-link" href="#main-content">跳到主要内容</a>
       <Navbar />
-      <main className="main-content">
+      <main id="main-content" className="main-content">
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

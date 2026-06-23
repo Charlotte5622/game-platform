@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { disconnectSocket } from '../services/socket';
@@ -7,13 +7,12 @@ import { setVolume, soundClick } from '../services/sounds';
 export default function Navbar() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
-
   const [muted, setMuted] = useState(() => localStorage.getItem('muted') === 'true');
 
-  // 挂载时根据 localStorage 同步音量
   useEffect(() => {
     setVolume(muted ? 0 : 0.5);
   }, []);
+
   const toggleMute = () => {
     soundClick();
     const next = !muted;
@@ -29,20 +28,23 @@ export default function Navbar() {
     navigate('/login');
   };
 
+  const navClass = ({ isActive }) => `navbar-link${isActive ? ' active' : ''}`;
+
   return (
-    <nav className="navbar">
-      <Link to="/lobby" className="navbar-logo">
-        🎮 联机游戏平台
+    <nav className="navbar" aria-label="主导航">
+      <Link to="/lobby" className="navbar-logo" aria-label="返回游戏大厅">
+        <span className="navbar-logo-mark">🎮</span>
+        <span>联机游戏平台</span>
       </Link>
 
       <div className="navbar-right">
         {user ? (
           <>
-            <Link to="/leaderboard" className="navbar-stats">🏆 排行榜</Link>
-            <Link to="/stats" className="navbar-stats">📊 战绩</Link>
-            <span className="navbar-nickname">{user.nickname}</span>
+            <NavLink to="/leaderboard" className={navClass}>排行榜</NavLink>
+            <NavLink to="/stats" className={navClass}>战绩</NavLink>
+            <span className="navbar-nickname" title={user.nickname}>{user.nickname}</span>
             <span className="navbar-actions">
-              <button onClick={toggleMute} className="navbar-icon-btn" title={muted ? '开启音效' : '关闭音效'}>
+              <button onClick={toggleMute} className="navbar-icon-btn" title={muted ? '开启音效' : '关闭音效'} aria-label={muted ? '开启音效' : '关闭音效'}>
                 {muted ? '🔇' : '🔊'}
               </button>
               <button onClick={handleLogout} className="navbar-logout">
