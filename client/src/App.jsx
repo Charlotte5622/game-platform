@@ -7,6 +7,7 @@ import Lobby from './pages/Lobby';
 import GameRoom from './pages/GameRoom';
 import Stats from './pages/Stats';
 import Leaderboard from './pages/Leaderboard';
+import EmulatorPage from './pages/EmulatorPage';
 
 function ProtectedRoute({ children }) {
   const token = useAuthStore((s) => s.token);
@@ -60,6 +61,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <GameRoom />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/emulator"
+            element={
+              <ProtectedRoute>
+                <EmulatorPage />
               </ProtectedRoute>
             }
           />

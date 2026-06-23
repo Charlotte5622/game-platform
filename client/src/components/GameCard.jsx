@@ -25,11 +25,13 @@ export default function GameCard({ game, index = 0 }) {
   const icon = GAME_ICONS[game.id] || '🎮';
   const gradient = GAME_GRADIENTS[index % GAME_GRADIENTS.length];
   const isExternal = game.type === 'external';
+  const isStatic = isExternal && game.proxyMode === 'static';
   const playerRange = game.minPlayers === game.maxPlayers ? `${game.minPlayers} 人` : `${game.minPlayers}-${game.maxPlayers} 人`;
-
   const handleClick = () => {
     soundClick();
-    if (isExternal) {
+    if (isStatic) {
+      navigate('/emulator');
+    } else if (isExternal) {
       window.open(`/games/${game.id}/`, '_blank', 'noopener,noreferrer');
     } else {
       navigate(`/game/${game.id}`);
