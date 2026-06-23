@@ -55,49 +55,7 @@ export default function Register() {
         <p className="auth-subtitle">创建账号后直接进入大厅</p>
 
         <form onSubmit={handleSubmit}>
-          {/* 邮箱 + 验证码 — 企业风格：一行布局 */}
-          <div className="auth-form-group">
-            <label htmlFor="register-email">邮箱地址</label>
-            <div className="auth-code-row">
-              <input
-                id="register-email"
-                type="email"
-                className="auth-code-input"
-                value={email}
-                onChange={(event) => { setEmail(event.target.value); setCodeSent(false); if (error) clearError(); }}
-                placeholder="name@example.com"
-                autoComplete="email"
-                maxLength={120}
-                disabled={loading}
-                required
-              />
-              <button
-                type="button"
-                className="auth-code-btn"
-                onClick={handleSendCode}
-                disabled={loading || !email.trim() || countdown > 0}
-              >
-                {countdown > 0 ? `${countdown}s` : codeSent ? '重新发送' : '获取验证码'}
-              </button>
-            </div>
-          </div>
-
-          <div className="auth-form-group">
-            <label htmlFor="register-code">验证码</label>
-            <input
-              id="register-code"
-              type="text"
-              inputMode="numeric"
-              value={code}
-              onChange={(event) => { setCode(event.target.value); if (error) clearError(); }}
-              placeholder="请输入 6 位验证码"
-              autoComplete="one-time-code"
-              maxLength={8}
-              disabled={loading}
-              required
-            />
-          </div>
-
+          {/* 昵称 */}
           <div className="auth-form-group">
             <label htmlFor="register-nickname">昵称</label>
             <input
@@ -113,6 +71,23 @@ export default function Register() {
             />
           </div>
 
+          {/* 邮箱 */}
+          <div className="auth-form-group">
+            <label htmlFor="register-email">邮箱地址</label>
+            <input
+              id="register-email"
+              type="email"
+              value={email}
+              onChange={(event) => { setEmail(event.target.value); setCodeSent(false); if (error) clearError(); }}
+              placeholder="name@example.com"
+              autoComplete="email"
+              maxLength={120}
+              disabled={loading}
+              required
+            />
+          </div>
+
+          {/* 密码 */}
           <div className="auth-form-group">
             <label htmlFor="register-password">密码</label>
             <input
@@ -126,6 +101,34 @@ export default function Register() {
               minLength={8}
               required
             />
+          </div>
+
+          {/* 验证码 + 获取验证码按钮（同行） */}
+          <div className="auth-form-group">
+            <label htmlFor="register-code">邮箱验证码</label>
+            <div className="auth-code-row">
+              <input
+                id="register-code"
+                type="text"
+                className="auth-code-input"
+                inputMode="numeric"
+                value={code}
+                onChange={(event) => { setCode(event.target.value); if (error) clearError(); }}
+                placeholder="请输入 6 位验证码"
+                autoComplete="one-time-code"
+                maxLength={8}
+                disabled={loading}
+                required
+              />
+              <button
+                type="button"
+                className="auth-code-btn"
+                onClick={handleSendCode}
+                disabled={loading || !email.trim() || countdown > 0}
+              >
+                {countdown > 0 ? `${countdown}s` : codeSent ? '重新发送' : '获取验证码'}
+              </button>
+            </div>
           </div>
 
           <label className="auth-check-row">
