@@ -79,30 +79,31 @@ export default function EmulatorPage() {
     <div className="emulator-page">
       <section className="emulator-library">
         <header className="emulator-hero">
-          <div className="emulator-hero-main">
+          <div className="emulator-hero-top">
             <span className="emulator-kicker">外部游戏模块</span>
+            <button className="emulator-kicker emulator-back-kicker" type="button" onClick={() => { soundClick(); navigate('/lobby'); }}>
+              ← 返回大厅
+            </button>
+          </div>
+
+          <div className="emulator-hero-body">
             <h1 className="emulator-title">经典 ROM 游戏库</h1>
 
+            <div className="emulator-hero-stats" aria-label="游戏库统计">
+              <div>
+                <strong>{meta?.available ?? 0}</strong>
+                <span>可玩</span>
+              </div>
+              <div>
+                <strong>{meta?.total ?? roms.length}</strong>
+                <span>收录</span>
+              </div>
+              <div>
+                <strong>NES</strong>
+                <span>平台</span>
+              </div>
+            </div>
           </div>
-
-          <div className="emulator-hero-stats" aria-label="游戏库统计">
-            <div>
-              <strong>{meta?.available ?? 0}</strong>
-              <span>可玩</span>
-            </div>
-            <div>
-              <strong>{meta?.total ?? roms.length}</strong>
-              <span>收录</span>
-            </div>
-            <div>
-              <strong>NES</strong>
-              <span>平台</span>
-            </div>
-          </div>
-
-          <button className="emulator-back" type="button" onClick={() => { soundClick(); navigate('/lobby'); }}>
-            返回大厅
-          </button>
         </header>
 
         <div className="emulator-toolbar">

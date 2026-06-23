@@ -8821,32 +8821,37 @@ input {
 }
 
 .emulator-hero {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 22px;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   padding: 28px 0 24px;
   border-bottom: 1px solid var(--border);
 }
 
-.emulator-back {
-  min-height: 40px;
-  padding: 0 16px;
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  background: var(--bg-card);
-  color: var(--text);
-  font-size: 14px;
-  cursor: pointer;
-  transition: transform var(--transition), border-color var(--transition), background var(--transition);
+.emulator-hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.emulator-back:hover,
-.emulator-back:focus-visible {
+.emulator-back-kicker {
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: transform var(--transition), background var(--transition);
+}
+
+.emulator-back-kicker:hover {
   transform: translateY(-1px);
-  border-color: var(--secondary);
-  background: var(--bg-card-hover);
-  outline: none;
+  background: rgba(0, 206, 201, 0.22);
+}
+
+.emulator-hero-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
 }
 
 .emulator-hero-main {
@@ -8883,17 +8888,16 @@ input {
 }
 
 .emulator-hero-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(72px, 1fr));
+  display: flex;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .emulator-hero-stats div {
-  min-width: 72px;
-  padding: 12px 10px;
+  min-width: 56px;
+  padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--bg-card);
   text-align: center;
 }
 
@@ -9211,13 +9215,14 @@ input {
   }
 
   .emulator-hero {
-    grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 12px;
     padding-top: 16px;
   }
 
-  .emulator-back {
-    width: fit-content;
+  .emulator-hero-body {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
 
   .emulator-title {

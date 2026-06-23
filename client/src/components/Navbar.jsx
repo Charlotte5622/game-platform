@@ -48,8 +48,8 @@ export default function Navbar() {
               <button onClick={toggleMute} className="navbar-icon-btn" title={muted ? '开启音效' : '关闭音效'} aria-label={muted ? '开启音效' : '关闭音效'}>
                 {muted ? '🔇' : '🔊'}
               </button>
-              <button onClick={handleLogout} className="navbar-logout" title="退出登录">
-                🚪
+              <button onClick={handleLogout} className="navbar-icon-btn" title="退出登录" aria-label="退出登录">
+                👋
               </button>
             </span>
           </>
