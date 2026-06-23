@@ -94,7 +94,15 @@ function OpponentPanel({ player, melds, isCurrent, wind, compact }) {
         <div className="mj-side-name">{player.nickname}</div>
         <div className="mj-side-count">{player.cardCount}张</div>
         {melds && melds.length > 0 && (
-          <div className="mj-side-melds">{melds.length}副</div>
+          <div className="mj-side-melds">
+            {melds.map((meld, i) => (
+              <div key={i} className="mj-side-meld-group">
+                {meld.tiles.map((t, j) => (
+                  <MjTile key={t.id || j} tile={t} small />
+                ))}
+              </div>
+            ))}
+          </div>
         )}
       </div>
     );

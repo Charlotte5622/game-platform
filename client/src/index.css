@@ -2825,8 +2825,28 @@ input {
 }
 
 .mj-side-melds {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.mj-side-meld-group {
+  display: flex;
+  gap: 1px;
+}
+
+.mj-side-meld-group .mj-tile {
+  width: 20px;
+  height: 26px;
+}
+
+.mj-side-meld-group .mj-tile-text {
   font-size: 9px;
-  color: #6ee7b7;
+}
+
+.mj-side-meld-group .mj-tile-suit {
+  font-size: 6px;
 }
 
 /* 桌面/横屏正常面板隐藏compact */
@@ -4544,7 +4564,6 @@ input {
     margin-bottom: 4px;
   }
 
-  .mj-opponent-melds,
   .mj-opponent-discards {
     display: none;
   }
