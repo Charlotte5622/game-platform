@@ -44,7 +44,7 @@ export default function Login() {
     <div className="auth-page">
       <div className="auth-card">
         <h1 className="auth-title">登录</h1>
-        <p className="auth-subtitle">回到你的牌桌和房间</p>
+
 
         <form onSubmit={handleSubmit}>
           <div className="auth-form-group">
