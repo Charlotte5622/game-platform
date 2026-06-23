@@ -67,6 +67,10 @@ app.use('/games', express.static(path.join(__dirname, '../../games'), {
   // 设置 fallthrough，让不存在的文件请求传递给后续中间件（代理）
   fallthrough: true,
 }));
+// 静态文件：外部游戏（模拟器等）
+app.use('/games/emulator', express.static(path.join(__dirname, '../../external-games/emulator'), {
+  fallthrough: true,
+}));
 
 // API 路由
 app.use('/api/auth', authRoutes);
