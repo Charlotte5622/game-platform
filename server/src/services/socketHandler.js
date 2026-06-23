@@ -1,4 +1,4 @@
-const { verifySocketToken } = require('../middleware/auth');
+﻿const { verifySocketToken } = require('../middleware/auth');
 const { createGameInstance, getGameMaxPlayers, getGameMinPlayers, gameExists, isVariablePlayers, gameAllowsBots } = require('./gameLoader');
 const roomManager = require('./roomManager');
 const botManager = require('./botManager');
@@ -9,6 +9,12 @@ const connectedSockets = new Map();
 // 断线宽限期：userId -> { roomId, timeout, socketId }
 const pendingDisconnects = new Map();
 const DISCONNECT_GRACE_MS = 30000; // 30秒宽限期
+
+function ack(callback, payload) {
+  if (typeof callback === 'function') {
+    callback(payload);
+  }
+}
 
 /**
  * 广播最新统计给所有客户端（防抖：100ms 内只发一次）
@@ -110,13 +116,14 @@ function setupSocketHandlers(io, prisma) {
       // 统计去重后的在线用户数（同一用户多 tab 只算 1 人）
       const uniqueUsers = new Set([...connectedSockets.values()].map(u => u.userId));
       stats.onlinePlayers = uniqueUsers.size;
-      callback(stats);
+      ack(callback, stats);
     });
 
     // ========== 快速匹配 ==========
-    socket.on('quick_match', ({ gameId }, callback) => {
+    socket.on('quick_match', (payload = {}, callback) => {
+      const { gameId } = payload || {};
       if (!gameExists(gameId)) {
-        return callback({ error: '游戏不存在' });
+        return ack(callback, { error: '游戏不存在' });
       }
 
       // 检查是否有断线宽限期（重连场景）
@@ -134,7 +141,7 @@ function setupSocketHandlers(io, prisma) {
         if (room) {
           // 如果游戏已在进行中，直接标记为 playing 避免 UI 闪跳
           if (room.state === 'playing') {
-            callback({
+            ack(callback, {
               roomId: room.id,
               roomCode: room.roomCode,
               isNew: false,
@@ -155,7 +162,7 @@ function setupSocketHandlers(io, prisma) {
               }
             }
           } else {
-            callback({
+            ack(callback, {
               roomId: room.id,
               roomCode: room.roomCode,
               isNew: false,
@@ -187,7 +194,7 @@ function setupSocketHandlers(io, prisma) {
             // 通知其他玩家已重连
             socket.to(existing.roomId).emit('opponent_reconnected');
           }
-          callback({
+          ack(callback, {
             roomId: existing.roomId,
             roomCode: existing.room.roomCode,
             isNew: false,
@@ -222,7 +229,7 @@ function setupSocketHandlers(io, prisma) {
       avatar: socket.user.avatar,
       }, maxPlayers);
 
-      if (result.error) return callback({ error: result.error });
+      if (result.error) return ack(callback, { error: result.error });
 
       socket.join(result.room.id);
 
@@ -236,7 +243,7 @@ function setupSocketHandlers(io, prisma) {
         state: result.room.state,
       });
 
-      callback({
+      ack(callback, {
         roomId: result.room.id,
         roomCode: result.room.roomCode,
         isNew: result.isNew,
@@ -250,9 +257,10 @@ function setupSocketHandlers(io, prisma) {
     });
 
     // ========== 加入房间 ==========
-    socket.on('join_room', ({ roomId }, callback) => {
+    socket.on('join_room', (payload = {}, callback) => {
+      const { roomId } = payload || {};
       const existingRoom = roomManager.getRoom(roomId);
-      if (!existingRoom) return callback({ error: '房间不存在' });
+      if (!existingRoom) return ack(callback, { error: '房间不存在' });
 
       const maxPlayers = getGameMaxPlayers(existingRoom.gameId);
       const result = roomManager.joinRoom(roomId, socket.id, {
@@ -261,7 +269,7 @@ function setupSocketHandlers(io, prisma) {
       avatar: socket.user.avatar,
       }, maxPlayers);
 
-      if (result.error) return callback({ error: result.error });
+      if (result.error) return ack(callback, { error: result.error });
 
       socket.join(roomId);
 
@@ -275,16 +283,18 @@ function setupSocketHandlers(io, prisma) {
         state: result.room.state,
       });
 
-      callback({ roomId, roomCode: result.room.roomCode, hostId: result.room.hostId, players: result.room.players });
+      ack(callback, { roomId, roomCode: result.room.roomCode, hostId: result.room.hostId, players: result.room.players });
 
       broadcastStatsDebounced(io);
     });
 
     // ========== 通过房间号加入 ==========
-    socket.on('join_by_code', ({ code, gameId }, callback) => {
+    socket.on('join_by_code', (payload = {}, callback) => {
+      const { code, gameId } = payload || {};
       // 校验房间号格式（3-6位数字或字母）
-      if (!code || !/^\d{1,6}$/.test(code)) {
-        return callback({ error: '房间号格式无效（1-6位数字）' });
+      const normalizedCode = roomManager.normalizeRoomCode(code);
+      if (!roomManager.isValidRoomCode(normalizedCode)) {
+        return ack(callback, { error: '房间号格式无效（3-6位数字或字母）' });
       }
 
       // 离开其他游戏的房间
@@ -294,13 +304,13 @@ function setupSocketHandlers(io, prisma) {
       }
 
       const maxPlayers = getGameMaxPlayers(gameId);
-      const result = roomManager.joinByCode(code, socket.id, {
+      const result = roomManager.joinByCode(normalizedCode, socket.id, {
         id: socket.user.id,
         nickname: socket.user.username,
       avatar: socket.user.avatar,
       }, maxPlayers, gameId);
 
-      if (result.error) return callback({ error: result.error });
+      if (result.error) return ack(callback, { error: result.error });
 
       socket.join(result.roomId);
 
@@ -314,7 +324,7 @@ function setupSocketHandlers(io, prisma) {
         state: result.room.state,
       });
 
-      callback({
+      ack(callback, {
         roomId: result.roomId,
         roomCode: result.room.roomCode,
         hostId: result.room.hostId,
@@ -326,7 +336,8 @@ function setupSocketHandlers(io, prisma) {
       broadcastStatsDebounced(io);
     });
     // ========== 准备/取消准备 ==========
-    socket.on('player_ready', ({ roomId, ready = true }) => {
+    socket.on('player_ready', (payload = {}) => {
+      const { roomId, ready = true } = payload || {};
       const room = roomManager.getRoom(roomId);
       if (!room || room.state !== 'waiting') return;
 
@@ -350,20 +361,21 @@ function setupSocketHandlers(io, prisma) {
     });
 
     // ========== 添加机器人（仅固定人数游戏允许） ==========
-    socket.on('add_bots', ({ roomId }, callback) => {
+    socket.on('add_bots', (payload = {}, callback) => {
+      const { roomId } = payload || {};
       const room = roomManager.getRoom(roomId);
       if (!room || room.state !== 'waiting') {
-        return callback?.({ error: '房间不在等待状态' });
+        return ack(callback, { error: '房间不在等待状态' });
       }
 
       // 检查是否为房主
       if (room.hostId !== socket.user.id) {
-        return callback?.({ error: '只有房主可以添加机器人' });
+        return ack(callback, { error: '只有房主可以添加机器人' });
       }
 
       // 检查游戏是否允许添加机器人
       if (!gameAllowsBots(room.gameId)) {
-        return callback?.({ error: '该游戏不支持添加机器人' });
+        return ack(callback, { error: '该游戏不支持添加机器人' });
       }
 
       const maxPlayers = getGameMaxPlayers(room.gameId);
@@ -371,7 +383,7 @@ function setupSocketHandlers(io, prisma) {
 
       // 已满：返回成功但 botsAdded=0，不报错
       if (currentCount >= maxPlayers) {
-        return callback?.({ ok: true, botsAdded: 0 });
+        return ack(callback, { ok: true, botsAdded: 0 });
       }
 
       // 每次只添加一个机器人
@@ -391,15 +403,16 @@ function setupSocketHandlers(io, prisma) {
         state: room.state,
       });
 
-      callback?.({ ok: true, botsAdded: bot ? 1 : 0 });
+      ack(callback, { ok: true, botsAdded: bot ? 1 : 0 });
 
       // 所有游戏都不自动开始，等房主手动开始
     });
 
     // ========== 创建房间 ==========
-    socket.on('create_room', ({ gameId, roomCode }, callback) => {
+    socket.on('create_room', (payload = {}, callback) => {
+      const { gameId, roomCode } = payload || {};
       if (!gameExists(gameId)) {
-        return callback?.({ error: '游戏不存在' });
+        return ack(callback, { error: '游戏不存在' });
       }
 
       // 检查用户是否已在房间中
@@ -409,7 +422,7 @@ function setupSocketHandlers(io, prisma) {
         if (existing.room.gameId === gameId && existing.room.state !== 'finished') {
           socket.join(existing.roomId);
           roomManager.updatePlayerSocket(socket.user.id, socket.id);
-          return callback?.({
+          return ack(callback, {
             roomId: existing.roomId,
             roomCode: existing.room.roomCode,
             hostId: existing.room.hostId,
@@ -430,13 +443,13 @@ function setupSocketHandlers(io, prisma) {
       }, roomCode || undefined);
 
       if (result.error) {
-        return callback?.({ error: result.error });
+        return ack(callback, { error: result.error });
       }
 
       const room = result.room;
       socket.join(room.id);
 
-      callback?.({
+      ack(callback, {
         roomId: room.id,
         roomCode: room.roomCode,
         hostId: room.hostId,
@@ -449,16 +462,17 @@ function setupSocketHandlers(io, prisma) {
     });
 
     // ========== 返回房间（游戏结束后重新加入） ==========
-    socket.on('return_to_room', ({ roomId }, callback) => {
+    socket.on('return_to_room', (payload = {}, callback) => {
+      const { roomId } = payload || {};
       const room = roomManager.getRoom(roomId);
       if (!room) {
-        return callback?.({ error: '房间已不存在' });
+        return ack(callback, { error: '房间已不存在' });
       }
 
       // 检查玩家是否原本在房间中
       const wasInRoom = room.players.some(p => p.id === socket.user.id);
       if (!wasInRoom) {
-        return callback?.({ error: '你不在这个房间中' });
+        return ack(callback, { error: '你不在这个房间中' });
       }
 
       // 移除机器人（如果有）并停止定时器
@@ -487,7 +501,7 @@ function setupSocketHandlers(io, prisma) {
         state: 'waiting',
       });
 
-      callback?.({
+      ack(callback, {
         roomId: room.id,
         roomCode: room.roomCode,
         hostId: room.hostId,
@@ -498,53 +512,55 @@ function setupSocketHandlers(io, prisma) {
     });
 
     // ========== 房主开始游戏（自由人数游戏） ==========
-    socket.on('host_start_game', ({ roomId }, callback) => {
+    socket.on('host_start_game', (payload = {}, callback) => {
+      const { roomId } = payload || {};
       const room = roomManager.getRoom(roomId);
       if (!room || room.state !== 'waiting') {
-        return callback?.({ error: '房间不在等待状态' });
+        return ack(callback, { error: '房间不在等待状态' });
       }
 
       // 只有房主才能开始
       if (room.hostId !== socket.user.id) {
-        return callback?.({ error: '只有房主才能开始游戏' });
+        return ack(callback, { error: '只有房主才能开始游戏' });
       }
 
       // 检查最少人数
       const minPlayers = getGameMinPlayers(room.gameId);
       if (room.players.length < minPlayers) {
-        return callback?.({ error: `至少需要 ${minPlayers} 人才能开始` });
+        return ack(callback, { error: `至少需要 ${minPlayers} 人才能开始` });
       }
 
       // 检查所有人是否都已准备
       if (!room.players.every(p => p.ready)) {
-        return callback?.({ error: '还有玩家未准备' });
+        return ack(callback, { error: '还有玩家未准备' });
       }
 
-      callback?.({ ok: true });
+      ack(callback, { ok: true });
       startGame(io, room, prisma);
     });
 
     // ========== 房主踢人 ==========
-    socket.on('kick_player', ({ roomId, targetId }, callback) => {
+    socket.on('kick_player', (payload = {}, callback) => {
+      const { roomId, targetId } = payload || {};
       const room = roomManager.getRoom(roomId);
       if (!room || room.state !== 'waiting') {
-        return callback?.({ error: '房间不在等待状态' });
+        return ack(callback, { error: '房间不在等待状态' });
       }
 
       // 只有房主才能踢人
       if (room.hostId !== socket.user.id) {
-        return callback?.({ error: '只有房主才能踢人' });
+        return ack(callback, { error: '只有房主才能踢人' });
       }
 
       // 不能踢自己
       if (targetId === socket.user.id) {
-        return callback?.({ error: '不能踢自己' });
+        return ack(callback, { error: '不能踢自己' });
       }
 
       // 不能踢机器人（用 add_bots/remove 控制）
       const targetPlayer = room.players.find(p => p.id === targetId);
       if (!targetPlayer) {
-        return callback?.({ error: '玩家不存在' });
+        return ack(callback, { error: '玩家不存在' });
       }
 
       if (targetPlayer.isBot) {
@@ -559,7 +575,7 @@ function setupSocketHandlers(io, prisma) {
           })),
           state: room.state,
         });
-        return callback?.({ ok: true });
+        return ack(callback, { ok: true });
       }
 
       // 踢人类玩家：通知被踢者，然后移除
@@ -584,12 +600,13 @@ function setupSocketHandlers(io, prisma) {
         state: room.state,
       });
 
-      callback?.({ ok: true });
+      ack(callback, { ok: true });
       broadcastStatsDebounced(io);
     });
 
     // ========== 游戏操作 ==========
-    socket.on('game_action', ({ roomId, action }) => {
+    socket.on('game_action', (payload = {}) => {
+      const { roomId, action } = payload || {};
       const room = roomManager.getRoom(roomId);
       if (!room || room.state !== 'playing') return;
       if (!room.players.some(p => p.id === socket.user.id)) return; // 验证玩家在房间中
@@ -660,7 +677,8 @@ function setupSocketHandlers(io, prisma) {
     });
 
     // ========== 同步游戏状态（后台切换回来时调用） ==========
-    socket.on('sync_state', ({ roomId }) => {
+    socket.on('sync_state', (payload = {}) => {
+      const { roomId } = payload || {};
       if (!roomId) return;
       const room = roomManager.getRoom(roomId);
       if (!room) return;
@@ -1046,3 +1064,4 @@ async function startGame(io, room, prisma) {
 }
 
 module.exports = { setupSocketHandlers };
+

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getSocket } from '../services/socket';
-import { playSound } from '../services/sounds';
+import { playSound, startGameBgm, stopGameBgm } from '../services/sounds';
 import { soundRoomJoin, soundPlayerJoin, soundPlayerLeave, soundMatching, soundGameStart, soundAllReady, soundKicked, soundClick } from '../services/sounds';
 
 /**
@@ -13,6 +13,12 @@ function getPlayerId() {
   } catch {
     return null;
   }
+}
+
+const ROOM_CODE_PATTERN = /^[A-Z0-9]{3,6}$/;
+
+function normalizeRoomCode(value = '') {
+  return String(value).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
 }
 
 /**
@@ -28,9 +34,13 @@ export default function GameHost({ gameId, GameComponent }) {
   const [gameState, setGameState] = useState(null);
   const [phase, setPhase] = useState('choosing'); // choosing | matching | waiting | playing | finished
   const [error, setError] = useState(null);
+  const [notice, setNotice] = useState(null);
+  const [roomCodeInput, setRoomCodeInput] = useState('');
+  const [actionBusy, setActionBusy] = useState(false);
   const [result, setResult] = useState(null);
   const resultEmojiRef = useRef(null);
   const defeatEmojiRef = useRef(null);
+  const noticeTimerRef = useRef(null);
   const playersRef = useRef(players);
   useEffect(() => { playersRef.current = players; }, [players]);
   const [maxPlayers, setMaxPlayers] = useState(null); // 从API获取
@@ -39,6 +49,7 @@ export default function GameHost({ gameId, GameComponent }) {
   const [gameName, setGameName] = useState(''); // 游戏名称
   const [minPlayers, setMinPlayers] = useState(null);
   const prevPlayersLenRef = useRef(0);
+  const allReadyRef = useRef(false);
   const effectiveMaxPlayers = maxPlayers || 2; // 兜底2人
   const effectiveMinPlayers = minPlayers || 2;
   const isVariablePlayers = effectiveMinPlayers !== effectiveMaxPlayers;
@@ -50,6 +61,34 @@ export default function GameHost({ gameId, GameComponent }) {
   const [leaveConfirm, setLeaveConfirm] = useState(false);
   const hasPushedRef = useRef(false);
 
+  const showNotice = useCallback((message, type = 'error') => {
+    if (!message) return;
+    if (noticeTimerRef.current) {
+      clearTimeout(noticeTimerRef.current);
+    }
+    setNotice({ message, type });
+    noticeTimerRef.current = setTimeout(() => {
+      setNotice(null);
+      noticeTimerRef.current = null;
+    }, type === 'success' ? 2200 : 3400);
+  }, []);
+
+  useEffect(() => () => {
+    if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
+  }, []);
+
+  useEffect(() => () => {
+    stopGameBgm({ fade: false });
+  }, []);
+
+  useEffect(() => {
+    if (phase === 'playing') {
+      startGameBgm(gameId);
+    } else {
+      stopGameBgm();
+    }
+  }, [gameId, phase]);
+
   // 获取游戏人数配置
   useEffect(() => {
     fetch(`/api/games/${gameId}`)
@@ -60,8 +99,8 @@ export default function GameHost({ gameId, GameComponent }) {
         if (data.game?.name) setGameName(data.game.name);
         if (data.game?.minPlayers) setMinPlayers(data.game.minPlayers);
       })
-      .catch(() => {});
-  }, [gameId]);
+      .catch(() => showNotice('游戏配置加载失败，已按默认人数继续', 'warning'));
+  }, [gameId, showNotice]);
 
   // 初始化 Socket 连接 + 注册事件（只做一次）
   useEffect(() => {
@@ -115,9 +154,11 @@ export default function GameHost({ gameId, GameComponent }) {
       }
       prevPlayersLenRef.current = newLen;
       // 检查全员就绪
-      if (data.players && data.players.length > 0 && data.players.every(p => p.ready)) {
+      const allReady = data.players && data.players.length > 0 && data.players.every(p => p.ready);
+      if (allReady && !allReadyRef.current) {
         soundAllReady();
       }
+      allReadyRef.current = allReady;
     });
 
     // ===== 游戏生命周期 =====
@@ -155,10 +196,10 @@ export default function GameHost({ gameId, GameComponent }) {
 
     s.on('kicked', (data) => {
       soundKicked();
-      alert(data?.message || '你被踢出了房间');
+      setError(data?.message || '你被踢出了房间');
       localStorage.removeItem('activeRoomId');
       localStorage.removeItem('activeGameId');
-      navigate('/lobby');
+      setTimeout(() => navigateRef.current('/lobby'), 1400);
     });
 
     return () => {
@@ -169,24 +210,28 @@ export default function GameHost({ gameId, GameComponent }) {
       s.off('game_over');
       s.off('kicked');
     };
-  }, [gameId]);
+  }, [gameId, playerId]);
 
   // 快速匹配
   const handleCreateRoom = useCallback((customCode) => {
     if (!socket) return;
     setError(null);
+    setNotice(null);
     setPhase('matching');
     soundMatching();
     // 如果提供了自定义房间号，使用 create_room 事件
     if (customCode) {
-      if (!/^\d{1,6}$/.test(customCode)) {
-        setError('请输入1-6位数字房间号');
+      const normalizedCode = normalizeRoomCode(customCode);
+      if (!ROOM_CODE_PATTERN.test(normalizedCode)) {
+        showNotice('请输入 3-6 位数字或字母房间号');
         setPhase('choosing');
         return;
       }
-      socket.emit('create_room', { gameId, roomCode: customCode }, (response) => {
+      setActionBusy(true);
+      socket.emit('create_room', { gameId, roomCode: normalizedCode }, (response) => {
+        setActionBusy(false);
         if (response.error) {
-          setError(response.error);
+          showNotice(response.error);
           setPhase('choosing');
           return;
         }
@@ -194,14 +239,17 @@ export default function GameHost({ gameId, GameComponent }) {
         setRoomCode(response.roomCode);
         setPlayers(response.players);
         if (response.hostId) setHostId(response.hostId);
+        setRoomCodeInput('');
         setPhase('waiting');
         soundRoomJoin();
       });
     } else {
       // 快速匹配（自动创建或加入房间）
+      setActionBusy(true);
       socket.emit('quick_match', { gameId }, (response) => {
+        setActionBusy(false);
         if (response.error) {
-          setError(response.error);
+          showNotice(response.error);
           setPhase('choosing');
           return;
         }
@@ -209,32 +257,38 @@ export default function GameHost({ gameId, GameComponent }) {
         setRoomCode(response.roomCode);
         setPlayers(response.players);
         if (response.hostId) setHostId(response.hostId);
+        setRoomCodeInput('');
         setPhase('waiting');
         soundRoomJoin();
       });
     }
-  }, [socket, gameId]);
+  }, [socket, gameId, showNotice]);
 
   // 通过房间号加入
   const handleJoinByCode = useCallback((code) => {
     if (!socket) return;
-    if (!code || !/^\d{1,6}$/.test(code)) {
-      setError('请输入1-6位数字房间号');
+    const normalizedCode = normalizeRoomCode(code);
+    if (!ROOM_CODE_PATTERN.test(normalizedCode)) {
+      showNotice('请输入 3-6 位数字或字母房间号');
       return;
     }
-    socket.emit('join_by_code', { code, gameId }, (response) => {
+    setNotice(null);
+    setActionBusy(true);
+    socket.emit('join_by_code', { code: normalizedCode, gameId }, (response) => {
+      setActionBusy(false);
       if (response.error) {
-        setError(response.error);
+        showNotice(response.error);
         return;
       }
       setRoomId(response.roomId);
       setRoomCode(response.roomCode);
       setPlayers(response.players);
       if (response.hostId) setHostId(response.hostId);
+      setRoomCodeInput('');
       setPhase('waiting');
       soundRoomJoin();
     });
-  }, [socket, gameId]);
+  }, [socket, gameId, showNotice]);
 
   const handleReady = useCallback(() => {
     soundClick();
@@ -247,11 +301,18 @@ export default function GameHost({ gameId, GameComponent }) {
     soundClick();
     if (!socket || !roomId) return;
     socket.emit('add_bots', { roomId }, (response) => {
-      if (response?.error) return; // 静默忽略
-      if (response?.botsAdded === 0) return; // 已满，静默忽略
+      if (response?.error) {
+        showNotice(response.error);
+        return;
+      }
+      if (response?.botsAdded === 0) {
+        showNotice('房间人数已满，不能再添加机器人', 'warning');
+        return;
+      }
+      showNotice('已添加一名机器人', 'success');
       // botsAdded > 0: 机器人已添加，等待玩家准备
     });
-  }, [socket, roomId]);
+  }, [socket, roomId, showNotice]);
 
   const handleUnready = useCallback(() => {
     if (socket && roomId) {
@@ -265,10 +326,12 @@ export default function GameHost({ gameId, GameComponent }) {
     if (!socket || !roomId) return;
     socket.emit('kick_player', { roomId, targetId }, (response) => {
       if (response?.error) {
-        setError(response.error);
+        showNotice(response.error);
+      } else {
+        showNotice('已移出该玩家', 'success');
       }
     });
-  }, [socket, roomId]);
+  }, [socket, roomId, showNotice]);
 
   // 房主直接开始游戏（可变人数游戏）
   const handleStartGame = useCallback(() => {
@@ -276,10 +339,10 @@ export default function GameHost({ gameId, GameComponent }) {
     if (!socket || !roomId) return;
     socket.emit('host_start_game', { roomId }, (response) => {
       if (response?.error) {
-        setError(response.error);
+        showNotice(response.error);
       }
     });
-  }, [socket, roomId]);
+  }, [socket, roomId, showNotice]);
 
   // 快速匹配（无自定义房间号）
   const handleQuickMatch = useCallback(() => {
@@ -294,6 +357,7 @@ export default function GameHost({ gameId, GameComponent }) {
       navigated = true;
       localStorage.removeItem('activeRoomId');
       localStorage.removeItem('activeGameId');
+      hasPushedRef.current = false;
       navigateRef.current('/lobby');
     };
     if (socket && socket.connected) {
@@ -323,24 +387,27 @@ export default function GameHost({ gameId, GameComponent }) {
     if (!socket || !roomId) return;
     socket.emit('return_to_room', { roomId }, (response) => {
       if (response.error) {
-        alert(response.error);
-        navigate('/lobby');
+        showNotice(response.error);
+        setTimeout(() => navigateRef.current('/lobby'), 1200);
         return;
       }
       // 成功返回房间，重置状态
       setResult(null);
       setPhase('waiting');
       setGameState(null);
+      showNotice('已回到房间，重新准备后开始下一局', 'success');
     });
-  }, [socket, roomId]);
+  }, [socket, roomId, showNotice]);
 
   const handleAction = useCallback(
     (action) => {
       if (socket && roomId) {
         socket.emit('game_action', { roomId, action });
+      } else {
+        showNotice('连接未就绪，请稍后再试');
       }
     },
-    [socket, roomId]
+    [socket, roomId, showNotice]
   );
 
   // ===== 页面离开检测（手机返回 / 关闭标签页 / 刷新） =====
@@ -376,6 +443,11 @@ export default function GameHost({ gameId, GameComponent }) {
   }, [socket, roomId]);
 
   // ===== 各阶段渲染 =====
+  const noticeNode = notice && (
+    <div className={`game-notice ${notice.type}`} role={notice.type === 'error' ? 'alert' : 'status'}>
+      {notice.message}
+    </div>
+  );
 
   if (error) {
     return (
@@ -396,37 +468,43 @@ export default function GameHost({ gameId, GameComponent }) {
   if (phase === 'choosing') {
     return (
       <div className="game-host">
+        {noticeNode}
         <div className="choosing-box">
           <h2>选择加入方式</h2>
           <div className="choosing-actions">
-            <button className="choosing-btn quick-match" onClick={handleQuickMatch}>
+            <button className="choosing-btn quick-match" onClick={handleQuickMatch} disabled={actionBusy}>
               ⚡ 快速匹配
             </button>
             <div className="choosing-divider">或</div>
             <div className="choosing-code-input">
               <input
                 type="text"
-                placeholder="输入1-6位数字房间号"
+                placeholder="输入 3-6 位数字或字母"
                 maxLength={6}
-                pattern="\d*"
-                id="room-code-input"
+                pattern="[A-Za-z0-9]{3,6}"
+                inputMode="text"
+                autoComplete="off"
+                aria-label="房间号"
+                value={roomCodeInput}
+                onChange={(event) => setRoomCodeInput(normalizeRoomCode(event.target.value))}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') handleJoinByCode(roomCodeInput);
+                }}
               />
               <button
                 className="choosing-btn join-code"
-                onClick={() => {
-                  const input = document.getElementById('room-code-input');
-                  handleJoinByCode(input?.value);
-                }}
+                disabled={actionBusy || roomCodeInput.length < 3}
+                onClick={() => handleJoinByCode(roomCodeInput)}
               >
                 🚪 加入房间
               </button>
               <button
                 className="choosing-btn create-code"
+                disabled={actionBusy || roomCodeInput.length < 3}
                 onClick={() => {
-                  const input = document.getElementById('room-code-input');
-                  const val = input?.value?.trim();
+                  const val = roomCodeInput.trim();
                   if (!val) {
-                    setError('请输入房间号再创建');
+                    showNotice('请输入房间号再创建');
                     return;
                   }
                   handleCreateRoom(val);
@@ -444,6 +522,7 @@ export default function GameHost({ gameId, GameComponent }) {
   if (phase === 'matching') {
     return (
       <div className="game-host">
+        {noticeNode}
         <div className="matching-box">
           <div className="matching-spinner">⏳</div>
           <h2 className="matching-text">正在匹配房间...</h2>
@@ -456,8 +535,11 @@ export default function GameHost({ gameId, GameComponent }) {
   if (phase === 'waiting') {
     const isReady = players.find((p) => p.id === playerId)?.ready;
     const isHost = hostId === playerId;
+    const isRoomFull = players.length >= effectiveMaxPlayers;
+    const everyoneReady = players.length > 0 && players.every(p => p.ready);
     return (
       <div className="game-host">
+        {noticeNode}
         <div className="waiting-box">
           <h2 className="waiting-title">🎮 {gameName || '等待玩家加入'}</h2>
           <div className="waiting-room-id">房间号: {roomCode || roomId}</div>
@@ -495,6 +577,11 @@ export default function GameHost({ gameId, GameComponent }) {
               ? `至少需要 ${effectiveMinPlayers} 人，当前 ${players.length} 人`
               : `需要 ${effectiveMaxPlayers} 位玩家才能开始`}
           </p>
+          {everyoneReady && (
+            <p className="waiting-start-hint">
+              {isHost ? '所有玩家已准备，可以开始游戏。' : '所有玩家已准备，等待房主开始游戏。'}
+            </p>
+          )}
 
           <div className="waiting-actions">
             {!isReady && (
@@ -503,11 +590,11 @@ export default function GameHost({ gameId, GameComponent }) {
               </button>
             )}
             {allowBots !== false && (
-              <button className="waiting-bot-btn" onClick={handleAddBots}>
-                🤖 填充机器人
+              <button className="waiting-bot-btn" onClick={handleAddBots} disabled={isRoomFull}>
+                {isRoomFull ? '人数已满' : '🤖 填充机器人'}
               </button>
             )}
-            {isHost && players.length >= effectiveMinPlayers && players.every(p => p.ready) && (
+            {isHost && players.length >= effectiveMinPlayers && everyoneReady && (
               <button className="waiting-start-btn" onClick={handleStartGame}>
                 🎮 开始游戏
               </button>
@@ -552,6 +639,7 @@ export default function GameHost({ gameId, GameComponent }) {
   if (phase === 'finished') {
     return (
       <div className="game-host">
+        {noticeNode}
         <div className="result-box">
           <span style={{ fontSize: '72px', display: 'block', marginBottom: '16px' }}>
             {(() => {
@@ -596,7 +684,7 @@ export default function GameHost({ gameId, GameComponent }) {
             </div>
           )}
           <div className="error-box-actions">
-            <button className="back-btn" onClick={() => navigate('/lobby')}>
+            <button className="back-btn" onClick={handleLeaveRoom}>
               返回大厅
             </button>
             <button className="back-btn" onClick={handleReturnToRoom}>
@@ -611,6 +699,7 @@ export default function GameHost({ gameId, GameComponent }) {
   // 游戏进行中
   return (
     <>
+      {noticeNode}
       <GameComponent
         socket={socket}
         roomId={roomId}
@@ -618,6 +707,7 @@ export default function GameHost({ gameId, GameComponent }) {
         gameState={gameState}
         onAction={handleAction}
         players={players}
+        onLeaveRoom={confirmLeave}
         onReturnToRoom={handleReturnToRoom}
       />
       {leaveConfirm && (

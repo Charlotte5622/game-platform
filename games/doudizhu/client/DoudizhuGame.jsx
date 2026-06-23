@@ -348,7 +348,7 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
       </div>
 
       {/* 手牌区域 */}
-      <div className="dz-hand">
+      <div className={`dz-hand${!isMyTurn || phase !== 'playing' ? ' dz-hand-disabled' : ''}`}>
         <div className="dz-hand-cards">
           {myHand?.map((card, i) => (
             <div key={card.id} className="dz-hand-card-wrap" style={{ zIndex: i }}>

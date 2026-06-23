@@ -56,7 +56,7 @@ function UnoCard({ card, onClick, small, selected }) {
 /**
  * UNO 游戏主组件
  */
-export default function UnoGame({ socket, roomId, playerId, gameState, onAction, players, onReturnToRoom }) {
+export default function UnoGame({ socket, roomId, playerId, gameState, onAction, players, onLeaveRoom, onReturnToRoom }) {
   const [selectedCard, setSelectedCard] = useState(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [pendingWildIndex, setPendingWildIndex] = useState(null);
@@ -151,8 +151,11 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
   };
 
   const handleLeaveRoom = () => {
+    if (onLeaveRoom) {
+      onLeaveRoom();
+      return;
+    }
     if (socket) socket.emit('leave_room');
-    window.location.href = '/lobby';
   };
 
   const getNickname = (pid) => gameState.playerInfo?.[pid]?.nickname || players.find(p => p.id === pid)?.nickname || '玩家';
@@ -302,13 +305,14 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
 
       {/* 手牌 */}
       {!isFinished && (
-        <div className="uno-hand">
+        <div className={`uno-hand${!isMyTurn ? ' uno-hand-disabled' : ''}`}>
           {myHand?.map((card, i) => (
             <div key={card.id || i} className="uno-hand-card-wrap" style={{ zIndex: i }}>
               <UnoCard
                 card={card}
                 selected={selectedCard === i}
                 onClick={() => {
+                  if (!isMyTurn) return;
                   if (selectedCard === i) {
                     handleCardClick(i);
                   } else {

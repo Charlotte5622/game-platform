@@ -9,6 +9,7 @@ const GAME_ICONS = {
   'uno-demo': '🎴',
   'turtle-soup': '🐢',
   gomoku: '⚫',
+  emulator: '🕹️',
 };
 
 const GAME_GRADIENTS = [

@@ -243,7 +243,7 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
             ))}
           </div>
           <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-            <button className="ts-back-btn" onClick={onLeaveRoom || (() => window.location.href = '/lobby')}>
+            <button className="ts-back-btn" onClick={onLeaveRoom}>
               返回大厅
             </button>
             <button className="ts-back-btn" onClick={onReturnToRoom}>

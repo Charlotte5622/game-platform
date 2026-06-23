@@ -18,8 +18,19 @@ function getCtx() {
 
 /** 播放音量（0-1），可通过 setVolume 调整 */
 let masterVolume = 0.5;
+let bgmState = null;
 
-export function setVolume(v) { masterVolume = Math.max(0, Math.min(1, v)); }
+function applyBgmVolume() {
+  if (!bgmState?.gain || !audioCtx) return;
+  const target = bgmState.baseVolume * masterVolume;
+  bgmState.gain.gain.cancelScheduledValues(audioCtx.currentTime);
+  bgmState.gain.gain.setTargetAtTime(target, audioCtx.currentTime, 0.08);
+}
+
+export function setVolume(v) {
+  masterVolume = Math.max(0, Math.min(1, v));
+  applyBgmVolume();
+}
 export function getVolume() { return masterVolume; }
 
 /**
@@ -62,6 +73,127 @@ function playNoise(duration, vol = 0.3) {
   filter.connect(gain);
   gain.connect(ctx.destination);
   source.start();
+}
+
+// ==================== 背景配乐 ====================
+
+const BGM_PATTERNS = {
+  doudizhu: {
+    stepMs: 420,
+    wave: 'triangle',
+    baseVolume: 0.07,
+    melody: [392, null, 440, 494, 440, 392, 330, null, 392, 440, 523, null, 494, 440, 392, null],
+    bass: [196, null, null, null, 220, null, null, null, 196, null, null, null, 165, null, null, null],
+  },
+  uno: {
+    stepMs: 300,
+    wave: 'square',
+    baseVolume: 0.055,
+    melody: [523, 659, 784, null, 659, 587, 659, null, 523, 659, 880, null, 784, 659, 587, null],
+    bass: [131, null, 165, null, 196, null, 165, null],
+  },
+  mahjong: {
+    stepMs: 520,
+    wave: 'triangle',
+    baseVolume: 0.06,
+    melody: [330, null, 392, 494, null, 440, 392, null, 330, 392, null, 494, 440, null, 392, null],
+    bass: [165, null, null, null, 196, null, null, null],
+  },
+  'chinese-chess': {
+    stepMs: 680,
+    wave: 'sine',
+    baseVolume: 0.05,
+    melody: [294, null, 349, null, 392, 349, 330, null, 247, null, 294, 330, 294, null, null, null],
+    bass: [147, null, null, null, 196, null, null, null],
+  },
+  gomoku: {
+    stepMs: 560,
+    wave: 'sine',
+    baseVolume: 0.05,
+    melody: [392, null, 440, null, 392, 330, null, null, 349, null, 392, null, 440, 392, null, null],
+    bass: [196, null, null, null, 165, null, null, null],
+  },
+  'turtle-soup': {
+    stepMs: 740,
+    wave: 'sine',
+    baseVolume: 0.045,
+    melody: [220, null, 261, 247, null, 196, null, null, 233, null, 261, null, 220, null, null, null],
+    bass: [110, null, null, null, 98, null, null, null],
+  },
+};
+
+function playBgmTone(freq, duration, type, vol, when = 0) {
+  if (!bgmState?.gain || !freq) return;
+  const ctx = getCtx();
+  const startAt = ctx.currentTime + when;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, startAt);
+  gain.gain.setValueAtTime(0.0001, startAt);
+  gain.gain.linearRampToValueAtTime(vol, startAt + 0.025);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+  osc.connect(gain);
+  gain.connect(bgmState.gain);
+  osc.start(startAt);
+  osc.stop(startAt + duration + 0.03);
+}
+
+export function startGameBgm(gameId) {
+  const pattern = BGM_PATTERNS[gameId];
+  if (!pattern) {
+    stopGameBgm();
+    return;
+  }
+
+  if (bgmState?.gameId === gameId) return;
+  stopGameBgm({ fade: false });
+
+  const ctx = getCtx();
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+  gain.gain.linearRampToValueAtTime(pattern.baseVolume * masterVolume, ctx.currentTime + 0.7);
+  gain.connect(ctx.destination);
+
+  bgmState = {
+    gameId,
+    gain,
+    baseVolume: pattern.baseVolume,
+    step: 0,
+    timer: null,
+  };
+
+  const tick = () => {
+    if (!bgmState || bgmState.gameId !== gameId) return;
+    const index = bgmState.step;
+    const note = pattern.melody[index % pattern.melody.length];
+    const bass = pattern.bass?.[index % pattern.bass.length];
+    const duration = Math.max(0.16, (pattern.stepMs / 1000) * 0.72);
+    playBgmTone(note, duration, pattern.wave, 0.34);
+    playBgmTone(bass, duration * 1.4, 'sine', 0.18);
+    bgmState.step += 1;
+  };
+
+  tick();
+  bgmState.timer = setInterval(tick, pattern.stepMs);
+}
+
+export function stopGameBgm({ fade = true } = {}) {
+  if (!bgmState) return;
+  const current = bgmState;
+  bgmState = null;
+  if (current.timer) clearInterval(current.timer);
+  if (!audioCtx || !current.gain) return;
+
+  const now = audioCtx.currentTime;
+  current.gain.gain.cancelScheduledValues(now);
+  current.gain.gain.setValueAtTime(Math.max(current.gain.gain.value, 0.0001), now);
+  current.gain.gain.exponentialRampToValueAtTime(0.0001, now + (fade ? 0.45 : 0.03));
+  setTimeout(() => {
+    try {
+      current.gain.disconnect();
+    } catch {}
+  }, fade ? 520 : 80);
 }
 
 // ==================== 斗地主音效 ====================

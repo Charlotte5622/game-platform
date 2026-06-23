@@ -33,15 +33,19 @@ function generateRoomCode() {
 /**
  * 校验房间号格式（3-6位数字或字母）
  */
+function normalizeRoomCode(code) {
+  return typeof code === 'string' ? code.trim().toUpperCase() : '';
+}
+
 function isValidRoomCode(code) {
-  return typeof code === 'string' && /^\d{1,6}$/.test(code);
+  return /^[A-Z0-9]{3,6}$/.test(normalizeRoomCode(code));
 }
 
 /**
  * 检查房间号是否已被占用
  */
 function isRoomCodeTaken(code) {
-  return codeToRoom.has(code);
+  return codeToRoom.has(normalizeRoomCode(code));
 }
 
 /**
@@ -53,13 +57,14 @@ function createRoom(gameId, creatorSocketId, creatorInfo, customCode) {
 
   let roomCode;
   if (customCode) {
-    if (!isValidRoomCode(customCode)) {
+    const normalizedCode = normalizeRoomCode(customCode);
+    if (!isValidRoomCode(normalizedCode)) {
       return { error: '房间号格式无效（3-6位数字或字母）' };
     }
-    if (codeToRoom.has(customCode)) {
+    if (codeToRoom.has(normalizedCode)) {
       return { error: '房间号已被占用' };
     }
-    roomCode = customCode;
+    roomCode = normalizedCode;
   } else {
     roomCode = generateRoomCode();
   }
@@ -286,7 +291,7 @@ function setGameData(roomId, data) {
  * @param {string} [gameId] - 游戏 ID（校验房间属于该游戏）
  */
 function joinByCode(code, socketId, userInfo, maxPlayers, gameId) {
-  const roomId = codeToRoom.get(code);
+  const roomId = codeToRoom.get(normalizeRoomCode(code));
   if (!roomId) return { error: '房间号不存在' };
 
   const room = rooms.get(roomId);
@@ -415,6 +420,7 @@ module.exports = {
   updatePlayerSocket,
   isValidRoomCode,
   isRoomCodeTaken,
+  normalizeRoomCode,
   getStats,
   cleanupOrphanRooms,
 };

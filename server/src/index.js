@@ -1,6 +1,5 @@
 require('dotenv').config({ path: '../config/.env' });
 
-const fs = require('fs');
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -12,6 +11,7 @@ const authRoutes = require('./routes/auth');
 const gamesRoutes = require('./routes/games');
 const externalGamesRoutes = require('./routes/externalGames');
 const leaderboardRoutes = require('./routes/leaderboard');
+const { listEmulatorRoms } = require('./services/romLibrary');
 const { setupSocketHandlers } = require('./services/socketHandler');
 const { loadAllGames } = require('./services/gameLoader');
 const { loadExternalGames, registerAllExternalProxies } = require('./services/externalGameLoader');
@@ -54,16 +54,11 @@ app.get('/api/health', (req, res) => {
 
 // ROM list API for emulator games
 app.get('/api/roms', (req, res) => {
-  const romsPath = path.join(__dirname, '../../external-games/emulator/roms.json');
   try {
-    if (fs.existsSync(romsPath)) {
-      const roms = JSON.parse(fs.readFileSync(romsPath, 'utf-8'));
-      res.json(roms);
-    } else {
-      res.json({ roms: [] });
-    }
+    res.json(listEmulatorRoms());
   } catch (err) {
-    res.status(500).json({ error: 'Failed to load ROM list' });
+    console.error('加载 ROM 列表失败:', err.message);
+    res.status(500).json({ error: '加载 ROM 列表失败' });
   }
 });
 

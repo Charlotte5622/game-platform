@@ -502,7 +502,7 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
       </div>
 
       {/* 我的手牌 */}
-      <div className="mj-hand">
+      <div className={`mj-hand${!isMyTurn ? ' mj-hand-disabled' : ''}`}>
         <div className="mj-hand-bar">
           <span className="mj-my-wind" style={{ color: WIND_COLORS[myWind] }}>{myWind}</span>
           <span className="mj-my-label">我的手牌</span>

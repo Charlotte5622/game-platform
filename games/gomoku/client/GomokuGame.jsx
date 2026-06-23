@@ -203,7 +203,7 @@ function GomokuBoard({ board, lastMove, winLine, myColor, isMyTurn, onCellClick,
 /**
  * 五子棋主组件
  */
-export default function GomokuGame({ socket, roomId, playerId, gameState, onAction, players, onReturnToRoom }) {
+export default function GomokuGame({ socket, roomId, playerId, gameState, onAction, players, onLeaveRoom, onReturnToRoom }) {
   const [hoverCell, setHoverCell] = useState(null);
   const [error, setError] = useState('');
   const [drawRequestFrom, setDrawRequestFrom] = useState(null);
@@ -401,7 +401,7 @@ export default function GomokuGame({ socket, roomId, playerId, gameState, onActi
               )}
             </div>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <button className="gomoku-result-back-btn" onClick={() => window.location.href = '/lobby'}>
+              <button className="gomoku-result-back-btn" onClick={onLeaveRoom}>
                 返回大厅
               </button>
               <button className="gomoku-result-back-btn" onClick={onReturnToRoom}>
