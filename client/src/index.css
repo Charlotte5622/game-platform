@@ -3857,11 +3857,7 @@ input {
     grid-template-columns: 1fr 1fr;
     grid-template-rows: auto auto;
     align-items: center;
-  }
-
-  .mj-table-west,
-  .mj-table-east {
-    display: none;
+    gap: 4px;
   }
 
   .mj-table-north {
@@ -3872,6 +3868,22 @@ input {
   .mj-table-south {
     grid-column: 1 / 3;
     grid-row: 2;
+  }
+
+  .mj-table-west {
+    grid-column: 1;
+    grid-row: 1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-height: none;
+  }
+
+  .mj-table-east {
+    grid-column: 2;
+    grid-row: 1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-height: none;
   }
 
   .mj-seat-bottom {
