@@ -355,13 +355,6 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
               isCurrent={top.isCurrent}
               wind={top.wind}
             />
-            {discards?.[top.id] && discards[top.id].length > 0 && (
-              <div className="mj-seat-discard mj-discard-horizontal">
-                {discards[top.id].map((t, i) => (
-                  <MjTile key={t.id || i} tile={t} small />
-                ))}
-              </div>
-            )}
           </div>
 
           {/* 左边 (西) — 竖屏用compact */}
@@ -383,36 +376,10 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
                 compact
               />
             </div>
-            {discards?.[left.id] && discards[left.id].length > 0 && (
-              <div className="mj-seat-discard mj-discard-vertical">
-                {discards[left.id].map((t, i) => (
-                  <MjTile key={t.id || i} tile={t} small />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* 中央 — 我的弃牌 */}
-          <div className="mj-center">
-            {discards?.[playerId] && discards[playerId].length > 0 && (
-              <div className="mj-seat-discard mj-discard-horizontal mj-discard-mine">
-                {discards[playerId].map((t, i) => (
-                  <MjTile key={t.id || i} tile={t} small />
-                ))}
-              </div>
-            )}
-            {error && <div className="mj-error">{error}</div>}
           </div>
 
           {/* 右边 (东) — 竖屏用compact */}
           <div className="mj-seat-right">
-            {discards?.[right.id] && discards[right.id].length > 0 && (
-              <div className="mj-seat-discard mj-discard-vertical">
-                {discards[right.id].map((t, i) => (
-                  <MjTile key={t.id || i} tile={t} small />
-                ))}
-              </div>
-            )}
             <div className="mj-seat-right-normal">
               <OpponentPanel
                 player={right}
@@ -431,65 +398,107 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
               />
             </div>
           </div>
-        </div>
 
-        {/* 我的明牌 */}
-        {melds?.[playerId] && melds[playerId].length > 0 && (
-          <div className="mj-my-melds">
-            <span className="mj-melds-label">副露:</span>
-            {melds[playerId].map((meld, i) => (
-              <div key={i} className="mj-meld-group">
-                {meld.tiles.map((t, j) => (
-                  <MjTile key={t.id || j} tile={t} small />
+          {/* 牌桌中央区域 — 所有弃牌 */}
+          <div className="mj-table-area">
+            {/* 北家弃牌 — 上方 */}
+            {discards?.[top.id] && discards[top.id].length > 0 && (
+              <div className="mj-table-north">
+                {discards[top.id].map((t, i) => (
+                  <MjTile key={t.id || i} tile={t} small />
                 ))}
               </div>
-            ))}
+            )}
+            {/* 西家弃牌 — 左侧 */}
+            {discards?.[left.id] && discards[left.id].length > 0 && (
+              <div className="mj-table-west">
+                {discards[left.id].map((t, i) => (
+                  <MjTile key={t.id || i} tile={t} small />
+                ))}
+              </div>
+            )}
+            {/* 东家弃牌 — 右侧 */}
+            {discards?.[right.id] && discards[right.id].length > 0 && (
+              <div className="mj-table-east">
+                {discards[right.id].map((t, i) => (
+                  <MjTile key={t.id || i} tile={t} small />
+                ))}
+              </div>
+            )}
+            {/* 南家弃牌（我）— 下方 */}
+            {discards?.[playerId] && discards[playerId].length > 0 && (
+              <div className="mj-table-south">
+                {discards[playerId].map((t, i) => (
+                  <MjTile key={t.id || i} tile={t} small />
+                ))}
+              </div>
+            )}
           </div>
-        )}
 
-        {/* 操作按钮 */}
-        {showActions && !showChowPicker && (
-          <div className="mj-actions">
-            {responseActions.includes('win') && (
-              <button className="mj-action-btn mj-action-win" onClick={() => handleResponse('win')}>🏆 和牌</button>
+          {/* 底部 (南/我) — 明牌 + 操作按钮 */}
+          <div className="mj-seat-bottom">
+            {/* 我的明牌 */}
+            {melds?.[playerId] && melds[playerId].length > 0 && (
+              <div className="mj-my-melds">
+                <span className="mj-melds-label">副露:</span>
+                {melds[playerId].map((meld, i) => (
+                  <div key={i} className="mj-meld-group">
+                    {meld.tiles.map((t, j) => (
+                      <MjTile key={t.id || j} tile={t} small />
+                    ))}
+                  </div>
+                ))}
+              </div>
             )}
-            {responseActions.includes('pung') && (
-              <button className="mj-action-btn mj-action-pung" onClick={() => handleResponse('pung')}>碰</button>
-            )}
-            {responseActions.includes('kong') && (
-              <button className="mj-action-btn mj-action-kong" onClick={() => handleResponse('kong')}>杠</button>
-            )}
-            {responseActions.includes('chow') && (
-              <button className="mj-action-btn mj-action-chow" onClick={() => setShowChowPicker(true)}>吃</button>
-            )}
-            {actionHint?.actions?.includes('win') && (
-              <button className="mj-action-btn mj-action-win" onClick={() => handleResponse('win')}>🏆 自摸</button>
-            )}
-            {actionHint?.actions?.includes('kong') && (
-              <button className="mj-action-btn mj-action-kong" onClick={() => handleResponse('kong', { concealed: true })}>暗杠</button>
-            )}
-            {hasResponse && (
-              <button className="mj-action-btn mj-action-pass" onClick={() => handleResponse('pass')}>过</button>
-            )}
-          </div>
-        )}
 
-        {/* 吃牌选择器 */}
-        {showChowPicker && responseData?.chowOptions && (
-          <div className="mj-actions mj-chow-picker">
-            <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>选择吃法：</span>
-            {responseData.chowOptions.map((option, i) => (
-              <button
-                key={i}
-                className="mj-action-btn mj-action-chow"
-                onClick={() => handleResponse('chow', { tiles: option })}
-              >
-                {option.map(t => t.display).join(' ')}
-              </button>
-            ))}
-            <button className="mj-action-btn mj-action-pass" onClick={() => { setShowChowPicker(false); handleResponse('pass'); }}>取消</button>
+            {/* 错误提示 */}
+            {error && <div className="mj-error">{error}</div>}
+
+            {/* 操作按钮 */}
+            {showActions && !showChowPicker && (
+              <div className="mj-actions">
+                {responseActions.includes('win') && (
+                  <button className="mj-action-btn mj-action-win" onClick={() => handleResponse('win')}>🏆 和牌</button>
+                )}
+                {responseActions.includes('pung') && (
+                  <button className="mj-action-btn mj-action-pung" onClick={() => handleResponse('pung')}>碰</button>
+                )}
+                {responseActions.includes('kong') && (
+                  <button className="mj-action-btn mj-action-kong" onClick={() => handleResponse('kong')}>杠</button>
+                )}
+                {responseActions.includes('chow') && (
+                  <button className="mj-action-btn mj-action-chow" onClick={() => setShowChowPicker(true)}>吃</button>
+                )}
+                {actionHint?.actions?.includes('win') && (
+                  <button className="mj-action-btn mj-action-win" onClick={() => handleResponse('win')}>🏆 自摸</button>
+                )}
+                {actionHint?.actions?.includes('kong') && (
+                  <button className="mj-action-btn mj-action-kong" onClick={() => handleResponse('kong', { concealed: true })}>暗杠</button>
+                )}
+                {hasResponse && (
+                  <button className="mj-action-btn mj-action-pass" onClick={() => handleResponse('pass')}>过</button>
+                )}
+              </div>
+            )}
+
+            {/* 吃牌选择器 */}
+            {showChowPicker && responseData?.chowOptions && (
+              <div className="mj-actions mj-chow-picker">
+                <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>选择吃法：</span>
+                {responseData.chowOptions.map((option, i) => (
+                  <button
+                    key={i}
+                    className="mj-action-btn mj-action-chow"
+                    onClick={() => handleResponse('chow', { tiles: option })}
+                  >
+                    {option.map(t => t.display).join(' ')}
+                  </button>
+                ))}
+                <button className="mj-action-btn mj-action-pass" onClick={() => { setShowChowPicker(false); handleResponse('pass'); }}>取消</button>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* 我的手牌 */}

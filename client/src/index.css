@@ -2336,8 +2336,8 @@ input {
 .mj-board {
   flex: 1;
   display: grid;
-  grid-template-columns: 120px 1fr 120px;
-  grid-template-rows: auto 1fr;
+  grid-template-columns: 140px 1fr 140px;
+  grid-template-rows: auto 1fr auto;
   gap: 8px;
   min-height: 300px;
 }
@@ -2353,33 +2353,89 @@ input {
 
 .mj-seat-left {
   grid-column: 1;
-  grid-row: 1 / 3;
+  grid-row: 2;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 4px;
 }
 
 .mj-seat-right {
   grid-column: 3;
-  grid-row: 1 / 3;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 4px;
-}
-
-.mj-center {
-  grid-column: 2;
   grid-row: 2;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
+  gap: 4px;
+}
+
+/* 底部 — 我的明牌 + 操作按钮 */
+.mj-seat-bottom {
+  grid-column: 1 / 4;
+  grid-row: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 6px;
-  overflow-y: auto;
+}
+
+/* 牌桌中央 — 弃牌区域 */
+.mj-table-area {
+  grid-column: 2;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto 1fr auto;
+  gap: 4px;
+  background: rgba(15,23,42,0.25);
+  border-radius: 12px;
+  padding: 8px;
+  align-items: center;
+  justify-items: center;
+}
+
+.mj-table-north {
+  grid-column: 1 / 4;
+  grid-row: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  justify-content: center;
+  align-self: start;
+}
+
+.mj-table-south {
+  grid-column: 1 / 4;
+  grid-row: 3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  justify-content: center;
+  align-self: end;
+}
+
+.mj-table-west {
+  grid-column: 1;
+  grid-row: 1 / 4;
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  justify-self: start;
+}
+
+.mj-table-east {
+  grid-column: 3;
+  grid-row: 1 / 4;
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  justify-self: end;
 }
 
 /* 对手面板 */
@@ -3744,13 +3800,13 @@ input {
   /* 竖屏：简化布局，提示旋转 */
   .mj-board {
     grid-template-columns: 1fr;
-    grid-template-rows: auto;
+    grid-template-rows: auto auto auto;
     gap: 6px;
     min-height: auto;
   }
 
   .mj-seat-top {
-    grid-column: 1;
+    grid-column: 1 / 4;
     grid-row: 1;
     flex-direction: column;
     align-items: center;
@@ -3762,11 +3818,32 @@ input {
     display: none;
   }
 
-  .mj-center {
+  .mj-table-area {
     grid-column: 1;
     grid-row: 2;
-    flex-direction: column;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
     align-items: center;
+  }
+
+  .mj-table-west,
+  .mj-table-east {
+    display: none;
+  }
+
+  .mj-table-north {
+    grid-column: 1 / 3;
+    grid-row: 1;
+  }
+
+  .mj-table-south {
+    grid-column: 1 / 3;
+    grid-row: 2;
+  }
+
+  .mj-seat-bottom {
+    grid-column: 1;
+    grid-row: 3;
   }
 
   /* 简化对手为横条 */
@@ -4120,13 +4197,13 @@ input {
   /* 竖屏board: 左紧凑 | 中间(上+中) | 右紧凑 */
   .mj-board {
     grid-template-columns: 50px 1fr 50px;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto 1fr auto;
     gap: 6px;
     min-height: 240px;
   }
 
   .mj-seat-top {
-    grid-column: 1 / 4;
+    grid-column: 2;
     grid-row: 1;
     flex-direction: column;
     align-items: center;
@@ -4135,7 +4212,7 @@ input {
 
   .mj-seat-left {
     grid-column: 1;
-    grid-row: 1 / 3;
+    grid-row: 2;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -4144,18 +4221,40 @@ input {
 
   .mj-seat-right {
     grid-column: 3;
-    grid-row: 1 / 3;
+    grid-row: 2;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
   }
 
-  .mj-center {
+  .mj-table-area {
     grid-column: 2;
     grid-row: 2;
-    flex-direction: column;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
     align-items: center;
+    padding: 4px;
+  }
+
+  .mj-table-west,
+  .mj-table-east {
+    display: none;
+  }
+
+  .mj-table-north {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .mj-table-south {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .mj-seat-bottom {
+    grid-column: 1 / 4;
+    grid-row: 3;
   }
 
   /* 对面对手紧凑 */
@@ -4279,7 +4378,7 @@ input {
 
   .mj-board {
     grid-template-columns: 90px 1fr 90px;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto 1fr auto;
     gap: 4px;
     min-height: 0;
     flex: 1;
@@ -4296,31 +4395,53 @@ input {
 
   .mj-seat-left {
     grid-column: 1;
-    grid-row: 1 / 3;
+    grid-row: 2;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: center;
     gap: 2px;
   }
 
   .mj-seat-right {
     grid-column: 3;
-    grid-row: 1 / 3;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 2px;
-  }
-
-  .mj-center {
-    grid-column: 2;
     grid-row: 2;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
+    gap: 2px;
+  }
+
+  .mj-table-area {
+    grid-column: 2;
+    grid-row: 2;
+    padding: 4px;
+  }
+
+  .mj-table-north {
+    grid-column: 1 / 4;
+    grid-row: 1;
+  }
+
+  .mj-table-south {
+    grid-column: 1 / 4;
+    grid-row: 3;
+  }
+
+  .mj-table-west {
+    grid-column: 1;
+    grid-row: 1 / 4;
+  }
+
+  .mj-table-east {
+    grid-column: 3;
+    grid-row: 1 / 4;
+  }
+
+  .mj-seat-bottom {
+    grid-column: 1 / 4;
+    grid-row: 3;
   }
 
   .mj-opponent {
