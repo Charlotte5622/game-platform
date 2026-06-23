@@ -11,6 +11,7 @@ import Stats from './pages/Stats';
 import Leaderboard from './pages/Leaderboard';
 import EmulatorPage from './pages/EmulatorPage';
 import Security from './pages/Security';
+import Preview from './pages/_Preview';
 
 function ProtectedRoute({ children }) {
   const token = useAuthStore((s) => s.token);
@@ -37,6 +38,7 @@ export default function App() {
       <main id="main-content" className="main-content">
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/preview" element={<Preview />} />
           <Route path="/register" element={<Register />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route
