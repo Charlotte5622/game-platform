@@ -355,6 +355,13 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
               isCurrent={top.isCurrent}
               wind={top.wind}
             />
+            {discards?.[top.id] && discards[top.id].length > 0 && (
+              <div className="mj-seat-discard mj-discard-horizontal">
+                {discards[top.id].map((t, i) => (
+                  <MjTile key={t.id || i} tile={t} small />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* 左边 (西) — 竖屏用compact */}
@@ -376,59 +383,36 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
                 compact
               />
             </div>
+            {discards?.[left.id] && discards[left.id].length > 0 && (
+              <div className="mj-seat-discard mj-discard-vertical">
+                {discards[left.id].map((t, i) => (
+                  <MjTile key={t.id || i} tile={t} small />
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* 中央 — 弃牌池 */}
+          {/* 中央 — 我的弃牌 */}
           <div className="mj-center">
-            <div className="mj-discard-pool">
-              {/* 上方：北家 + 西家 */}
-              <div className="mj-discard-half mj-discard-top-half">
-                {/* 北家弃牌 */}
-                {discards?.[top.id] && discards[top.id].length > 0 && (
-                  <div className="mj-discard-row">
-                    <span className="mj-discard-label" style={{ color: WIND_COLORS[top.wind] }}>{top.wind}</span>
-                    {discards[top.id].map((t, i) => (
-                      <MjTile key={t.id || i} tile={t} small />
-                    ))}
-                  </div>
-                )}
-                {/* 西家弃牌 */}
-                {discards?.[left.id] && discards[left.id].length > 0 && (
-                  <div className="mj-discard-row">
-                    <span className="mj-discard-label" style={{ color: WIND_COLORS[left.wind] }}>{left.wind}</span>
-                    {discards[left.id].map((t, i) => (
-                      <MjTile key={t.id || i} tile={t} small />
-                    ))}
-                  </div>
-                )}
+            {discards?.[playerId] && discards[playerId].length > 0 && (
+              <div className="mj-seat-discard mj-discard-horizontal mj-discard-mine">
+                {discards[playerId].map((t, i) => (
+                  <MjTile key={t.id || i} tile={t} small />
+                ))}
               </div>
-              {/* 下方：东家 + 南家 */}
-              <div className="mj-discard-half mj-discard-bottom-half">
-                {/* 东家弃牌 */}
-                {discards?.[right.id] && discards[right.id].length > 0 && (
-                  <div className="mj-discard-row">
-                    <span className="mj-discard-label" style={{ color: WIND_COLORS[right.wind] }}>{right.wind}</span>
-                    {discards[right.id].map((t, i) => (
-                      <MjTile key={t.id || i} tile={t} small />
-                    ))}
-                  </div>
-                )}
-                {/* 南家弃牌(我) */}
-                {discards?.[playerId] && discards[playerId].length > 0 && (
-                  <div className="mj-discard-row mj-discard-mine">
-                    <span className="mj-discard-label" style={{ color: WIND_COLORS[myWind] }}>{myWind}</span>
-                    {discards[playerId].map((t, i) => (
-                      <MjTile key={t.id || i} tile={t} small />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+            )}
             {error && <div className="mj-error">{error}</div>}
           </div>
 
           {/* 右边 (东) — 竖屏用compact */}
           <div className="mj-seat-right">
+            {discards?.[right.id] && discards[right.id].length > 0 && (
+              <div className="mj-seat-discard mj-discard-vertical">
+                {discards[right.id].map((t, i) => (
+                  <MjTile key={t.id || i} tile={t} small />
+                ))}
+              </div>
+            )}
             <div className="mj-seat-right-normal">
               <OpponentPanel
                 player={right}

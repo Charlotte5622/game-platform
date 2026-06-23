@@ -983,13 +983,14 @@ function decideGomoku(gameState, botId) {
  * 4. 孤张判断：检查手牌中同花色相邻数字的牌，没有相邻的优先出
  */
 function decideMahjong(gameState, botId) {
-  const hand = gameState.myHand || [];
+  // 兼容两种状态格式：可见状态(myHand)或原始状态(hands[botId])
+  const hand = gameState.myHand || gameState.hands?.[botId] || [];
   if (hand.length === 0) return null;
 
   // ========== 需要响应（别人打牌后） ==========
   if (gameState.waitingAction) {
     const responder = gameState.waitingAction.responders?.find(r => r.pid === botId);
-    if (!responder) return null;
+    if (!responder) return { type: 'pass' };
 
     const actions = responder.actions;
 
@@ -998,20 +999,21 @@ function decideMahjong(gameState, botId) {
       return { type: 'win' };
     }
 
-    // 2. 能杠 → 50%概率杠
-    if (actions.includes('kong') && Math.random() < 0.5) {
+    // 2. 能杠 → 70%概率杠
+    if (actions.includes('kong') && Math.random() < 0.7) {
       return { type: 'kong' };
     }
 
-    // 3. 能碰 → 50%概率碰
-    if (actions.includes('pung') && Math.random() < 0.5) {
+    // 3. 能碰 → 70%概率碰
+    if (actions.includes('pung') && Math.random() < 0.7) {
       return { type: 'pung' };
     }
 
-    // 4. 能吃 → 50%概率吃（随机选一种吃法）
-    if (actions.includes('chow') && Math.random() < 0.5) {
+    // 4. 能吃 → 60%概率吃（随机选一种吃法）
+    if (actions.includes('chow') && Math.random() < 0.6) {
       const { canChow } = require('../../../games/mahjong/server/handValidator');
-      const chowOptions = canChow(hand, gameState.waitingAction.discardedTile);
+      const discardTile = gameState.waitingAction.discardedTile;
+      const chowOptions = canChow(hand, discardTile);
       if (chowOptions && chowOptions.length > 0) {
         const option = chowOptions[Math.floor(Math.random() * chowOptions.length)];
         return { type: 'chow', tiles: option };
@@ -1032,7 +1034,7 @@ function decideMahjong(gameState, botId) {
 
   // 检查暗杠
   const concealedKongs = canConcealedKong(hand);
-  if (concealedKongs.length > 0 && Math.random() < 0.5) {
+  if (concealedKongs.length > 0) {
     return { type: 'kong', concealed: true };
   }
 
