@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useAuthStore } from '../stores/authStore';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -11,12 +12,18 @@ export default function AuthCallback() {
     const token = params.get('token');
 
     if (token) {
+      // 先存 token 到 localStorage
       localStorage.setItem('token', token);
       window.history.replaceState(null, '', window.location.pathname);
+
+      // 用 token 获取用户信息
       api.get('/api/auth/me').then(res => {
         const user = res.data.user;
         localStorage.setItem('user', JSON.stringify(user));
-        window.dispatchEvent(new Event('auth-changed'));
+
+        // ★ 关键：更新 Zustand store，否则 ProtectedRoute 会踢回 /login
+        useAuthStore.setState({ token, user });
+
         navigate('/lobby', { replace: true });
       }).catch(() => {
         navigate('/login?error=session_failed', { replace: true });

@@ -72,13 +72,13 @@ export const useAuthStore = create((set, get) => ({
     try {
       const res = await api.post('/api/auth/register', payload);
       if (!res.data?.token && !res.data?.accessToken) {
+        const code = res.data?.code || null;
         set({
           loading: false,
-          error: '操作已提交，请确认验证码或换一个联系方式',
           captcha: res.data?.captcha || null,
           requiresCaptcha: Boolean(res.data?.requiresCaptcha),
         });
-        return false;
+        return code || false;
       }
       const token = storeAuthSession(res.data);
       set({
@@ -91,13 +91,14 @@ export const useAuthStore = create((set, get) => ({
       });
       return true;
     } catch (err) {
+      const code = err.response?.data?.code || null;
       set({
         error: friendlyError(err, '注册未完成，请检查信息'),
         loading: false,
         captcha: err.response?.data?.captcha || null,
         requiresCaptcha: Boolean(err.response?.data?.requiresCaptcha),
       });
-      return false;
+      return code || false;
     }
   },
 
@@ -106,7 +107,7 @@ export const useAuthStore = create((set, get) => ({
       await api.post('/api/auth/send-code', { phone, email, purpose });
       return true;
     } catch {
-      return true;
+      return false;
     }
   },
 

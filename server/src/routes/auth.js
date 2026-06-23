@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 const { PrismaClient } = require('@prisma/client');
 const {
   authMiddleware,
@@ -45,6 +46,20 @@ const { createRateLimit } = require('../middleware/rateLimit');
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+// 邮件发送器
+let mailTransporter = null;
+if (process.env.SMTP_HOST) {
+  mailTransporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT) || 465,
+    secure: true,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+}
 
 const PASSWORD_ROUNDS = 12;
 const authBurstLimit = createRateLimit(60 * 1000, 30, '操作已提交');
@@ -259,7 +274,23 @@ router.post('/send-code', authBurstLimit, async (req, res) => {
       console.info(`[auth] SMS provider not configured. ${purpose} code for ${contact.value}: ${code}`);
     }
     if (contact.type === 'email') {
-      console.info(`[auth] Email provider not configured. ${purpose} code for ${contact.value}: ${code}`);
+      if (mailTransporter) {
+        const purposeText = purpose === 'register' ? '注册' : '重置密码';
+        await mailTransporter.sendMail({
+          from: process.env.SMTP_FROM || process.env.SMTP_USER,
+          to: contact.value,
+          subject: `【游戏平台】${purposeText}验证码`,
+          html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:20px;">
+            <h2 style="color:#333;">🎮 联机游戏平台</h2>
+            <p>您正在进行<span style="font-weight:bold;color:#667eea;">${purposeText}</span>操作，验证码为：</p>
+            <div style="font-size:32px;font-weight:bold;color:#667eea;letter-spacing:6px;padding:16px;background:#f5f5f5;border-radius:8px;text-align:center;">${code}</div>
+            <p style="color:#999;font-size:13px;margin-top:16px;">验证码 10 分钟内有效，请勿泄露给他人。</p>
+          </div>`,
+        });
+        console.info(`[auth] ${purpose} code sent to ${contact.value}`);
+      } else {
+        console.info(`[auth] SMTP not configured. ${purpose} code for ${contact.value}: ${code}`);
+      }
     }
 
     return sendAuthOk(res, {}, 202);
@@ -305,8 +336,9 @@ router.post('/register', authBurstLimit, async (req, res) => {
       },
     });
     if (existingContact) {
-      await recordLoginAttempt(prisma, req, identifier, false);
-      return sendAuthOk(res, {}, 202);
+      // 不记录失败次数 — 邮箱重复不是攻击行为
+      const field = contact.type === 'email' ? 'AUTH_130' : 'AUTH_131';
+      return sendAuthError(res, 409, field);
     }
 
     const passwordHash = await bcrypt.hash(password, PASSWORD_ROUNDS);
@@ -742,14 +774,16 @@ router.get('/github/callback', async (req, res) => {
   });
   const storedState = cookies.gh_oauth_state;
 
+  const clientUrl = process.env.CLIENT_URL || 'http://119.29.147.165:3001';
+
   if (!code || !state || state !== storedState) {
-    return res.redirect('/login?error=github_auth_failed');
+    return res.redirect(`${clientUrl}/login?error=github_auth_failed`);
   }
 
   const clientId = process.env.GITHUB_CLIENT_ID;
   const clientSecret = process.env.GITHUB_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
-    return res.redirect('/login?error=github_not_configured');
+    return res.redirect(`${clientUrl}/login?error=github_not_configured`);
   }
 
   try {
@@ -762,7 +796,7 @@ router.get('/github/callback', async (req, res) => {
     const tokenData = await tokenRes.json();
     if (tokenData.error) {
       console.error('[auth] GitHub token exchange failed:', tokenData.error_description);
-      return res.redirect('/login?error=github_token_failed');
+      return res.redirect(`${clientUrl}/login?error=github_token_failed`);
     }
     const githubToken = tokenData.access_token;
 
@@ -778,7 +812,7 @@ router.get('/github/callback', async (req, res) => {
 
     const githubUser = await userRes.json();
     const emails = await emailRes.json();
-    if (!githubUser.id) return res.redirect('/login?error=github_profile_failed');
+    if (!githubUser.id) return res.redirect(`${clientUrl}/login?error=github_profile_failed`);
 
     const githubId = String(githubUser.id);
     const githubName = githubUser.login || '';
@@ -822,18 +856,17 @@ router.get('/github/callback', async (req, res) => {
       await writeAuditLog(prisma, req, user.id, 'register_github');
     }
 
-    if (user.status !== 'active') return res.redirect('/login?error=account_disabled');
+    if (user.status !== 'active') return res.redirect(`${clientUrl}/login?error=account_disabled`);
 
     // Create session
     const tokens = await createSession(user, req, res, true);
     await writeAuditLog(prisma, req, user.id, 'login_github');
 
     // Redirect to frontend callback page
-    const clientUrl = process.env.CLIENT_URL || 'http://119.29.147.165:3001';
     return res.redirect(`${clientUrl}/auth/callback#token=${tokens.accessToken}`);
   } catch (err) {
     console.error('[auth] GitHub callback failed:', err);
-    return res.redirect('/login?error=github_failed');
+    return res.redirect(`${clientUrl}/login?error=github_failed`);
   }
 });
 

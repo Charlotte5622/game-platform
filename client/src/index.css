@@ -1046,6 +1046,18 @@ input {
   line-height: 1.5;
 }
 
+.field-error {
+  color: var(--danger);
+  font-size: 12px;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.input-error {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
+}
+
 .auth-submit {
   width: 100%;
   padding: 14px;
@@ -1263,6 +1275,15 @@ input {
   color: var(--text-dim);
 }
 
+.auth-code-hint {
+  font-size: 13px;
+  margin-top: 6px;
+  color: var(--primary);
+}
+.auth-code-hint:empty {
+  display: none;
+}
+
 .auth-check-row {
   display: flex;
   align-items: center;
@@ -1371,6 +1392,7 @@ input {
 .security-section h2 {
   font-size: 22px;
   margin-bottom: 16px;
+  text-align: center;
 }
 
 .security-section-head {
@@ -1428,6 +1450,7 @@ input {
   display: grid;
   gap: 14px;
   max-width: 440px;
+  margin: 0 auto;
 }
 
 .security-form label {

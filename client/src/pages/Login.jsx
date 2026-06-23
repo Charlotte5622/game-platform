@@ -48,13 +48,13 @@ export default function Login() {
 
         <form onSubmit={handleSubmit}>
           <div className="auth-form-group">
-            <label htmlFor="login-identifier">手机号或昵称</label>
+            <label htmlFor="login-identifier">邮箱 / 昵称</label>
             <input
               id="login-identifier"
               type="text"
               value={identifier}
               onChange={(event) => { setIdentifier(event.target.value); if (error) clearError(); }}
-              placeholder="手机号 / 昵称"
+              placeholder="邮箱地址 / 昵称"
               autoComplete="username"
               maxLength={80}
               disabled={loading}

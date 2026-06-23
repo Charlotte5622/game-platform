@@ -110,14 +110,7 @@ function isValidEmail(value) {
 }
 
 function isStrongPassword(password) {
-  return (
-    typeof password === 'string' &&
-    password.length >= 8 &&
-    /[a-z]/.test(password) &&
-    /[A-Z]/.test(password) &&
-    /\d/.test(password) &&
-    /[^A-Za-z0-9]/.test(password)
-  );
+  return typeof password === 'string' && password.length >= 6;
 }
 
 function getClientIp(req) {
@@ -302,12 +295,20 @@ function verifyCaptcha(captcha, req) {
 }
 
 async function recordLoginAttempt(prisma, req, identifier, success) {
-  const rows = [
-    { identifier: `ip:${hashValue(getClientIp(req), 'attempt-ip')}`, success },
-  ];
-  if (identifier) {
-    rows.push({ identifier: `acct:${hashValue(identifier, 'attempt-account')}`, success });
+  const ipKey = `ip:${hashValue(getClientIp(req), 'attempt-ip')}`;
+  const acctKey = identifier ? `acct:${hashValue(identifier, 'attempt-account')}` : null;
+
+  if (success) {
+    // 成功登录 → 清除该 IP 和账号的所有失败记录
+    const deleteWhere = acctKey
+      ? { identifier: { in: [ipKey, acctKey] } }
+      : { identifier: ipKey };
+    await prisma.loginAttempt.deleteMany({ where: deleteWhere });
+    return;
   }
+
+  const rows = [{ identifier: ipKey, success: false }];
+  if (acctKey) rows.push({ identifier: acctKey, success: false });
   await prisma.loginAttempt.createMany({ data: rows });
 }
 

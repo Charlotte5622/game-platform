@@ -12,7 +12,9 @@ export default function Register() {
   const [codeSent, setCodeSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [captchaAnswer, setCaptchaAnswer] = useState(null);
-  const { register, sendCode, loading, error, clearError, captcha, requiresCaptcha, loadCaptcha } = useAuthStore();
+  const [codeMessage, setCodeMessage] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const { register, sendCode, loading, captcha, requiresCaptcha, loadCaptcha } = useAuthStore();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,27 +27,80 @@ export default function Register() {
     return () => clearTimeout(timer);
   }, [countdown]);
 
+  const setFieldError = (field, msg) => {
+    setFieldErrors(prev => ({ ...prev, [field]: msg }));
+  };
+
+  const clearFieldError = (field) => {
+    setFieldErrors(prev => {
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
   const handleSendCode = async () => {
-    clearError();
+    clearFieldError('code');
+    setCodeMessage('');
+    if (!email.trim()) {
+      setFieldError('email', '请先输入邮箱地址');
+      return;
+    }
     const ok = await sendCode({ email: email.trim(), purpose: 'register' });
     if (ok) {
       setCodeSent(true);
       setCountdown(60);
+      setCodeMessage('验证码已发送，请查看邮箱');
+    } else {
+      setCodeMessage('发送失败，请稍后重试');
     }
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    clearError();
-    const ok = await register({
+    setFieldErrors({});
+
+    // 前端校验
+    const errors = {};
+    const nick = nickname.trim();
+    if (!nick || nick.length < 2) errors.nickname = '昵称至少 2 个字符';
+    if (!email.trim()) errors.email = '请输入邮箱地址';
+    if (!password || password.length < 6) errors.password = '密码至少 6 位';
+    if (!code.trim()) errors.code = '请输入验证码';
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+
+    const result = await register({
       email: email.trim(),
       code: code.trim(),
-      nickname: nickname.trim(),
+      nickname: nick,
       password,
       rememberMe,
       captcha: captchaAnswer,
     });
-    if (ok) navigate('/lobby');
+
+    if (result === true) {
+      navigate('/lobby');
+      return;
+    }
+
+    // 后端错误映射到字段
+    const errCode = result;
+    const serverFieldErrors = {
+      AUTH_120: { code: '验证码无效或已过期' },
+      AUTH_121: { code: '验证码无效或已过期' },
+      AUTH_122: { nickname: '昵称已被占用，请换一个' },
+      AUTH_130: { email: '该邮箱已被注册，换个邮箱试试' },
+      AUTH_131: { nickname: '该手机号已被注册' },
+      AUTH_132: { nickname: '昵称已被占用，请换一个' },
+    };
+
+    if (serverFieldErrors[errCode]) {
+      setFieldErrors(serverFieldErrors[errCode]);
+    }
   };
 
   return (
@@ -61,13 +116,15 @@ export default function Register() {
               id="register-nickname"
               type="text"
               value={nickname}
-              onChange={(event) => { setNickname(event.target.value); if (error) clearError(); }}
+              onChange={(event) => { setNickname(event.target.value); clearFieldError('nickname'); }}
               placeholder="2-20 个字符"
               autoComplete="nickname"
               maxLength={20}
               disabled={loading}
+              className={fieldErrors.nickname ? 'input-error' : ''}
               required
             />
+            {fieldErrors.nickname && <p className="field-error">{fieldErrors.nickname}</p>}
           </div>
 
           {/* 邮箱 */}
@@ -77,13 +134,15 @@ export default function Register() {
               id="register-email"
               type="email"
               value={email}
-              onChange={(event) => { setEmail(event.target.value); setCodeSent(false); if (error) clearError(); }}
+              onChange={(event) => { setEmail(event.target.value); setCodeSent(false); clearFieldError('email'); }}
               placeholder="name@example.com"
               autoComplete="email"
               maxLength={120}
               disabled={loading}
+              className={fieldErrors.email ? 'input-error' : ''}
               required
             />
+            {fieldErrors.email && <p className="field-error">{fieldErrors.email}</p>}
           </div>
 
           {/* 密码 */}
@@ -93,13 +152,15 @@ export default function Register() {
               id="register-password"
               type="password"
               value={password}
-              onChange={(event) => { setPassword(event.target.value); if (error) clearError(); }}
-              placeholder="大小写字母 + 数字 + 特殊字符，至少 8 位"
+              onChange={(event) => { setPassword(event.target.value); clearFieldError('password'); }}
+              placeholder="至少 6 位"
               autoComplete="new-password"
               disabled={loading}
-              minLength={8}
+              minLength={6}
+              className={fieldErrors.password ? 'input-error' : ''}
               required
             />
+            {fieldErrors.password && <p className="field-error">{fieldErrors.password}</p>}
           </div>
 
           {/* 验证码 + 获取验证码按钮（同行） */}
@@ -109,10 +170,10 @@ export default function Register() {
               <input
                 id="register-code"
                 type="text"
-                className="auth-code-input"
+                className={`auth-code-input ${fieldErrors.code ? 'input-error' : ''}`}
                 inputMode="numeric"
                 value={code}
-                onChange={(event) => { setCode(event.target.value); if (error) clearError(); }}
+                onChange={(event) => { setCode(event.target.value); clearFieldError('code'); }}
                 placeholder="请输入 6 位验证码"
                 autoComplete="one-time-code"
                 maxLength={8}
@@ -128,6 +189,8 @@ export default function Register() {
                 {countdown > 0 ? `${countdown}s` : codeSent ? '重新发送' : '获取验证码'}
               </button>
             </div>
+            {fieldErrors.code && <p className="field-error">{fieldErrors.code}</p>}
+            {codeMessage && !fieldErrors.code && <p className="auth-code-hint">{codeMessage}</p>}
           </div>
 
           <label className="auth-check-row">
@@ -148,8 +211,6 @@ export default function Register() {
               onReload={loadCaptcha}
             />
           )}
-
-          {error && <p className="auth-error" role="alert">{error}</p>}
 
           <button type="submit" className="auth-submit" disabled={loading || (requiresCaptcha && !captchaAnswer)}>
             {loading ? '注册中...' : '注册并登录'}
