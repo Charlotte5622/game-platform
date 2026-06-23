@@ -255,7 +255,6 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
     <div className="dz">
       {/* 牌桌 */}
       <div className="dz-table">
-        <span className="hud-frame" />
         {/* 顶部信息 */}
         <div className="dz-top-info">
           <div className="dz-me-info">

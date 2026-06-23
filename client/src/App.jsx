@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useAuthStore } from './stores/authStore';
-import { applyTheme, getTheme } from './services/theme';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -12,7 +11,6 @@ import Stats from './pages/Stats';
 import Leaderboard from './pages/Leaderboard';
 import EmulatorPage from './pages/EmulatorPage';
 import Security from './pages/Security';
-import Preview from './pages/_Preview';
 
 function ProtectedRoute({ children }) {
   const token = useAuthStore((s) => s.token);
@@ -22,11 +20,6 @@ function ProtectedRoute({ children }) {
 
 export default function App() {
   const syncFromStorage = useAuthStore((s) => s.syncFromStorage);
-
-  // 全局应用持久化的主题(登录页等所有页面生效)
-  useEffect(() => {
-    applyTheme(getTheme());
-  }, []);
 
   useEffect(() => {
     window.addEventListener('auth:updated', syncFromStorage);
@@ -44,7 +37,6 @@ export default function App() {
       <main id="main-content" className="main-content">
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/preview" element={<Preview />} />
           <Route path="/register" element={<Register />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route
