@@ -6698,13 +6698,9 @@ input {
 /* --- Actions / Input Bar --- */
 .ts-actions {
   flex-shrink: 0;
-  margin-top: auto;
 }
 
 .ts-input-bar {
-  position: sticky;
-  bottom: 0;
-  z-index: 10;
   display: flex;
   align-items: center;
   gap: 8px;
