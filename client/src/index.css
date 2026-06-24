@@ -6039,7 +6039,13 @@ input {
   justify-content: center;
   gap: 12px;
   flex-wrap: wrap;
+  min-height: 62px;
   align-content: center;
+}
+
+/* 去掉对方头像上方的空行 */
+.uno-top-bar + .uno-opponents {
+  margin-top: -12px;
 }
 
 .uno-opponent {
