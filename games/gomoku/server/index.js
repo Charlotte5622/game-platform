@@ -246,6 +246,16 @@ class GomokuServer extends BaseGameServer {
     if (!state || state.phase !== 'playing') return;
 
     const opponentId = state.players.find(p => String(p) !== String(pid));
+
+    // 如果对手是 bot，自动拒绝
+    if (String(opponentId).startsWith('bot_')) {
+      this.doBroadcastTo(roomId, pid, {
+        type: 'draw_rejected',
+        message: '机器人拒绝了和棋请求',
+      });
+      return;
+    }
+
     this.doBroadcastTo(roomId, opponentId, {
       type: 'draw_request',
       from: pid,

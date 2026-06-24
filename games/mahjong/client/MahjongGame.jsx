@@ -203,7 +203,7 @@ function TileCounter({ allTileTypes, myHand, discards, melds, visible }) {
 /**
  * 麻将游戏主组件
  */
-export default function MahjongGame({ socket, roomId, playerId, gameState, onAction, players }) {
+export default function MahjongGame({ socket, roomId, playerId, gameState, onAction, players, onLeaveRoom }) {
   const [selectedTile, setSelectedTile] = useState(null);
   const [error, setError] = useState('');
   const [actionHint, setActionHint] = useState(null);
@@ -338,6 +338,9 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
 
   return (
     <div className="mj">
+      {/* 电脑端退出按钮 */}
+      {onLeaveRoom && <button className="game-exit-btn" onClick={onLeaveRoom} title="退出游戏">✕</button>}
+
       {/* 牌桌 */}
       <div className="mj-table">
         {/* 顶部信息栏 */}

@@ -403,6 +403,9 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
 
     return (
       <div className="chess">
+        {/* 电脑端退出按钮 */}
+        <button className="game-exit-btn" onClick={onLeaveRoom} title="退出游戏">✕</button>
+
         {/* 计时器设置 */}
         {!timerSettingsSent && (
           <div className="chess-timer-settings">
@@ -520,7 +523,7 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
           {isMyTurn ? '🟢 轮到你走棋' : '⏳ 等待对方走棋'}
         </span>
         {turnDeadline && <span className={`chess-timer${timeLeft <= 10 ? ' chess-timer-urgent' : ''}`}>⏱️ {timeLeft}s</span>}
-        {check && <span className="chess-check-tag">⚠️ 将军!</span>}
+        {check && <span className={`chess-check-tag ${isMyTurn ? 'chess-check-mine' : ''}`}>{isMyTurn ? '⚠️ 被将军！' : '✅ 将军！'}</span>}
         {gameState.lastMove && (
           <span className="chess-last-move-inline">
             <span className="chess-last-move-label">上一步:</span>
@@ -535,17 +538,6 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
         )}
       </div>
 
-      {/* 将军警告横幅 */}
-      {check && isMyTurn && (
-        <div className="chess-check-banner">
-          ⚠️ 你正在被将军！必须解除将军才能走其他棋
-        </div>
-      )}
-      {check && !isMyTurn && (
-        <div className="chess-check-banner chess-check-banner-opponent">
-          ⚠️ 将军！等待对手应将
-        </div>
-      )}
       {/* 双方剩余总时间 */}
       {gameState.timerSettings?.enabled && gameState.timerSettings?.totalTime > 0 && (
         <div className="chess-time-remaining">

@@ -253,6 +253,9 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
 
   return (
     <div className="dz">
+      {/* 电脑端退出按钮 */}
+      <button className="game-exit-btn" onClick={onLeaveRoom} title="退出游戏">✕</button>
+
       {/* 牌桌 */}
       <div className="dz-table">
         {/* 顶部信息 */}

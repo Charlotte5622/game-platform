@@ -232,6 +232,9 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
 
   return (
     <div className="uno">
+      {/* 电脑端退出按钮 */}
+      <button className="game-exit-btn" onClick={onLeaveRoom} title="退出游戏">✕</button>
+
       {/* 顶部信息 */}
       <div className="uno-top-bar">
         <div className="uno-me-info">

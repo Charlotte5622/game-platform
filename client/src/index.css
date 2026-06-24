@@ -2425,7 +2425,7 @@ input {
 }
 
 .dz-my-played {
-  min-height: 40px;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2434,6 +2434,8 @@ input {
 .dz-actions {
   display: flex;
   gap: 16px;
+  height: 44px;
+  align-items: center;
 }
 
 .dz-action-pass {
@@ -2790,7 +2792,7 @@ input {
   border-radius: 12px;
   padding: 16px 20px;
   text-align: center;
-  max-width: 320px;
+  max-width: 420px;
   width: 100%;
   margin: 0 auto;
 }
@@ -3848,6 +3850,62 @@ input {
   animation: pulse 1s infinite;
 }
 
+.chess-check-mine {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.chess-time-remaining {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  min-height: 28px;
+  align-items: center;
+}
+
+.chess-time-tag {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+}
+
+.chess-time-active {
+  color: var(--secondary);
+  border-color: var(--secondary);
+  font-weight: 600;
+}
+
+.chess-disconnect-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 36px;
+}
+
+.chess-claim-win-btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  white-space: nowrap;
+}
+
 .chess-timer {
   font-size: 14px;
   font-weight: 700;
@@ -3896,6 +3954,14 @@ input {
   .chess-top-bar {
     width: 100%;
     order: -1;
+    min-height: 36px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .chess-top-bar::-webkit-scrollbar {
+    display: none;
   }
 
   .chess-board-outer {
@@ -8354,9 +8420,41 @@ input {
 }
 
 
+/* ===== 电脑端退出游戏按钮 ===== */
+.game-exit-btn {
+  display: none;
+}
+
+@media (min-width: 769px) {
+  .game-exit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 76px;
+    right: 20px;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 16px;
+    cursor: pointer;
+    z-index: 100;
+    transition: all 0.2s;
+  }
+
+  .game-exit-btn:hover {
+    background: var(--danger);
+    color: #fff;
+    border-color: var(--danger);
+  }
+}
+
 /* =============================================
-   五子棋 (Gomoku) 样式
-   ============================================= */
+  五子棋 (Gomoku) 样式
+  ============================================= */
 
 .gomoku {
   width: 100%;
@@ -8740,12 +8838,12 @@ input {
 
   .gomoku-board-outer {
     flex: 1 1 auto;
-    max-width: 660px;
+    max-width: 800px;
     min-width: 0;
   }
 
   .gomoku-board-svg {
-    max-width: 660px;
+    max-width: 800px;
   }
 
   .gomoku-side-panel {
