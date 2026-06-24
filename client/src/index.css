@@ -6039,7 +6039,6 @@ input {
   justify-content: center;
   gap: 12px;
   flex-wrap: wrap;
-  min-height: 62px;
   align-content: center;
 }
 
@@ -6285,16 +6284,15 @@ input {
   box-shadow: none;
 }
 
-.uno-message-slot {
-  min-height: 44px;
+/* 操作 + 消息合并区域 */
+.uno-action-bar {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 6px;
+  min-height: 46px;
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 8px;
-  margin: 0 auto;
-  width: min(100%, 520px);
 }
 
 .uno-error {

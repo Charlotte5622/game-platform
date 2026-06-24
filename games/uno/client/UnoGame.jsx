@@ -368,37 +368,34 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
       </div>
 
       {/* 操作按钮 */}
-      {!isFinished && (
-        <div className={`uno-actions${isMyTurn ? '' : ' uno-actions-waiting'}`}>
-          {isMyTurn ? (
-            <>
-              <button className="uno-draw-btn" onClick={handleDraw}>
-                摸牌{drawStack > 0 ? ` (${drawStack}张)` : ''}
-              </button>
-              <button
-                className="uno-uno-btn"
-                onClick={handleUno}
-                disabled={!canCallUno}
-                title={canCallUno ? '喊 UNO' : '手牌剩 2 张时会在出牌前自动喊 UNO'}
-              >
-                {hasCalledUno ? '已喊 UNO' : 'UNO!'}
-              </button>
-            </>
-          ) : (
-            <div className="uno-turn-waiting">等待 {getNickname(playerIds[currentTurn])} 出牌</div>
-          )}
-        </div>
-      )}
-
-      {/* 已获胜提示 */}
-      {isFinished && (
-        <div style={{textAlign:'center',padding:'12px',color:'var(--success)',fontWeight:'600'}}>
-          {myPlacement ? `🎉 你已获得第${myPlacement}名！` : '✅ 你已出完所有牌'}
-        </div>
-      )}
-
-      {/* 错误提示 */}
-      <div className="uno-message-slot" aria-live="polite">
+      {/* 操作 + 消息合并区域 */}
+      <div className="uno-action-bar" aria-live="polite">
+        {!isFinished && (
+          <div className={`uno-actions${isMyTurn ? '' : ' uno-actions-waiting'}`}>
+            {isMyTurn ? (
+              <>
+                <button className="uno-draw-btn" onClick={handleDraw}>
+                  摸牌{drawStack > 0 ? ` (${drawStack}张)` : ''}
+                </button>
+                <button
+                  className="uno-uno-btn"
+                  onClick={handleUno}
+                  disabled={!canCallUno}
+                  title={canCallUno ? '喊 UNO' : '手牌剩 2 张时会在出牌前自动喊 UNO'}
+                >
+                  {hasCalledUno ? '已喊 UNO' : 'UNO!'}
+                </button>
+              </>
+            ) : (
+              <div className="uno-turn-waiting">等待 {getNickname(playerIds[currentTurn])} 出牌</div>
+            )}
+          </div>
+        )}
+        {isFinished && (
+          <div style={{textAlign:'center',padding:'12px',color:'var(--success)',fontWeight:'600'}}>
+            {myPlacement ? `🎉 你已获得第${myPlacement}名！` : '✅ 你已出完所有牌'}
+          </div>
+        )}
         {error && <div className="uno-error">{error}</div>}
       </div>
 
