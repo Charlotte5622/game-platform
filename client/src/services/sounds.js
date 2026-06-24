@@ -474,30 +474,29 @@ const _audioCache = {};
 function playWav(filename) {
   try {
     const ctx = getCtx();
-    if (_audioCache[filename]) {
+    const doPlay = (buffer) => {
       const src = ctx.createBufferSource();
-      src.buffer = _audioCache[filename];
+      src.buffer = buffer;
       const gain = ctx.createGain();
       gain.gain.value = masterVolume;
       src.connect(gain);
       gain.connect(ctx.destination);
       src.start();
+    };
+    if (_audioCache[filename]) {
+      doPlay(_audioCache[filename]);
       return;
     }
-    fetch(`/sfx/${filename}`)
-      .then(r => r.arrayBuffer())
-      .then(buf => ctx.decodeAudioData(buf))
-      .then(decoded => {
-        _audioCache[filename] = decoded;
-        const src = ctx.createBufferSource();
-        src.buffer = decoded;
-        const gain = ctx.createGain();
-        gain.gain.value = masterVolume;
-        src.connect(gain);
-        gain.connect(ctx.destination);
-        src.start();
-      })
-      .catch(() => {});
+    // 确保 AudioContext 处于运行状态
+    const resumeAndFetch = async () => {
+      if (ctx.state === 'suspended') await ctx.resume();
+      const resp = await fetch(`/sfx/${filename}`);
+      const buf = await resp.arrayBuffer();
+      const decoded = await ctx.decodeAudioData(buf);
+      _audioCache[filename] = decoded;
+      doPlay(decoded);
+    };
+    resumeAndFetch().catch(() => {});
   } catch {}
 }
 
