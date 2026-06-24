@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { RiCloseLine } from '@remixicon/react';
+import { playSound } from '../../../client/src/services/sounds';
 
 // 花色颜色
 const SUIT_COLORS = {
@@ -239,7 +240,7 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
     };
   }, [socket]);
 
-  // 听碰/杠/吃动作，显示特效
+  // 听碰/杠/吃动作，显示特效 + 播放语音
   useEffect(() => {
     if (!socket) return;
     const ACTION_LABELS = { pung: '碰！', kong: '杠！', chow: '吃！' };
@@ -249,15 +250,22 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
       if (processedEvents.current.has(eventKey)) return;
       processedEvents.current.add(eventKey);
       setActionEffect(ACTION_LABELS[data.type]);
+      playSound('mahjong', data.type);
       setTimeout(() => setActionEffect(null), 1500);
+    };
+    const handleWin = (data) => {
+      const isSelf = String(data.playerId) === String(playerId);
+      playSound('mahjong', isSelf ? 'zimo' : 'win');
     };
     socket.on('pung', handleAction);
     socket.on('kong', handleAction);
     socket.on('chow', handleAction);
+    socket.on('win', handleWin);
     return () => {
       socket.off('pung', handleAction);
       socket.off('kong', handleAction);
       socket.off('chow', handleAction);
+      socket.off('win', handleWin);
     };
   }, [socket, gameState?.currentTurn]);
 

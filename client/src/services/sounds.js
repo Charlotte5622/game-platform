@@ -455,3 +455,47 @@ export function playSound(gameId, eventName) {
   const fn = gameSounds[eventName];
   if (fn) fn();
 }
+
+/**
+ * 播放 public/sfx/ 目录下的 WAV 文件
+ * 用于小米 TTS 生成的麻将语音
+ */
+const _audioCache = {};
+function playWav(filename) {
+  try {
+    const ctx = getCtx();
+    if (_audioCache[filename]) {
+      const src = ctx.createBufferSource();
+      src.buffer = _audioCache[filename];
+      const gain = ctx.createGain();
+      gain.gain.value = masterVolume;
+      src.connect(gain);
+      gain.connect(ctx.destination);
+      src.start();
+      return;
+    }
+    fetch(`/sfx/${filename}`)
+      .then(r => r.arrayBuffer())
+      .then(buf => ctx.decodeAudioData(buf))
+      .then(decoded => {
+        _audioCache[filename] = decoded;
+        const src = ctx.createBufferSource();
+        src.buffer = decoded;
+        const gain = ctx.createGain();
+        gain.gain.value = masterVolume;
+        src.connect(gain);
+        gain.connect(ctx.destination);
+        src.start();
+      })
+      .catch(() => {});
+  } catch {}
+}
+
+// 麻将 TTS 语音
+SOUND_MAP['mahjong'] = {
+  pung: () => playWav('mj_pung.wav'),
+  kong: () => playWav('mj_kong.wav'),
+  chow: () => playWav('mj_chow.wav'),
+  win: () => playWav('mj_win.wav'),
+  zimo: () => playWav('mj_zimo.wav'),
+};
