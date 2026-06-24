@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getSocket } from '../services/socket';
 import { playSound, startGameBgm, stopGameBgm } from '../services/sounds';
 import { soundRoomJoin, soundPlayerJoin, soundPlayerLeave, soundMatching, soundGameStart, soundAllReady, soundKicked, soundClick } from '../services/sounds';
+import { RiLogoutBoxLine, RiArrowGoBackLine } from '@remixicon/react';
 
 /**
  * 安全解析 localStorage 中的用户信息
@@ -457,7 +458,7 @@ export default function GameHost({ gameId, GameComponent }) {
           <h2>{error}</h2>
           <div className="error-box-actions">
             <button className="back-btn" onClick={() => { setError(null); setPhase('choosing'); }}>重试</button>
-            <button className="back-btn" onClick={handleLeaveRoom}>返回大厅</button>
+            <button className="back-btn" onClick={handleLeaveRoom}><RiLogoutBoxLine size={16} style={{verticalAlign:'middle',marginRight:4}} />返回大厅</button>
           </div>
         </div>
       </div>
@@ -600,7 +601,7 @@ export default function GameHost({ gameId, GameComponent }) {
               </button>
             )}
             <button className="waiting-leave-btn" onClick={confirmLeave}>
-              🚪 离开房间
+              <RiLogoutBoxLine size={16} style={{verticalAlign:'middle',marginRight:4}} />离开房间
             </button>
           </div>
 
@@ -685,10 +686,10 @@ export default function GameHost({ gameId, GameComponent }) {
           )}
           <div className="error-box-actions">
             <button className="back-btn" onClick={handleLeaveRoom}>
-              返回大厅
+              <RiLogoutBoxLine size={16} style={{verticalAlign:'middle',marginRight:4}} />返回大厅
             </button>
             <button className="back-btn" onClick={handleReturnToRoom}>
-              返回房间
+              <RiArrowGoBackLine size={16} style={{verticalAlign:'middle',marginRight:4}} />返回房间
             </button>
           </div>
         </div>

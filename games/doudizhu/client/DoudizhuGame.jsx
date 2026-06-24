@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { RiCloseLine } from '@remixicon/react';
 import { playSound } from '../../../client/src/services/sounds';
 
 // 牌型中文名
@@ -123,7 +124,7 @@ function BiddingPanel({ isMyTurn, highestBid, bids, players, getPlayer, onBid })
 /**
  * 斗地主游戏主组件
  */
-export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAction, players }) {
+export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAction, players, onLeaveRoom }) {
   const [selectedCards, setSelectedCards] = useState(new Set());
   const [error, setError] = useState('');
   const [passAnimation, setPassAnimation] = useState(null);
@@ -254,7 +255,7 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
   return (
     <div className="dz">
       {/* 电脑端退出按钮 */}
-      <button className="game-exit-btn" onClick={onLeaveRoom} title="退出游戏">✕</button>
+      <button className="game-exit-btn" onClick={onLeaveRoom} title="退出游戏"><RiCloseLine size={18} /></button>
 
       {/* 牌桌 */}
       <div className="dz-table">

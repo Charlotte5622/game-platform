@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { RiCloseLine } from '@remixicon/react';
 
 // 花色颜色
 const SUIT_COLORS = {
@@ -339,7 +340,7 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
   return (
     <div className="mj">
       {/* 电脑端退出按钮 */}
-      {onLeaveRoom && <button className="game-exit-btn" onClick={onLeaveRoom} title="退出游戏">✕</button>}
+      {onLeaveRoom && <button className="game-exit-btn" onClick={onLeaveRoom} title="退出游戏"><RiCloseLine size={18} /></button>}
 
       {/* 牌桌 */}
       <div className="mj-table">

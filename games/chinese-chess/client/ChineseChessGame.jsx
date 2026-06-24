@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { RiCloseLine } from '@remixicon/react';
 import { playSound } from '../../../client/src/services/sounds';
 
 // 猜拳图标
@@ -404,7 +405,7 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
     return (
       <div className="chess">
         {/* 电脑端退出按钮 */}
-        <button className="game-exit-btn" onClick={onLeaveRoom} title="退出游戏">✕</button>
+        <button className="game-exit-btn" onClick={onLeaveRoom} title="退出游戏"><RiCloseLine size={18} /></button>
 
         {/* 计时器设置 */}
         {!timerSettingsSent && (

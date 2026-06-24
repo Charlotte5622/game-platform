@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { disconnectSocket } from '../services/socket';
 import { setVolume, soundClick } from '../services/sounds';
+import { RiLogoutBoxLine } from '@remixicon/react';
 
 export default function Navbar() {
   const { user, logout } = useAuthStore();
@@ -49,7 +50,7 @@ export default function Navbar() {
                 {muted ? '🔇' : '🔊'}
               </button>
               <button onClick={handleLogout} className="navbar-icon-btn" title="退出登录" aria-label="退出登录">
-                👋
+                <RiLogoutBoxLine size={20} />
               </button>
             </span>
           </>

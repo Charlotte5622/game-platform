@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { RiCloseLine } from '@remixicon/react';
 import { playSound } from '../../../client/src/services/sounds';
 
 const SIZE = 15;
@@ -294,7 +295,7 @@ export default function GomokuGame({ socket, roomId, playerId, gameState, onActi
   return (
     <div className="gomoku">
       {/* 电脑端退出按钮 */}
-      <button className="game-exit-btn" onClick={onLeaveRoom} title="退出游戏">✕</button>
+      <button className="game-exit-btn" onClick={onLeaveRoom} title="退出游戏"><RiCloseLine size={18} /></button>
 
       {/* 顶部信息栏 */}
       <div className="gomoku-top-bar">
