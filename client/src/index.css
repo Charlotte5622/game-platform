@@ -9713,7 +9713,8 @@ input {
   gap: 6px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
   animation: emoteSlideUp 0.3s ease;
-  max-width: 280px;
+  max-width: none;
+  white-space: nowrap;
   z-index: 950;
 }
 
@@ -9742,7 +9743,7 @@ input {
 /* 手机端 */
 @media (max-width: 768px) {
   .emote-panel {
-    width: 180px;
+    width: 240px;
   }
   .emote-bubble {
     font-size: 13px;
