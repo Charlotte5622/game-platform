@@ -13,6 +13,7 @@ export default function Register() {
   const [countdown, setCountdown] = useState(0);
   const [captchaAnswer, setCaptchaAnswer] = useState(null);
   const [codeMessage, setCodeMessage] = useState('');
+  const [sending, setSending] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const { register, sendCode, loading, captcha, requiresCaptcha, loadCaptcha } = useAuthStore();
   const navigate = useNavigate();
@@ -40,19 +41,25 @@ export default function Register() {
   };
 
   const handleSendCode = async () => {
+    if (sending) return;
     clearFieldError('code');
     setCodeMessage('');
     if (!email.trim()) {
       setFieldError('email', '请先输入邮箱地址');
       return;
     }
-    const ok = await sendCode({ email: email.trim(), purpose: 'register' });
-    if (ok) {
-      setCodeSent(true);
-      setCountdown(60);
-      setCodeMessage('验证码已发送，请查看邮箱');
-    } else {
-      setCodeMessage('发送失败，请稍后重试');
+    setSending(true);
+    try {
+      const ok = await sendCode({ email: email.trim(), purpose: 'register' });
+      if (ok) {
+        setCodeSent(true);
+        setCountdown(60);
+        setCodeMessage('验证码已发送，请查看邮箱');
+      } else {
+        setCodeMessage('发送失败，请稍后重试');
+      }
+    } finally {
+      setSending(false);
     }
   };
 
@@ -184,9 +191,9 @@ export default function Register() {
                 type="button"
                 className="auth-code-btn"
                 onClick={handleSendCode}
-                disabled={loading || !email.trim() || countdown > 0}
+                disabled={loading || sending || !email.trim() || countdown > 0}
               >
-                {countdown > 0 ? `${countdown}s` : codeSent ? '重新发送' : '获取验证码'}
+                {countdown > 0 ? `${countdown}s` : sending ? '发送中...' : codeSent ? '重新发送' : '获取验证码'}
               </button>
             </div>
             {fieldErrors.code && <p className="field-error">{fieldErrors.code}</p>}
