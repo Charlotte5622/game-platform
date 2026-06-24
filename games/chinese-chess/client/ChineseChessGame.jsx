@@ -254,7 +254,7 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
     const handleRpsResult = () => setMyRpsChoice(null);
     const handleTurnTimer = (data) => setTurnDeadline(data.deadline);
     const handleTurnTimeout = (data) => { setError(data.message); setTimeout(() => setError(''), 2500); };
-    const handleDrawRequestReceived = (data) => setDrawRequestFrom(data.from);
+    const handleDrawRequestReceived = (data) => { setDrawRequestFrom(data.from); playSound('chinese-chess', 'draw_request'); };
     const handleDrawRequestSent = () => setDrawRequestSent(true);
     const handleDrawRejected = (data) => { setDrawRequestSent(false); setError(data.message); setTimeout(() => setError(''), 2500); };
     const handleOpponentDisconnected = (data) => { setOpponentDisconnected(true); setError(data.message); setTimeout(() => setError(''), 5000); };
@@ -276,6 +276,7 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
       setGameResult({ type: data.reason || 'game_over', winner: data.winner, loser: data.loser, message: data.message, reason: data.reason });
       setTurnDeadline(null);
       setTimeLeft(0);
+      if (data.reason === 'draw_agreed') playSound('chinese-chess', 'draw_agreed');
     };
     const handleTimerSettingsUpdated = (data) => {
       if (data.settings) {
