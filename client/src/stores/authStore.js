@@ -3,7 +3,7 @@ import api, { clearAuthSession, storeAuthSession } from '../services/api';
 import { disconnectSocket } from '../services/socket';
 
 const ERROR_TEXT = {
-  AUTH_001: '登录未完成，请检查账号和密码',
+  AUTH_001: '账号或密码输入错误',
   AUTH_101: '尝试次数过多，请 15 分钟后再试',
   AUTH_110: '请先完成滑块验证',
   AUTH_120: '请填写有效联系方式、验证码、昵称，并使用强密码',
