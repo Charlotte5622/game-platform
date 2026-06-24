@@ -28,6 +28,10 @@ export default function EmulatorPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
 
     async function loadRoms() {

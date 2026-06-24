@@ -8526,7 +8526,7 @@ input {
 
 .gomoku-board-svg {
   width: 100%;
-  max-width: 620px;
+  max-width: 700px;
   height: auto;
   border-radius: 12px;
   box-shadow:
@@ -8948,11 +8948,11 @@ input {
 /* 桌面端：水平排列 */
 @media (min-width: 769px) {
   .gomoku {
-    max-width: 1100px;
+    max-width: 1400px;
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 20px;
+    gap: 24px;
     padding: 20px;
   }
 
@@ -8963,12 +8963,12 @@ input {
 
   .gomoku-board-outer {
     flex: 1 1 auto;
-    max-width: 800px;
+    max-width: 1100px;
     min-width: 0;
   }
 
   .gomoku-board-svg {
-    max-width: 800px;
+    max-width: 1100px;
   }
 
   .gomoku-side-panel {
