@@ -66,15 +66,18 @@ console.log('提取了 ' + Object.keys(env).length + ' 个变量');
     tar czf "/tmp/$BACKUP_NAME" .
     rm -rf "$TMPDIR"
 
+    # 同时把脚本自己也放到 /tmp，方便 scp 后直接用
+    cp "$0" /tmp/migrate.sh 2>/dev/null || true
+
     step "4/4 完成"
     SIZE=$(du -sh "/tmp/$BACKUP_NAME" | cut -f1)
     log "备份文件: /tmp/$BACKUP_NAME ($SIZE)"
     echo ""
     echo "传到新服务器:"
-    echo -e "  ${YELLOW}scp /tmp/$BACKUP_NAME root@新服务器IP:/tmp/${NC}"
+    echo -e "  ${YELLOW}scp /tmp/$BACKUP_NAME /tmp/migrate.sh root@新服务器IP:/tmp/${NC}"
     echo ""
     echo "然后在新服务器执行:"
-    echo -e "  ${YELLOW}bash migrate.sh import${NC}"
+    echo -e "  ${YELLOW}bash /tmp/migrate.sh import${NC}"
 }
 
 # ============================================================
