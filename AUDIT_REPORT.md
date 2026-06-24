@@ -169,3 +169,37 @@
 5. **🟠 kick_player 通过 roomManager 操作** — 防止脏数据
 6. **🟡 JWT_SECRET 启动检查** — 生产环境安全基线
 7. **🟡 提取 BaseGameServer 为共享模块** — 消除6处重复
+
+---
+
+## 十、修复状态（2026-06-25）
+
+### ✅ 已修复（commit `8e6df18`）
+
+| 编号 | 问题 | 修复方式 |
+|------|------|---------|
+| BUG-01 | DoudizhuGame 缺少 useRef | 添加 useRef 到 import |
+| BUG-02 | PrismaClient 4处实例化 | 创建 prisma.js 单例，统一引用 |
+| BUG-03 | GomokuGame playSound('click') 参数错误 | 导入 soundClick() 替换 |
+| BUG-04 | handleDrawResponse 无 drawRequest 验证 | 增加 `!state.drawRequest` 检查 |
+| BUG-05 | return_to_room 缺少当前房间验证 | 增加 getUserRoom 检查 |
+| BUG-07 | Navbar 取消静音无声 | 先 setVolume 再 soundClick |
+| BUG-13 | 五子棋和棋不记录战绩 | 添加 reason: 'draw_agreed' |
+| S03 | OAuth state cookie secure:false | 改为 NODE_ENV === 'production' |
+| S05 | CLIENT_URL 硬编码内网IP | 改为 localhost:3001 |
+| R01 | socketHandler if(dbUser) 死代码 | 移除冗余检查 |
+| R05 | UnoGame 条件重复 | 简化为 phase==='ended' |
+| R08 | leaderboard userMap2 | 重命名为 loserMap |
+| R09 | GameHost verbose log | 移除 state_update 日志 |
+| 投降 | 投降触发两次语音 | 移除手动 playSound，GameHost 统一处理 |
+
+### ⏳ 待修复（需架构调整或低优先级）
+
+| 编号 | 问题 | 原因 |
+|------|------|------|
+| S01 | JWT_SECRET 启动检查 | 系统安全脱敏限制，无法写入环境变量检查代码 |
+| BUG-09 | GameHost与游戏组件game_over冲突 | 需要决定谁负责结果展示，架构级调整 |
+| BUG-10 | 麻将超时未检查已操作 | 需仔细分析麻将状态机 |
+| BUG-11 | UNO罚摸逻辑误罚 | 需理解完整的UNO状态流 |
+| BUG-12 | 海龟汤Timer泄漏 | 需添加 destroyRoom 清理逻辑 |
+| P01-P06 | React性能优化 | 低优先级，当前性能可接受 |
