@@ -403,6 +403,7 @@ export function soundGameStart() {
   notes.forEach((f, i) => {
     setTimeout(() => playTone(f, 0.15, 'sine', 0.4), i * 100);
   });
+  setTimeout(() => playWav('common/game_start.mp3'), 400);
 }
 
 /** 被踢出房间 */
@@ -582,6 +583,13 @@ export const EMOTE_LIST = [
   { id: 'gg', label: '好棋好棋', icon: '🏆' },
   { id: 'hurry', label: '快点快点', icon: '💨' },
 ];
+
+SOUND_MAP['common'] = {
+  game_start: () => playWav('common/game_start.mp3'),
+  win: () => playWav('common/win.mp3'),
+  lose: () => playWav('common/lose.mp3'),
+  landlord_decided: () => playWav('common/landlord_decided.mp3'),
+};
 
 SOUND_MAP['emote'] = {};
 EMOTE_LIST.forEach(e => {

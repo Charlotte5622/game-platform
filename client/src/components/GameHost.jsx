@@ -191,6 +191,7 @@ export default function GameHost({ gameId, GameComponent }) {
       setPhase('finished');
       const won = data?.winners?.includes(playerId) || String(data?.winner) === String(playerId);
       playSound(gameId, won ? 'win' : 'lose');
+      playSound('common', won ? 'win' : 'lose');
       // 游戏结束，清除房间缓存
       localStorage.removeItem('activeRoomId');
       localStorage.removeItem('activeGameId');

@@ -209,8 +209,13 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
     }
   }, [gameState?.playerCardCounts]);
 
+  const prevPhaseRef = useRef(null);
   useEffect(() => {
     setSelectedCards(new Set());
+    if (prevPhaseRef.current === 'bidding' && gameState?.phase === 'playing') {
+      playSound('common', 'landlord_decided');
+    }
+    prevPhaseRef.current = gameState?.phase;
   }, [gameState?.currentTurn, gameState?.phase]);
 
   if (!gameState) {
