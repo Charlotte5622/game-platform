@@ -215,12 +215,20 @@ class GomokuServer extends BaseGameServer {
       state: this.getVisibleState(state, pid),
     });
 
-    this.doBroadcast(roomId, {
+    // 发送不同的消息给胜负双方
+    this.doBroadcastTo(roomId, opponentId, {
       type: 'game_over',
       reason: 'resign',
       winner: opponentId,
       loser: pid,
       message: '对手投降认负',
+    });
+    this.doBroadcastTo(roomId, pid, {
+      type: 'game_over',
+      reason: 'resign',
+      winner: opponentId,
+      loser: pid,
+      message: '你已投降',
     });
 
     if (this.onGameOver) {

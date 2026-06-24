@@ -2766,6 +2766,11 @@ input {
   color: #000;
   border-radius: 10px;
   font-weight: 700;
+  align-self: flex-start;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dz-panel-turn {
@@ -2787,6 +2792,7 @@ input {
   text-align: center;
   max-width: 320px;
   width: 100%;
+  margin: 0 auto;
 }
 
 .dz-bid-title {
