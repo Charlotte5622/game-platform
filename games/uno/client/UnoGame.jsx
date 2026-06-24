@@ -103,31 +103,47 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
   // 对手出牌/摸牌音效
   const prevDiscardLenRef = useRef(0);
   const prevTurnRef = useRef(null);
+  const prevHandCountsRef = useRef({});
   useEffect(() => {
     if (!gameState) return;
     const discardLen = gameState.discard?.length || 0;
     const curTurn = gameState.currentTurn;
     const myIdx = gameState.players?.indexOf(playerId);
+    const handCounts = gameState.handCounts || {};
     // 上一个行动的玩家
     const prevActor = prevTurnRef.current;
-    if (prevActor !== null && prevActor !== myIdx && prevDiscardLenRef.current < discardLen) {
-      // 对手出牌了
-      const topCard = gameState.discard?.[discardLen - 1];
-      if (topCard?.color === 'black') {
-        playSound('uno', 'wild4');
-      } else if (topCard?.value === 'skip') {
-        playSound('uno', 'skip');
-      } else if (topCard?.value === 'reverse') {
-        playSound('uno', 'reverse');
-      } else if (topCard?.value === 'draw2') {
-        playSound('uno', 'draw2');
+    if (prevActor !== null && prevActor !== myIdx) {
+      if (prevDiscardLenRef.current < discardLen) {
+        // 对手出牌了（弃牌堆增加）
+        const topCard = gameState.discard?.[discardLen - 1];
+        if (topCard?.color === 'black') {
+          playSound('uno', 'wild4');
+        } else if (topCard?.value === 'skip') {
+          playSound('uno', 'skip');
+        } else if (topCard?.value === 'reverse') {
+          playSound('uno', 'reverse');
+        } else if (topCard?.value === 'draw2') {
+          playSound('uno', 'draw2');
+        } else {
+          playSound('uno', 'play_card');
+        }
       } else {
-        playSound('uno', 'play_card');
+        // 检测对手摸牌：对手手牌数量增加
+        const prevActorId = gameState.players?.[prevActor];
+        if (prevActorId) {
+          const prevCount = prevHandCountsRef.current[prevActorId] || 0;
+          const curCount = handCounts[prevActorId] || 0;
+          if (curCount > prevCount) {
+            // 对手摸牌了
+            playSound('uno', 'draw_card');
+          }
+        }
       }
     }
     prevDiscardLenRef.current = discardLen;
     prevTurnRef.current = curTurn;
-  }, [gameState?.currentTurn, gameState?.discard?.length]);
+    prevHandCountsRef.current = { ...handCounts };
+  }, [gameState?.currentTurn, gameState?.discard?.length, gameState?.handCounts]);
 
   useEffect(() => {
     setSelectedCard(null);

@@ -219,7 +219,7 @@ function ChessBoard({ pieces, flipped, selected, onCellClick, lastMove }) {
  */
 function formatTime(ms) {
   if (ms == null || ms <= 0) return '0:00';
-  const totalSeconds = Math.ceil(ms / 1000);
+  const totalSeconds = Math.round(ms / 1000);
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds % 60;
   return `${m}:${s.toString().padStart(2, '0')}`;
@@ -323,7 +323,7 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
       return;
     }
     const update = () => {
-      const remaining = Math.max(0, Math.ceil((turnDeadline - Date.now()) / 1000));
+      const remaining = Math.max(0, Math.round((turnDeadline - Date.now()) / 1000));
       setTimeLeft(remaining);
     };
     update(); // 立即更新一次
@@ -671,7 +671,7 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
             <h2 className="chess-result-title">确认投降？</h2>
             <p className="chess-result-reason">投降将判你负，确定要放弃这局吗？</p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <button className="chess-result-back-btn" style={{ background: 'var(--danger)' }} onClick={() => { emitAction({ type: 'resign' }); setShowResignModal(false); }}>
+              <button className="chess-result-back-btn" style={{ background: 'var(--danger)' }} onClick={() => { playSound('chinese-chess', 'resign'); emitAction({ type: 'resign' }); setShowResignModal(false); }}>
                 确认投降
               </button>
               <button className="chess-result-back-btn" style={{ background: 'var(--bg-input)', color: 'var(--text)' }} onClick={() => setShowResignModal(false)}>

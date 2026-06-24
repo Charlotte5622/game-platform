@@ -3634,8 +3634,6 @@ input {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  min-height: calc(100vh - 64px);
   gap: 12px;
   padding: 16px;
   animation: fadeIn 0.4s ease;
@@ -3664,6 +3662,7 @@ input {
   border-radius: var(--radius-lg);
   padding: 40px 24px;
   animation: slideUp 0.5s ease;
+  margin: auto;
 }
 
 .chess-rps-title {
@@ -3760,6 +3759,7 @@ input {
   border-radius: var(--radius-lg);
   padding: 40px 24px;
   animation: slideUp 0.5s ease;
+  margin: auto;
 }
 
 .chess-choose-title {
@@ -4822,8 +4822,12 @@ input {
 
   /* 象棋 */
   .chess {
-    padding: 8px;
+    padding: 6px 4px;
     gap: 8px;
+  }
+
+  .chess-board-outer {
+    padding: 0;
   }
 
   .chess-rps {
@@ -5906,12 +5910,9 @@ input {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 12px;
-  flex-wrap: nowrap;
+  gap: 10px;
+  flex-wrap: wrap;
   min-height: 38px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
 }
 
 .uno-top-bar::-webkit-scrollbar {
@@ -8483,8 +8484,6 @@ input {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  min-height: calc(100vh - 64px);
   gap: 12px;
   padding: 16px;
   animation: fadeIn 0.4s ease;
@@ -8846,6 +8845,7 @@ input {
   gap: 20px;
   padding: 40px 20px;
   min-height: 300px;
+  margin: auto;
 }
 .gomoku-rps-title {
   font-size: 1.5rem;
@@ -8919,6 +8919,7 @@ input {
   gap: 24px;
   padding: 40px 20px;
   min-height: 300px;
+  margin: auto;
 }
 .gomoku-choose-title {
   font-size: 1.4rem;
