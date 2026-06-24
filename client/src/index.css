@@ -9555,3 +9555,136 @@ input {
     min-height: 0;
   }
 }
+
+/* ===== 互动语音 ===== */
+.emote-container {
+  position: fixed;
+  bottom: 80px;
+  right: 16px;
+  z-index: 900;
+}
+
+.emote-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(30, 30, 46, 0.9);
+  border: 1px solid rgba(255,255,255,0.15);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: all 0.15s;
+}
+
+.emote-btn:hover {
+  background: rgba(50, 50, 70, 0.95);
+  transform: scale(1.1);
+}
+
+.emote-panel {
+  position: absolute;
+  bottom: 52px;
+  right: 0;
+  width: 200px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: rgba(30, 30, 46, 0.96);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  animation: fadeIn 0.15s ease;
+}
+
+.emote-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #e2e8f0;
+  text-align: left;
+  transition: background 0.12s;
+}
+
+.emote-item:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.emote-item-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.emote-item-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.emote-bubble {
+  position: fixed;
+  bottom: 140px;
+  right: 16px;
+  background: rgba(30, 30, 46, 0.95);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-size: 14px;
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  animation: emoteSlideUp 0.3s ease;
+  max-width: 280px;
+  z-index: 950;
+}
+
+.emote-bubble-sender {
+  font-size: 12px;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.emote-bubble-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.emote-bubble-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fbbf24;
+}
+
+@keyframes emoteSlideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 手机端 */
+@media (max-width: 768px) {
+  .emote-container {
+    bottom: 70px;
+    right: 10px;
+  }
+  .emote-panel {
+    width: 180px;
+  }
+  .emote-bubble {
+    right: 10px;
+    bottom: 120px;
+    font-size: 13px;
+  }
+}

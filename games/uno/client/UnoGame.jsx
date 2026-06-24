@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { RiCloseLine } from '@remixicon/react';
 import { playSound } from '../../../client/src/services/sounds';
 
@@ -99,6 +99,35 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
       socket.off('uno_penalty', handleUnoPenalty);
     };
   }, [socket, players]);
+
+  // 对手出牌/摸牌音效
+  const prevDiscardLenRef = useRef(0);
+  const prevTurnRef = useRef(null);
+  useEffect(() => {
+    if (!gameState) return;
+    const discardLen = gameState.discard?.length || 0;
+    const curTurn = gameState.currentTurn;
+    const myIdx = gameState.players?.indexOf(playerId);
+    // 上一个行动的玩家
+    const prevActor = prevTurnRef.current;
+    if (prevActor !== null && prevActor !== myIdx && prevDiscardLenRef.current < discardLen) {
+      // 对手出牌了
+      const topCard = gameState.discard?.[discardLen - 1];
+      if (topCard?.color === 'black') {
+        playSound('uno', 'wild4');
+      } else if (topCard?.value === 'skip') {
+        playSound('uno', 'skip');
+      } else if (topCard?.value === 'reverse') {
+        playSound('uno', 'reverse');
+      } else if (topCard?.value === 'draw2') {
+        playSound('uno', 'draw2');
+      } else {
+        playSound('uno', 'play_card');
+      }
+    }
+    prevDiscardLenRef.current = discardLen;
+    prevTurnRef.current = curTurn;
+  }, [gameState?.currentTurn, gameState?.discard?.length]);
 
   useEffect(() => {
     setSelectedCard(null);

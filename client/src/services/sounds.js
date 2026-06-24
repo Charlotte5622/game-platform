@@ -517,3 +517,30 @@ SOUND_MAP['gomoku'] = {
   win: () => { soundWin(); playWav('win.mp3'); },
   lose: () => { soundLose(); playWav('lose.mp3'); },
 };
+
+// 互动语音（所有游戏通用）
+export const EMOTE_LIST = [
+  { id: 'impatient', label: '我等的花都谢了', icon: '🥀' },
+  { id: 'encourage', label: '没事，你已经很棒了', icon: '💪' },
+  { id: 'taunt', label: '就这，再来', icon: '😏' },
+  { id: 'praise', label: '厉害厉害，佩服佩服', icon: '👏' },
+  { id: 'lag', label: '网络卡了吗，快点呀', icon: '⏳' },
+  { id: 'laugh', label: '哈哈哈', icon: '😂' },
+  { id: 'cry', label: '呜呜呜', icon: '😭' },
+  { id: 'think', label: '让我想想', icon: '🤔' },
+  { id: 'lucky', label: '今天运气真好', icon: '🍀' },
+  { id: 'unlucky', label: '手气太差了', icon: '💀' },
+  { id: 'gg', label: '好棋好棋', icon: '🏆' },
+  { id: 'hurry', label: '快点快点', icon: '💨' },
+];
+
+SOUND_MAP['emote'] = {};
+EMOTE_LIST.forEach(e => {
+  SOUND_MAP['emote'][e.id] = () => playWav(`emotes/${e.id}.mp3`);
+});
+
+export function playEmote(emoteId) {
+  const gameSounds = SOUND_MAP['emote'];
+  const fn = gameSounds?.[emoteId];
+  if (fn) fn();
+}

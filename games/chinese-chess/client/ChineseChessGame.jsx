@@ -346,20 +346,19 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
     if (historyRef.current) {
       historyRef.current.scrollTop = historyRef.current.scrollHeight;
     }
-    // 音效：走棋/吃子/将军
+    // 音效：吃子/将军/绝杀优先，不重复播走棋声
     const moveCount = moveHistory?.length || 0;
     if (moveCount > prevMoveCountRef.current && moveCount > 0) {
       const lastMove = moveHistory[moveCount - 1];
       if (lastMove?.captured) {
         playSound('chinese-chess', 'capture');
+      } else if (check) {
+        playSound('chinese-chess', 'check');
       } else {
         playSound('chinese-chess', 'move');
       }
     }
     prevMoveCountRef.current = moveCount;
-    if (check && !prevCheckRef.current) {
-      playSound('chinese-chess', 'check');
-    }
     prevCheckRef.current = check;
   }, [moveHistory, check]);
 
