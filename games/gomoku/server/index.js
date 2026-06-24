@@ -317,7 +317,7 @@ class GomokuServer extends BaseGameServer {
       const requesterId = state.players.find(p => String(p) !== String(pid));
       this.doBroadcastTo(roomId, requesterId, {
         type: 'draw_rejected',
-        message: '对方拒绝和棋',
+        message: '对方已拒绝您的求和',
       });
     }
   }
