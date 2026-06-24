@@ -423,6 +423,15 @@ export const SOUND_MAP = {
     rocket: () => { soundRocket(); playWav('doudizhu/rocket.mp3'); },
     double: () => playWav('doudizhu/double.mp3'),
     spring: () => playWav('doudizhu/spring.mp3'),
+    // 组合牌专属语音
+    straight: () => playWav('doudizhu/straight.mp3'),
+    pair: () => playWav('doudizhu/pair.mp3'),
+    triple_one: () => playWav('doudizhu/triple_one.mp3'),
+    triple_pair: () => playWav('doudizhu/triple_pair.mp3'),
+    plane: () => playWav('doudizhu/plane.mp3'),
+    plane_wing: () => playWav('doudizhu/plane_wing.mp3'),
+    four_two: () => playWav('doudizhu/four_two.mp3'),
+    straight_pair: () => playWav('doudizhu/straight_pair.mp3'),
     win: () => { soundWin(); playWav('win.mp3'); },
     lose: () => { soundLose(); playWav('lose.mp3'); },
     timer_warn: soundTimerWarn,
@@ -449,8 +458,10 @@ export const SOUND_MAP = {
   },
   'turtle-soup': {
     ask: soundSoupAsk,
-    answer_yes: soundSoupYes,
-    answer_no: soundSoupNo,
+    answer_yes: () => { soundSoupYes(); playWav('turtle-soup/yes.mp3'); },
+    answer_no: () => { soundSoupNo(); playWav('turtle-soup/no.mp3'); },
+    answer_irrelevant: () => playWav('turtle-soup/irrelevant.mp3'),
+    answer_uncertain: () => playWav('turtle-soup/uncertain.mp3'),
     correct: soundSoupCorrect,
     win: soundWin,
   },
@@ -474,6 +485,8 @@ const _audioCache = {};
 function playWav(filename) {
   try {
     const ctx = getCtx();
+    // 必须在用户手势的同步调用栈中触发 resume
+    if (ctx.state === 'suspended') ctx.resume();
     const doPlay = (buffer) => {
       const src = ctx.createBufferSource();
       src.buffer = buffer;
@@ -487,16 +500,14 @@ function playWav(filename) {
       doPlay(_audioCache[filename]);
       return;
     }
-    // 确保 AudioContext 处于运行状态
-    const resumeAndFetch = async () => {
-      if (ctx.state === 'suspended') await ctx.resume();
-      const resp = await fetch(`/sfx/${filename}`);
-      const buf = await resp.arrayBuffer();
-      const decoded = await ctx.decodeAudioData(buf);
-      _audioCache[filename] = decoded;
-      doPlay(decoded);
-    };
-    resumeAndFetch().catch(() => {});
+    fetch(`/sfx/${filename}`)
+      .then(r => r.arrayBuffer())
+      .then(buf => ctx.decodeAudioData(buf))
+      .then(decoded => {
+        _audioCache[filename] = decoded;
+        doPlay(decoded);
+      })
+      .catch(() => {});
   } catch {}
 }
 

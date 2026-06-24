@@ -630,6 +630,12 @@ function setupSocketHandlers(io, prisma) {
       if (!room || room.state !== 'playing') return;
       if (!room.players.some(p => p.id === socket.user.id)) return; // 验证玩家在房间中
 
+      // 互动语音：广播给房间所有人（包括发送者）
+      if (action?.type === 'emote' && action.emoteId) {
+        io.to(roomId).emit('emote', { playerId: socket.user.id, emoteId: action.emoteId });
+        return;
+      }
+
       // BUG-1 修复：使用房间自己的游戏实例，而非全局单例
       if (!room.gameInstance) return;
       room.gameInstance.onPlayerAction(roomId, socket.user.id, action);

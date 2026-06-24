@@ -39,6 +39,28 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
   const [revealCountdown, setRevealCountdown] = useState(null);
   const [expandedGuesses, setExpandedGuesses] = useState({});
   const chatEndRef = useRef(null);
+  const prevQCountRef = useRef(0);
+
+  // AI 回答音效
+  useEffect(() => {
+    const qs = gameState?.questions;
+    if (!qs || qs.length === 0) return;
+    if (qs.length > prevQCountRef.current) {
+      const lastQ = qs[qs.length - 1];
+      if (lastQ?.answer) {
+        if (lastQ.answer.includes('是') && !lastQ.answer.includes('不是')) {
+          playSound('turtle-soup', 'answer_yes');
+        } else if (lastQ.answer.includes('不是') || lastQ.answer.includes('也不是')) {
+          playSound('turtle-soup', 'answer_no');
+        } else if (lastQ.answer.includes('不相关')) {
+          playSound('turtle-soup', 'answer_irrelevant');
+        } else {
+          playSound('turtle-soup', 'answer_uncertain');
+        }
+      }
+    }
+    prevQCountRef.current = qs.length;
+  }, [gameState?.questions?.length]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });

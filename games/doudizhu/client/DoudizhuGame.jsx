@@ -160,11 +160,22 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
   useEffect(() => {
     if (!socket) return;
     const handlePlayUpdate = (data) => {
-      if (String(data.playerId) === String(playerId)) return; // 自己出的不重复播
+      const isSelf = String(data.playerId) === String(playerId);
       const ct = data.cardType?.type;
-      if (ct === 'rocket') playSound('doudizhu', 'rocket');
-      else if (ct === 'bomb') playSound('doudizhu', 'bomb');
-      else playSound('doudizhu', 'play_card');
+      const soundMap = {
+        rocket: 'rocket', bomb: 'bomb',
+        straight: 'straight', pair: 'pair',
+        trio_single: 'triple_one', trio_pair: 'triple_pair',
+        plane: 'plane', plane_single: 'plane_wing', plane_pair: 'plane_wing',
+        four_two_single: 'four_two', four_two_pair: 'four_two',
+        pair_straight: 'straight_pair',
+      };
+      const eventName = soundMap[ct];
+      if (eventName) {
+        playSound('doudizhu', eventName);
+      } else {
+        playSound('doudizhu', 'play_card');
+      }
     };
     const handlePassUpdate = (data) => {
       if (String(data.playerId) === String(playerId)) return;
@@ -265,11 +276,6 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
       return;
     }
     const cards = myHand.filter((c) => selectedCards.has(c.id));
-    const isBomb = cards.length === 4 && new Set(cards.map(c => c.rank)).size === 1;
-    const isRocket = cards.length === 2 && cards.every(c => c.rank === 'JOKER_S' || c.rank === 'JOKER_B');
-    if (isRocket) playSound('doudizhu', 'rocket');
-    else if (isBomb) playSound('doudizhu', 'bomb');
-    else playSound('doudizhu', 'play_card');
     onAction({ type: 'play', cards });
   }, [selectedCards, myHand, onAction]);
 

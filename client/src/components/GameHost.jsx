@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getSocket } from '../services/socket';
 import { playSound, startGameBgm, stopGameBgm } from '../services/sounds';
 import { soundRoomJoin, soundPlayerJoin, soundPlayerLeave, soundMatching, soundGameStart, soundAllReady, soundKicked, soundClick } from '../services/sounds';
+import EmotePanel from './EmotePanel';
 import { RiLogoutBoxLine, RiArrowGoBackLine, RiRobotLine } from '@remixicon/react';
 
 /**
@@ -710,6 +711,13 @@ export default function GameHost({ gameId, GameComponent }) {
         players={players}
         onLeaveRoom={confirmLeave}
         onReturnToRoom={handleReturnToRoom}
+      />
+      <EmotePanel
+        socket={socket}
+        roomId={roomId}
+        playerId={playerId}
+        players={players}
+        gameId={gameId}
       />
       {leaveConfirm && (
         <div className="modal-overlay" onClick={handleCancelLeave}>
