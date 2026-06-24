@@ -16,6 +16,7 @@ const ERROR_TEXT = {
   AUTH_140: '新密码至少 8 位，需包含大小写字母、数字和特殊字符',
   AUTH_141: '原密码验证未通过',
   AUTH_142: '不能使用最近 5 次用过的密码',
+  AUTH_160: '该邮箱未注册',
 };
 
 function getStoredUser() {
@@ -106,8 +107,13 @@ export const useAuthStore = create((set, get) => ({
   sendCode: async ({ phone, email, purpose = 'register' }) => {
     try {
       await api.post('/api/auth/send-code', { phone, email, purpose });
+      set({ error: null });
       return true;
-    } catch {
+    } catch (err) {
+      const code = err.response?.data?.code;
+      if (code && ERROR_TEXT[code]) {
+        set({ error: ERROR_TEXT[code] });
+      }
       return false;
     }
   },

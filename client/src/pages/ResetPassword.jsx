@@ -46,7 +46,7 @@ export default function ResetPassword() {
       setCountdown(60);
       setCodeMessage('验证码已发送，请查看邮箱');
     } else {
-      setCodeMessage('发送失败，请稍后重试');
+      // sendCode 失败时 error 已在 store 中设置，通过 error 显示
     }
   };
 

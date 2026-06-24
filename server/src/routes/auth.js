@@ -260,6 +260,14 @@ router.post('/send-code', authBurstLimit, async (req, res) => {
     const contact = getContact(req.body || {});
     if (!contact) return sendAuthOk(res, {}, 202);
 
+    // 重置密码时，检查邮箱是否已注册
+    if (purpose === 'reset' && contact.type === 'email') {
+      const existingUser = await prisma.user.findUnique({ where: { emailHash: contact.hash } });
+      if (!existingUser) {
+        return sendAuthError(res, 404, 'AUTH_160', { message: '该邮箱未注册' });
+      }
+    }
+
     const code = String(crypto.randomInt(100000, 999999));
     await prisma.verificationCode.create({
       data: {
