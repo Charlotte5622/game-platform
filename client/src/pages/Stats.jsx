@@ -155,7 +155,7 @@ export default function Stats() {
 
       {/* 总览 */}
       <div className="stats-hero">
-        <h1 className="stats-title">📊 我的战绩</h1>
+        <h1 className="stats-title">🏅 我的战绩</h1>
         <div className="stats-summary">
           <div className="stats-summary-item">
             <span className="stats-summary-num">{summary.totalGames}</span>
@@ -209,6 +209,7 @@ export default function Stats() {
                       <span>📊 {g.totalScore || 0}分</span>
                       <span>🎮 {g.games}局</span>
                       <span>⏱️ {formatDuration(g.totalDuration)}</span>
+                      <span>📈 {winRate}%</span>
                     </>
                   ) : (
                     <>
