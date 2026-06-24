@@ -413,36 +413,36 @@ export const SOUND_MAP = {
   },
   doudizhu: {
     play_card: soundCardPlay,
-    pass: () => { soundPass(); playWav('doudizhu_pass.wav'); },
-    bid_grab: () => playWav('doudizhu_grab.wav'),
-    bid_landlord: () => playWav('doudizhu_landlord.wav'),
-    bid_pass: () => playWav('doudizhu_bid_pass.wav'),
-    bomb: () => { soundBomb(); playWav('doudizhu_bomb.wav'); },
-    rocket: () => { soundRocket(); playWav('doudizhu_rocket.wav'); },
-    double: () => playWav('doudizhu_double.wav'),
-    win: () => { soundWin(); playWav('win.wav'); },
-    lose: () => { soundLose(); playWav('lose.wav'); },
+    pass: () => { soundPass(); playWav('doudizhu_pass.mp3'); },
+    bid_grab: () => playWav('doudizhu_grab.mp3'),
+    bid_landlord: () => playWav('doudizhu_landlord.mp3'),
+    bid_pass: () => playWav('doudizhu_bid_pass.mp3'),
+    bomb: () => { soundBomb(); playWav('doudizhu_bomb.mp3'); },
+    rocket: () => { soundRocket(); playWav('doudizhu_rocket.mp3'); },
+    double: () => playWav('doudizhu_double.mp3'),
+    win: () => { soundWin(); playWav('win.mp3'); },
+    lose: () => { soundLose(); playWav('lose.mp3'); },
     timer_warn: soundTimerWarn,
     alert: soundTimerWarn,
   },
   uno: {
     play_card: soundUnoPlay,
     draw_card: soundUnoDraw,
-    uno: () => { soundUnoCall(); playWav('uno_call.wav'); },
-    skip: () => playWav('uno_skip.wav'),
-    reverse: () => playWav('uno_reverse.wav'),
-    draw2: () => playWav('uno_draw2.wav'),
-    wild4: () => { soundUnoWild4(); playWav('uno_draw4.wav'); },
-    win: () => { soundWin(); playWav('win.wav'); },
-    lose: () => { soundLose(); playWav('lose.wav'); },
+    uno: () => { soundUnoCall(); playWav('uno_call.mp3'); },
+    skip: () => playWav('uno_skip.mp3'),
+    reverse: () => playWav('uno_reverse.mp3'),
+    draw2: () => playWav('uno_draw2.mp3'),
+    wild4: () => { soundUnoWild4(); playWav('uno_draw4.mp3'); },
+    win: () => { soundWin(); playWav('win.mp3'); },
+    lose: () => { soundLose(); playWav('lose.mp3'); },
   },
   'chinese-chess': {
     move: soundChessMove,
     capture: soundChessCapture,
-    check: () => { soundChessCheck(); playWav('chess_check.wav'); },
-    checkmate: () => playWav('chess_checkmate.wav'),
-    win: () => { soundWin(); playWav('win.wav'); },
-    lose: () => { soundLose(); playWav('lose.wav'); },
+    check: () => { soundChessCheck(); playWav('chess_check.mp3'); },
+    checkmate: () => playWav('chess_checkmate.mp3'),
+    win: () => { soundWin(); playWav('win.mp3'); },
+    lose: () => { soundLose(); playWav('lose.mp3'); },
   },
   'turtle-soup': {
     ask: soundSoupAsk,
@@ -464,8 +464,8 @@ export function playSound(gameId, eventName) {
 }
 
 /**
- * 播放 public/sfx/ 目录下的 WAV 文件
- * 用于小米 TTS 生成的麻将语音
+ * 播放 public/sfx/ 目录下的 MP3 文件
+ * 用于 Edge TTS 生成的中文语音
  */
 const _audioCache = {};
 function playWav(filename) {
@@ -500,9 +500,9 @@ function playWav(filename) {
 
 // 麻将 TTS 语音
 SOUND_MAP['mahjong'] = {
-  pung: () => playWav('mj_pung.wav'),
-  kong: () => playWav('mj_kong.wav'),
-  chow: () => playWav('mj_chow.wav'),
-  win: () => playWav('mj_win.wav'),
-  zimo: () => playWav('mj_zimo.wav'),
+  pung: () => playWav('mj_pung.mp3'),
+  kong: () => playWav('mj_kong.mp3'),
+  chow: () => playWav('mj_chow.mp3'),
+  win: () => playWav('mj_win.mp3'),
+  zimo: () => playWav('mj_zimo.mp3'),
 };
