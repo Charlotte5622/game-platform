@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { disconnectSocket } from '../services/socket';
 import { setVolume, soundClick } from '../services/sounds';
-import { RiLogoutBoxLine } from '@remixicon/react';
+import { RiLogoutBoxLine, RiVolumeUpLine, RiVolumeMuteLine } from '@remixicon/react';
 
 export default function Navbar() {
   const { user, logout } = useAuthStore();
@@ -47,7 +47,7 @@ export default function Navbar() {
             <span className="navbar-nickname" title={user.nickname}>{user.nickname}</span>
             <span className="navbar-actions">
               <button onClick={toggleMute} className="navbar-icon-btn" title={muted ? '开启音效' : '关闭音效'} aria-label={muted ? '开启音效' : '关闭音效'}>
-                {muted ? '🔇' : '🔊'}
+                {muted ? <RiVolumeMuteLine size={20} /> : <RiVolumeUpLine size={20} />}
               </button>
               <button onClick={handleLogout} className="navbar-icon-btn" title="退出登录" aria-label="退出登录">
                 <RiLogoutBoxLine size={20} />
