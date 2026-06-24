@@ -5,6 +5,10 @@ import { playSound } from '../../../client/src/services/sounds';
 const SIZE = 15;
 const CELL = 40;
 
+// 猜拳图标
+const RPS_ICONS = { rock: '✊', scissors: '✌️', paper: '🖐' };
+const RPS_NAMES = { rock: '石头', scissors: '剪刀', paper: '布' };
+
 /**
  * 五子棋棋盘 — 纯 SVG 实现
  *
@@ -207,6 +211,7 @@ function GomokuBoard({ board, lastMove, winLine, myColor, isMyTurn, onCellClick,
 export default function GomokuGame({ socket, roomId, playerId, gameState, onAction, players, onLeaveRoom, onReturnToRoom }) {
   const [hoverCell, setHoverCell] = useState(null);
   const [error, setError] = useState('');
+  const [myRpsChoice, setMyRpsChoice] = useState(null);
   const [drawRequestFrom, setDrawRequestFrom] = useState(null);
   const [drawRequestSent, setDrawRequestSent] = useState(false);
   const [showResignModal, setShowResignModal] = useState(false);
@@ -217,6 +222,9 @@ export default function GomokuGame({ socket, roomId, playerId, gameState, onActi
     if (!socket) return;
 
     const handleError = (data) => { setError(data.message); setTimeout(() => setError(''), 2500); };
+    const handleRpsRecorded = (data) => setMyRpsChoice(data.choice);
+    const handleRpsDraw = () => setMyRpsChoice(null);
+    const handleRpsResult = () => setMyRpsChoice(null);
     const handleDrawRequestReceived = (data) => setDrawRequestFrom(data.from);
     const handleDrawRequestSent = () => setDrawRequestSent(true);
     const handleDrawRejected = (data) => { setDrawRequestSent(false); setError(data.message); setTimeout(() => setError(''), 2500); };
@@ -232,6 +240,9 @@ export default function GomokuGame({ socket, roomId, playerId, gameState, onActi
     };
 
     socket.on('error', handleError);
+    socket.on('rps_recorded', handleRpsRecorded);
+    socket.on('rps_draw', handleRpsDraw);
+    socket.on('rps_result', handleRpsResult);
     socket.on('draw_request', handleDrawRequestReceived);
     socket.on('draw_request_sent', handleDrawRequestSent);
     socket.on('draw_rejected', handleDrawRejected);
@@ -239,6 +250,9 @@ export default function GomokuGame({ socket, roomId, playerId, gameState, onActi
 
     return () => {
       socket.off('error', handleError);
+      socket.off('rps_recorded', handleRpsRecorded);
+      socket.off('rps_draw', handleRpsDraw);
+      socket.off('rps_result', handleRpsResult);
       socket.off('draw_request', handleDrawRequestReceived);
       socket.off('draw_request_sent', handleDrawRequestSent);
       socket.off('draw_rejected', handleDrawRejected);
@@ -252,6 +266,7 @@ export default function GomokuGame({ socket, roomId, playerId, gameState, onActi
     setDrawRequestFrom(null);
     setDrawRequestSent(false);
     setError('');
+    setMyRpsChoice(null);
   }, [gameState?.phase]);
 
   if (!gameState) {
@@ -263,12 +278,11 @@ export default function GomokuGame({ socket, roomId, playerId, gameState, onActi
     );
   }
 
-  const { phase, board, blackId, whiteId, currentTurn, moves, winner, winLine } = gameState;
+  const { phase, board, blackId, whiteId, currentTurn, moves, winner, winLine, rpsChoices, rpsRound, rpsWinner } = gameState;
 
-  // 当前玩家颜色
-  const myColor = String(playerId) === String(blackId) ? 'black' : 'white';
-  const opponentColor = myColor === 'black' ? 'white' : 'black';
-  const isMyTurn = phase === 'playing' && String(gameState.players[currentTurn]) === String(playerId);
+  // 当前玩家颜色（playing 阶段才有效）
+  const myColor = blackId ? (String(playerId) === String(blackId) ? 'black' : 'white') : undefined;
+  const isMyTurn = phase === 'playing' && !!myColor && String(gameState.players[currentTurn]) === String(playerId);
   const opponent = players?.find(p => String(p.id) !== String(playerId));
 
   const emitAction = (action) => {
@@ -292,6 +306,88 @@ export default function GomokuGame({ socket, roomId, playerId, gameState, onActi
     return isMe ? '轮到你了' : '等待对手';
   };
 
+  // ========== 猜拳阶段 ==========
+  if (phase === 'rps') {
+    const myChoice = myRpsChoice || rpsChoices?.[String(playerId)]?.choice;
+    const opponentId = Object.keys(rpsChoices || {}).find(k => String(k) !== String(playerId));
+    const opponentReady = !!opponentId;
+
+    return (
+      <div className="gomoku">
+        {/* 电脑端退出按钮 */}
+        <button className="game-exit-btn" onClick={onLeaveRoom} title="退出游戏"><RiCloseLine size={18} /></button>
+
+        <div className="gomoku-rps">
+          <h2 className="gomoku-rps-title">✊✌️🖐 猜拳选先手</h2>
+          <p className="gomoku-rps-sub">胜者可选择执黑或执白</p>
+          {(rpsRound || 1) > 1 && <p className="gomoku-rps-round">第 {rpsRound} 轮（上轮平局）</p>}
+
+          <div className="gomoku-rps-buttons">
+            {Object.entries(RPS_ICONS).map(([key, icon]) => (
+              <button
+                key={key}
+                className={`gomoku-rps-btn${myChoice === key ? ' gomoku-rps-btn-active' : ''}`}
+                onClick={() => {
+                  if (!myChoice) {
+                    setMyRpsChoice(key);
+                    playSound('click');
+                    emitAction({ type: 'rps', choice: key });
+                  }
+                }}
+                disabled={!!myChoice}
+              >
+                <span className="gomoku-rps-icon">{icon}</span>
+                <span className="gomoku-rps-name">{RPS_NAMES[key]}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* 状态提示 */}
+          <div className="gomoku-rps-status">
+            {myChoice && !opponentReady && (
+              <p className="gomoku-rps-waiting">
+                你出了 <strong>{RPS_ICONS[myChoice]} {RPS_NAMES[myChoice]}</strong>，等待对手出拳...
+              </p>
+            )}
+            {!myChoice && opponentReady && (
+              <p className="gomoku-rps-waiting">
+                对手已出拳，请选择你的出拳
+              </p>
+            )}
+            {myChoice && opponentReady && (
+              <p className="gomoku-rps-waiting">
+                双方已出拳，等待结果...
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ========== 选色阶段 ==========
+  if (phase === 'choosing') {
+    const isWinner = String(rpsWinner) === String(playerId);
+    return (
+      <div className="gomoku">
+        {/* 电脑端退出按钮 */}
+        <button className="game-exit-btn" onClick={onLeaveRoom} title="退出游戏"><RiCloseLine size={18} /></button>
+
+        <div className="gomoku-choose">
+          <h2 className="gomoku-choose-title">{isWinner ? '🎉 你赢了！请选择阵营' : '等待对手选色...'}</h2>
+          {isWinner && (
+            <div className="gomoku-choose-buttons">
+              <button className="gomoku-choose-btn gomoku-choose-black" onClick={() => { playSound('click'); emitAction({ type: 'choose_color', color: 'black' }); }}>⚫ 执黑（先手）</button>
+              <button className="gomoku-choose-btn gomoku-choose-white" onClick={() => { playSound('click'); emitAction({ type: 'choose_color', color: 'white' }); }}>⚪ 执白（后手）</button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ========== 游戏中 / 结束 ==========
+
   return (
     <div className="gomoku">
       {/* 电脑端退出按钮 */}
@@ -300,7 +396,7 @@ export default function GomokuGame({ socket, roomId, playerId, gameState, onActi
       {/* 顶部信息栏 */}
       <div className="gomoku-top-bar">
         <span className="gomoku-info-tag">
-          {getColorLabel(myColor)}
+          {myColor ? getColorLabel(myColor) : ''}
         </span>
         <span className={`gomoku-info-tag ${isMyTurn ? 'gomoku-turn-active' : ''}`}>
           {getCurrentTurnLabel()}
@@ -316,7 +412,7 @@ export default function GomokuGame({ socket, roomId, playerId, gameState, onActi
           board={board}
           lastMove={moves.length > 0 ? moves[moves.length - 1] : null}
           winLine={winLine}
-          myColor={myColor}
+          myColor={myColor || 'black'}
           isMyTurn={isMyTurn}
           onCellClick={handleCellClick}
           hoverCell={hoverCell}

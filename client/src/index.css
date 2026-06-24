@@ -8816,6 +8816,129 @@ input {
 }
 
 /* 落子动画 */
+/* ===== 五子棋猜拳样式 ===== */
+.gomoku-rps {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 40px 20px;
+  min-height: 300px;
+}
+.gomoku-rps-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.gomoku-rps-sub {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+.gomoku-rps-round {
+  font-size: 0.85rem;
+  color: var(--warning);
+  font-weight: 600;
+}
+.gomoku-rps-buttons {
+  display: flex;
+  gap: 16px;
+}
+.gomoku-rps-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 24px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 80px;
+}
+.gomoku-rps-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+}
+.gomoku-rps-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.gomoku-rps-btn-active {
+  border-color: var(--primary);
+  background: var(--primary-bg);
+}
+.gomoku-rps-icon {
+  font-size: 2rem;
+}
+.gomoku-rps-name {
+  font-size: 0.85rem;
+  color: var(--text);
+  font-weight: 600;
+}
+.gomoku-rps-status {
+  min-height: 40px;
+  text-align: center;
+}
+.gomoku-rps-waiting {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+.gomoku-rps-status .gomoku-rps-waiting strong {
+  color: var(--text);
+}
+
+/* ===== 五子棋选色样式 ===== */
+.gomoku-choose {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 40px 20px;
+  min-height: 300px;
+}
+.gomoku-choose-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+}
+.gomoku-choose-buttons {
+  display: flex;
+  gap: 16px;
+}
+.gomoku-choose-btn {
+  padding: 14px 28px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: white;
+  min-width: 120px;
+}
+.gomoku-choose-btn:hover {
+  transform: translateY(-2px);
+}
+.gomoku-choose-black {
+  background: #1a1a2e;
+  border-color: #1a1a2e;
+}
+.gomoku-choose-black:hover {
+  background: #2a2a4e;
+}
+.gomoku-choose-white {
+  background: #6b7280;
+  border-color: #6b7280;
+}
+.gomoku-choose-white:hover {
+  background: #9ca3af;
+}
+
+/* 落子动画 */
 @keyframes gomokuPlace {
   0% { transform: scale(0); opacity: 0; }
   60% { transform: scale(1.15); }
@@ -8858,6 +8981,42 @@ input {
 
   .gomoku-move-list {
     max-height: 400px;
+  }
+}
+
+/* 五子棋猜拳/选色 — 手机端适配 */
+@media (max-width: 768px) {
+  .gomoku-rps {
+    padding: 28px 16px;
+  }
+
+  .gomoku-rps-title {
+    font-size: 22px;
+  }
+
+  .gomoku-rps-buttons {
+    gap: 12px;
+  }
+
+  .gomoku-rps-btn {
+    padding: 16px 20px;
+    min-width: 80px;
+  }
+
+  .gomoku-rps-icon {
+    font-size: 30px;
+  }
+
+  .gomoku-choose-buttons {
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .gomoku-choose-btn {
+    padding: 16px 32px;
+    width: 100%;
+    max-width: 260px;
   }
 }
 
