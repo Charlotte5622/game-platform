@@ -520,7 +520,7 @@ export default function GomokuGame({ socket, roomId, playerId, gameState, onActi
             <h2 className="gomoku-result-title">确认投降？</h2>
             <p className="gomoku-result-reason">投降将判你负，确定要放弃这局吗？</p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <button className="gomoku-result-back-btn" style={{ background: 'var(--danger)' }} onClick={() => { playSound('gomoku', 'resign'); emitAction({ type: 'resign' }); setShowResignModal(false); }}>
+              <button className="gomoku-result-back-btn" style={{ background: 'var(--danger)' }} onClick={() => { emitAction({ type: 'resign' }); setShowResignModal(false); }}>
                 确认投降
               </button>
               <button className="gomoku-result-back-btn" style={{ background: 'var(--bg-input)', color: 'var(--text)' }} onClick={() => setShowResignModal(false)}>

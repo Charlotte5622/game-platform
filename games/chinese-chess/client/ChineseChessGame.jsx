@@ -675,7 +675,7 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
             <h2 className="chess-result-title">确认投降？</h2>
             <p className="chess-result-reason">投降将判你负，确定要放弃这局吗？</p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <button className="chess-result-back-btn" style={{ background: 'var(--danger)' }} onClick={() => { playSound('chinese-chess', 'resign'); emitAction({ type: 'resign' }); setShowResignModal(false); }}>
+              <button className="chess-result-back-btn" style={{ background: 'var(--danger)' }} onClick={() => { emitAction({ type: 'resign' }); setShowResignModal(false); }}>
                 确认投降
               </button>
               <button className="chess-result-back-btn" style={{ background: 'var(--bg-input)', color: 'var(--text)' }} onClick={() => setShowResignModal(false)}>
