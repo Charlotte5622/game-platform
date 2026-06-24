@@ -117,7 +117,7 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
     const handCounts = gameState.handCounts || {};
     // 上一个行动的玩家
     const prevActor = prevTurnRef.current;
-    if (prevActor !== null && prevActor !== myIdx) {
+    if (prevActor !== null) {
       if (prevDiscardLenRef.current < discardLen) {
         // 对手出牌了（弃牌堆增加）
         const topCard = gameState.discard?.[discardLen - 1];
@@ -204,7 +204,6 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
       return;
     }
 
-    playSound('uno', 'play_card');
     callUnoBeforeLastCard();
     emitAction({ type: 'play_card', cardIndex: index });
     setSelectedCard(null);
@@ -212,7 +211,6 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
 
   const handleColorChoice = (color) => {
     if (pendingWildIndex !== null) {
-      playSound('uno', 'play_card');
       callUnoBeforeLastCard();
       emitAction({ type: 'play_card', cardIndex: pendingWildIndex, chosenColor: color });
       setPendingWildIndex(null);

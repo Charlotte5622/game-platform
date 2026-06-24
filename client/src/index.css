@@ -5909,11 +5909,18 @@ input {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  gap: 12px;
   padding: 16px;
   padding-top: 8px;
   min-height: calc(100vh - 64px);
   animation: fadeIn 0.4s ease;
+}
+
+.uno > * + * {
+  margin-top: 12px;
+}
+
+.uno-top-bar + .uno-opponents {
+  margin-top: 0;
 }
 
 .uno-loading {
@@ -6041,11 +6048,6 @@ input {
   flex-wrap: wrap;
   min-height: 62px;
   align-content: center;
-}
-
-/* 去掉对方头像上方的空行 */
-.uno-top-bar + .uno-opponents {
-  margin-top: -12px;
 }
 
 .uno-opponent {
