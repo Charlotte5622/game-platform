@@ -5,7 +5,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('./services/prisma');
 
 const authRoutes = require('./routes/auth');
 const gamesRoutes = require('./routes/games');
@@ -15,13 +15,11 @@ const { listEmulatorRoms } = require('./services/romLibrary');
 const { setupSocketHandlers } = require('./services/socketHandler');
 const { loadAllGames } = require('./services/gameLoader');
 const { loadExternalGames, registerAllExternalProxies } = require('./services/externalGameLoader');
-
-const prisma = new PrismaClient();
 const app = express();
 const server = http.createServer(app);
 
 const PORT = process.env.PORT || 8080;
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3001';
 
 app.disable('x-powered-by');
 app.set('trust proxy', 1);

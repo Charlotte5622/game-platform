@@ -1,8 +1,7 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
+const prisma = require('../services/prisma');
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 /**
  * GET /api/leaderboard/:gameId
@@ -57,15 +56,15 @@ router.get('/:gameId', async (req, res) => {
       where: { id: { in: userIds } },
       select: { id: true, nickname: true, avatar: true },
     });
-    const userMap2 = {};
-    users.forEach(u => { userMap2[u.id] = u; });
+    const loserMap = {};
+    users.forEach(u => { loserMap[u.id] = u; });
 
     // 组装最终结果
     const leaderboard = sorted.map((p, i) => ({
       rank: i + 1,
       userId: p.userId,
-      nickname: userMap2[p.userId]?.nickname || '未知玩家',
-      avatar: userMap2[p.userId]?.avatar || null,
+      nickname: loserMap[p.userId]?.nickname || '未知玩家',
+      avatar: loserMap[p.userId]?.avatar || null,
       wins: p.wins,
       losses: p.losses,
       draws: p.draws,

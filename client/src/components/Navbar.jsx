@@ -15,11 +15,11 @@ export default function Navbar() {
   }, []);
 
   const toggleMute = () => {
-    soundClick();
     const next = !muted;
     setMuted(next);
     localStorage.setItem('muted', String(next));
     setVolume(next ? 0 : 0.5);
+    soundClick();
   };
 
   const handleLogout = async () => {

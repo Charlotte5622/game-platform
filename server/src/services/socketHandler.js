@@ -63,11 +63,9 @@ function setupSocketHandlers(io, prisma) {
         if (!dbUser || dbUser.status !== 'active') {
           return next(new Error('auth_required'));
         }
-        if (dbUser) {
-          socket.user.username = dbUser.nickname || dbUser.username;
-          socket.user.nickname = dbUser.nickname;
-          socket.user.avatar = dbUser.avatar || null;
-        }
+        socket.user.username = dbUser.nickname || dbUser.username;
+        socket.user.nickname = dbUser.nickname;
+        socket.user.avatar = dbUser.avatar || null;
       }
     } catch (err) {
       console.warn('[Socket] 刷新用户头像失败:', err.message);
@@ -492,6 +490,12 @@ function setupSocketHandlers(io, prisma) {
       const wasInRoom = room.players.some(p => p.id === socket.user.id);
       if (!wasInRoom) {
         return ack(callback, { error: '你不在这个房间中' });
+      }
+
+      // 检查玩家当前是否已在其他房间中
+      const currentRoom = roomManager.getUserRoom(socket.user.id);
+      if (currentRoom && currentRoom !== roomId) {
+        return ack(callback, { error: '你已在其他房间中，请先离开' });
       }
 
       // 移除机器人（如果有）并停止定时器

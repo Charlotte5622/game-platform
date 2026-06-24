@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
-const { PrismaClient } = require('@prisma/client');
+// PrismaClient 单例 - 使用共享实例避免连接池泄漏
 const {
   authMiddleware,
   generateAccessToken,
@@ -45,7 +45,7 @@ const {
 const { createRateLimit } = require('../middleware/rateLimit');
 
 const router = express.Router();
-const prisma = new PrismaClient();
+const prisma = require('../services/prisma');
 
 // 邮件发送器
 let mailTransporter = null;
@@ -763,10 +763,9 @@ router.get('/github', (req, res) => {
   const state = crypto.randomUUID();
   res.cookie('gh_oauth_state', state, {
     httpOnly: true,
-    secure: false,
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 5 * 60 * 1000,
-    path: '/',
+    maxAge: 10 * 60 * 1000,
   });
 
   const params = new URLSearchParams({
@@ -788,7 +787,7 @@ router.get('/github/callback', async (req, res) => {
   });
   const storedState = cookies.gh_oauth_state;
 
-  const clientUrl = process.env.CLIENT_URL || 'http://119.29.147.165:3001';
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:3001';
 
   if (!code || !state || state !== storedState) {
     return res.redirect(`${clientUrl}/login?error=github_auth_failed`);

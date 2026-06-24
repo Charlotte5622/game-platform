@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { RiCloseLine } from '@remixicon/react';
-import { playSound } from '../../../client/src/services/sounds';
+import { playSound, soundClick } from '../../../client/src/services/sounds';
 
 const SIZE = 15;
 const CELL = 40;
@@ -331,7 +331,7 @@ export default function GomokuGame({ socket, roomId, playerId, gameState, onActi
                 onClick={() => {
                   if (!myChoice) {
                     setMyRpsChoice(key);
-                    playSound('click');
+                    soundClick();
                     emitAction({ type: 'rps', choice: key });
                   }
                 }}
@@ -378,8 +378,8 @@ export default function GomokuGame({ socket, roomId, playerId, gameState, onActi
           <h2 className="gomoku-choose-title">{isWinner ? '🎉 你赢了！请选择阵营' : '等待对手选色...'}</h2>
           {isWinner && (
             <div className="gomoku-choose-buttons">
-              <button className="gomoku-choose-btn gomoku-choose-black" onClick={() => { playSound('click'); emitAction({ type: 'choose_color', color: 'black' }); }}>⚫ 执黑（先手）</button>
-              <button className="gomoku-choose-btn gomoku-choose-white" onClick={() => { playSound('click'); emitAction({ type: 'choose_color', color: 'white' }); }}>⚪ 执白（后手）</button>
+              <button className="gomoku-choose-btn gomoku-choose-black" onClick={() => { soundClick(); emitAction({ type: 'choose_color', color: 'black' }); }}>⚫ 执黑（先手）</button>
+              <button className="gomoku-choose-btn gomoku-choose-white" onClick={() => { soundClick(); emitAction({ type: 'choose_color', color: 'white' }); }}>⚪ 执白（后手）</button>
             </div>
           )}
         </div>

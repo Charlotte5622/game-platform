@@ -1,8 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { PrismaClient } = require('@prisma/client');
-
-const prisma = new PrismaClient();
+const prisma = require('./prisma');
 const gamesDir = path.join(__dirname, '../../../games');
 const registeredGames = new Map(); // gameId -> { meta, GameServerClass }
 

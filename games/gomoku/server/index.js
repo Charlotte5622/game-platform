@@ -504,7 +504,7 @@ class GomokuServer extends BaseGameServer {
 
   handleDrawResponse(roomId, pid, accept) {
     const state = this.getState(roomId);
-    if (!state || state.phase !== 'playing') return;
+    if (!state || state.phase !== 'playing' || !state.drawRequest) return;
 
     if (accept) {
       state.phase = 'ended';
@@ -525,6 +525,7 @@ class GomokuServer extends BaseGameServer {
         this.onGameOver(roomId, {
           winners: [],
           scores: {},
+          reason: 'draw_agreed',
         });
       }
     } else {

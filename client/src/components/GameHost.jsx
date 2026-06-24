@@ -176,7 +176,7 @@ export default function GameHost({ gameId, GameComponent }) {
     });
 
     s.on('state_update', (data) => {
-      console.log(`[GameHost] state_update: phase=${data.state?.phase}`);
+      // state_update
       setGameState(data.state);
     });
 

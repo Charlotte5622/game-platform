@@ -253,7 +253,7 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
   };
 
   // 游戏结束
-  if (phase === 'ended' || (winners && winners.length > 0 && phase === 'ended')) {
+  if (phase === 'ended') {
     const myWin = winners?.find(w => w.pid === playerId);
     const placementEmoji = { 1: '🥇', 2: '🥈', 3: '🥉' };
     const placementFace = { 1: '🥳', 2: '😊', 3: '😌' };
