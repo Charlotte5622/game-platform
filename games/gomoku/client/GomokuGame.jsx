@@ -293,6 +293,7 @@ export default function GomokuGame({ socket, roomId, playerId, gameState, onActi
 
   const handleCellClick = (row, col) => {
     if (!isMyTurn) return;
+    playSound('gomoku', 'place');
     emitAction({ type: 'place', row, col });
     setHoverCell(null);
   };

@@ -264,6 +264,7 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
       setGameResult({ type: 'checkmate', winner: data.winner, loser: data.loser, message: data.message, winnerColor: data.winnerColor });
       setTurnDeadline(null);
       setTimeLeft(0);
+      playSound('chinese-chess', 'checkmate');
     };
     const handleGameOver = (data) => {
       setGameResult({ type: data.reason || 'game_over', winner: data.winner, loser: data.loser, message: data.message, reason: data.reason });
@@ -339,11 +340,28 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
   const { phase, colorMap, pieces, turnColor, currentTurn, check, moveHistory, rpsChoices, rpsRound, winner } = gameState;
 
   const historyRef = useRef(null);
+  const prevMoveCountRef = useRef(0);
+  const prevCheckRef = useRef(false);
   useEffect(() => {
     if (historyRef.current) {
       historyRef.current.scrollTop = historyRef.current.scrollHeight;
     }
-  }, [moveHistory]);
+    // 音效：走棋/吃子/将军
+    const moveCount = moveHistory?.length || 0;
+    if (moveCount > prevMoveCountRef.current && moveCount > 0) {
+      const lastMove = moveHistory[moveCount - 1];
+      if (lastMove?.captured) {
+        playSound('chinese-chess', 'capture');
+      } else {
+        playSound('chinese-chess', 'move');
+      }
+    }
+    prevMoveCountRef.current = moveCount;
+    if (check && !prevCheckRef.current) {
+      playSound('chinese-chess', 'check');
+    }
+    prevCheckRef.current = check;
+  }, [moveHistory, check]);
 
   // JSON 传输后所有 key 变为字符串，必须用 String(playerId) 查找
   const myColor = colorMap ? colorMap[String(playerId)] : undefined;

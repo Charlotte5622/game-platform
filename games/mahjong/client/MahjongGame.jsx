@@ -261,11 +261,15 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
     socket.on('kong', handleAction);
     socket.on('chow', handleAction);
     socket.on('win', handleWin);
+    socket.on('draw', () => playSound('mahjong', 'draw'));
+    socket.on('player_draw', () => playSound('mahjong', 'draw'));
     return () => {
       socket.off('pung', handleAction);
       socket.off('kong', handleAction);
       socket.off('chow', handleAction);
       socket.off('win', handleWin);
+      socket.off('draw');
+      socket.off('player_draw');
     };
   }, [socket, gameState?.currentTurn]);
 
@@ -319,6 +323,7 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
   const handleDiscard = useCallback((tile) => {
     if (!isMyTurn) return;
     setSelectedTile(null);
+    playSound('mahjong', 'discard');
     onAction({ type: 'discard', tile });
   }, [isMyTurn, onAction]);
 
