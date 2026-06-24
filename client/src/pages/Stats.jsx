@@ -15,6 +15,8 @@ const GAME_NAMES = {
   'gomoku': '⚫ 五子棋',
 };
 
+const SCORE_GAMES = ['doudizhu']; // 这些游戏显示分数而非胜负
+
 function formatDuration(seconds) {
   if (!seconds) return '0分钟';
   if (seconds < 60) return `${seconds}秒`;
@@ -189,20 +191,33 @@ export default function Stats() {
           {gameIds.map(gameId => {
             const g = byGame[gameId];
             const winRate = g.games > 0 ? Math.round((g.wins / g.games) * 100) : 0;
+            const isScore = SCORE_GAMES.includes(gameId);
             return (
               <div key={gameId} className="stats-game-card">
                 <div className="stats-game-header">
                   <h3 className="stats-game-name">{GAME_NAMES[gameId] || gameId}</h3>
-                  <span className="stats-game-rate">{winRate}% 胜率</span>
+                  <span className="stats-game-rate">{isScore ? `总分 ${g.totalScore || 0}` : `${winRate}% 胜率`}</span>
                 </div>
-                <div className="stats-game-bar">
-                  <div className="stats-bar-win" style={{ width: `${winRate}%` }} />
-                </div>
+                {!isScore && (
+                  <div className="stats-game-bar">
+                    <div className="stats-bar-win" style={{ width: `${winRate}%` }} />
+                  </div>
+                )}
                 <div className="stats-game-detail">
-                  <span>🟢 {g.wins}胜</span>
-                  <span>🔴 {g.losses}负</span>
-                  <span>⚪ {g.draws}平</span>
-                  <span>⏱️ {formatDuration(g.totalDuration)}</span>
+                  {isScore ? (
+                    <>
+                      <span>📊 {g.totalScore || 0}分</span>
+                      <span>🎮 {g.games}局</span>
+                      <span>⏱️ {formatDuration(g.totalDuration)}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>🟢 {g.wins}胜</span>
+                      <span>🔴 {g.losses}负</span>
+                      <span>⚪ {g.draws}平</span>
+                      <span>⏱️ {formatDuration(g.totalDuration)}</span>
+                    </>
+                  )}
                 </div>
               </div>
             );

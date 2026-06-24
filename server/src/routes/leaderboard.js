@@ -12,27 +12,29 @@ const prisma = new PrismaClient();
 router.get('/:gameId', async (req, res) => {
   try {
     const { gameId } = req.params;
+    const isScoreGame = gameId === 'doudizhu'; // 斗地主按分数排名
 
     // 聚合每个用户在该游戏的战绩
     const records = await prisma.gameRecord.findMany({
       where: { gameId },
-      select: { userId: true, result: true },
+      select: { userId: true, result: true, score: true },
     });
 
     // 按用户聚合
     const userMap = {};
     for (const r of records) {
       if (!userMap[r.userId]) {
-        userMap[r.userId] = { wins: 0, losses: 0, draws: 0, total: 0 };
+        userMap[r.userId] = { wins: 0, losses: 0, draws: 0, total: 0, totalScore: 0 };
       }
       const u = userMap[r.userId];
       u.total++;
+      u.totalScore += r.score || 0;
       if (r.result === 'win') u.wins++;
       else if (r.result === 'lose') u.losses++;
       else u.draws++;
     }
 
-    // 排序：胜场降序 → 胜率降序 → 总场次降序
+    // 排序：斗地主按总分降序，其他按胜场降序
     const sorted = Object.entries(userMap)
       .map(([userId, stats]) => ({
         userId: Number(userId),
@@ -40,6 +42,9 @@ router.get('/:gameId', async (req, res) => {
         winRate: stats.total > 0 ? Math.round((stats.wins / stats.total) * 100) : 0,
       }))
       .sort((a, b) => {
+        if (isScoreGame) {
+          if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
+        }
         if (b.wins !== a.wins) return b.wins - a.wins;
         if (b.winRate !== a.winRate) return b.winRate - a.winRate;
         return b.total - a.total;
@@ -66,9 +71,10 @@ router.get('/:gameId', async (req, res) => {
       draws: p.draws,
       total: p.total,
       winRate: p.winRate,
+      totalScore: p.totalScore,
     }));
 
-    res.json({ gameId, leaderboard });
+    res.json({ gameId, leaderboard, isScoreGame });
   } catch (err) {
     console.error('获取排行榜失败:', err);
     res.status(500).json({ error: '服务器错误' });

@@ -28,7 +28,7 @@ function getDefaultAvatar(userId) {
 /**
  * 领奖台单项
  */
-function PodiumSlot({ player, rank, isFirst }) {
+function PodiumSlot({ player, rank, isFirst, isScoreGame }) {
   const avatar = player?.avatar || getDefaultAvatar(player?.userId);
   return (
     <div className={`lb-podium-item${isFirst ? ' lb-podium-first' : ''}`}>
@@ -36,7 +36,7 @@ function PodiumSlot({ player, rank, isFirst }) {
         {player ? avatar : '❓'}
       </div>
       <div className="lb-podium-name">{player?.nickname || '虚位以待'}</div>
-      <div className="lb-podium-wins">{player ? `${player.wins}胜` : ''}</div>
+      <div className="lb-podium-wins">{player ? (isScoreGame ? `${player.totalScore}分` : `${player.wins}胜`) : ''}</div>
       <div className="lb-podium-pillar" style={{ height: PODIUM_HEIGHTS[rank], background: PODIUM_COLORS[rank] }}>
         <span className="lb-podium-rank">{PODIUM_ICONS[rank]}</span>
       </div>
@@ -100,6 +100,7 @@ export default function Leaderboard() {
   }, [selectedGame]);
 
   const board = data?.leaderboard || [];
+  const isScoreGame = data?.isScoreGame || false;
   const top3 = board.slice(0, 3);
   const rest = board.slice(3, 20);
 
@@ -125,13 +126,13 @@ export default function Leaderboard() {
           {/* 领奖台 — 奥林匹克顺序：银左、金中（最高）、铜右 */}
           <div className="lb-podium">
             {/* 第二名（左） */}
-            <PodiumSlot player={top3[1]} rank={1} />
+            <PodiumSlot player={top3[1]} rank={1} isScoreGame={isScoreGame} />
 
             {/* 第一名（中，最高） */}
-            <PodiumSlot player={top3[0]} rank={0} isFirst />
+            <PodiumSlot player={top3[0]} rank={0} isFirst isScoreGame={isScoreGame} />
 
             {/* 第三名（右） */}
-            <PodiumSlot player={top3[2]} rank={2} />
+            <PodiumSlot player={top3[2]} rank={2} isScoreGame={isScoreGame} />
           </div>
 
           {/* 4-20 名列表 */}
@@ -140,17 +141,35 @@ export default function Leaderboard() {
               <div className="lb-list-header">
                 <span className="lb-list-rank">排名</span>
                 <span className="lb-list-name">玩家</span>
-                <span className="lb-list-stat">胜</span>
-                <span className="lb-list-stat">负</span>
-                <span className="lb-list-stat">胜率</span>
+                {isScoreGame ? (
+                  <>
+                    <span className="lb-list-stat">总分</span>
+                    <span className="lb-list-stat">场次</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="lb-list-stat">胜</span>
+                    <span className="lb-list-stat">负</span>
+                    <span className="lb-list-stat">胜率</span>
+                  </>
+                )}
               </div>
               {rest.map(p => (
                 <div key={p.userId} className="lb-list-row">
                   <span className="lb-list-rank">{p.rank}</span>
                   <span className="lb-list-name">{p.nickname}</span>
-                  <span className="lb-list-stat lb-win">{p.wins}</span>
-                  <span className="lb-list-stat lb-lose">{p.losses}</span>
-                  <span className="lb-list-stat">{p.winRate}%</span>
+                  {isScoreGame ? (
+                    <>
+                      <span className="lb-list-stat lb-win">{p.totalScore}</span>
+                      <span className="lb-list-stat">{p.total}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="lb-list-stat lb-win">{p.wins}</span>
+                      <span className="lb-list-stat lb-lose">{p.losses}</span>
+                      <span className="lb-list-stat">{p.winRate}%</span>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
