@@ -247,12 +247,35 @@ class GomokuServer extends BaseGameServer {
 
     const opponentId = state.players.find(p => String(p) !== String(pid));
 
-    // 如果对手是 bot，自动拒绝
+    // 如果对手是 bot，延迟后随机同意或拒绝（50/50）
     if (String(opponentId).startsWith('bot_')) {
-      this.doBroadcastTo(roomId, pid, {
-        type: 'draw_rejected',
-        message: '机器人拒绝了和棋请求',
-      });
+      setTimeout(() => {
+        const currentState = this.getState(roomId);
+        if (!currentState || currentState.phase !== 'playing') return;
+
+        if (Math.random() < 0.5) {
+          // 同意和棋
+          currentState.phase = 'ended';
+          this.saveState(roomId, currentState);
+
+          this.doBroadcast(roomId, {
+            type: 'state_update',
+            state: this.getVisibleState(currentState, pid),
+          });
+
+          this.doBroadcastTo(roomId, pid, {
+            type: 'game_over',
+            reason: 'draw_agreed',
+            message: '对手同意和棋，本局平局',
+          });
+        } else {
+          // 拒绝和棋
+          this.doBroadcastTo(roomId, pid, {
+            type: 'draw_rejected',
+            message: '对手拒绝了和棋请求',
+          });
+        }
+      }, 1500 + Math.floor(Math.random() * 500));
       return;
     }
 
