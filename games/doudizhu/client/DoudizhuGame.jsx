@@ -36,8 +36,25 @@ function Card({ card, selected, onClick, small, faceDown }) {
     >
       {isJoker ? (
         <div className="dz-card-joker">
-          <span className="dz-card-joker-icon">{card.rank === 'JOKER_B' ? '★' : '☆'}</span>
-          <span className="dz-card-joker-label">{card.rank === 'JOKER_B' ? '大王' : '小王'}</span>
+          <svg viewBox="0 0 60 80" width="100%" height="100%" style={{maxWidth:50,maxHeight:70}}>
+            {/* 小丑脸 */}
+            <circle cx="30" cy="32" r="18" fill={card.rank === 'JOKER_B' ? '#ffe0b2' : '#e0e0e0'} stroke="#333" strokeWidth="1.2"/>
+            {/* 帽子 */}
+            <path d="M16 22 Q30 -2 44 22" fill={card.rank === 'JOKER_B' ? '#ff3333' : '#555'} stroke="#333" strokeWidth="0.8"/>
+            <circle cx="30" cy="0" r="3.5" fill={card.rank === 'JOKER_B' ? '#ffeb3b' : '#aaa'}/>
+            {/* 眼睛 */}
+            <circle cx="24" cy="30" r="2.5" fill="#333"/>
+            <circle cx="36" cy="30" r="2.5" fill="#333"/>
+            <circle cx="24.8" cy="29.2" r="0.8" fill="#fff"/>
+            <circle cx="36.8" cy="29.2" r="0.8" fill="#fff"/>
+            {/* 鼻子 */}
+            <circle cx="30" cy="35" r="3" fill={card.rank === 'JOKER_B' ? '#ff1744' : '#555'}/>
+            {/* 嘴巴 */}
+            <path d="M23 41 Q30 48 37 41" fill="none" stroke="#333" strokeWidth="1.2" strokeLinecap="round"/>
+            {/* JOKER */}
+            <text x="30" y="65" textAnchor="middle" fill={card.rank === 'JOKER_B' ? '#fff' : '#ccc'} fontSize="8" fontWeight="bold">JOKER</text>
+            <text x="30" y="75" textAnchor="middle" fill={card.rank === 'JOKER_B' ? '#ffeb3b' : '#aaa'} fontSize="6">{card.rank === 'JOKER_B' ? 'BIG' : 'SMALL'}</text>
+          </svg>
         </div>
       ) : (
         <>

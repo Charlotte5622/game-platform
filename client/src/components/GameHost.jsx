@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getSocket } from '../services/socket';
 import { playSound, startGameBgm, stopGameBgm } from '../services/sounds';
 import { soundRoomJoin, soundPlayerJoin, soundPlayerLeave, soundMatching, soundGameStart, soundAllReady, soundKicked, soundClick } from '../services/sounds';
-import { RiLogoutBoxLine, RiArrowGoBackLine } from '@remixicon/react';
+import { RiLogoutBoxLine, RiArrowGoBackLine, RiRobotLine } from '@remixicon/react';
 
 /**
  * 安全解析 localStorage 中的用户信息
@@ -592,7 +592,7 @@ export default function GameHost({ gameId, GameComponent }) {
             )}
             {allowBots !== false && (
               <button className="waiting-bot-btn" onClick={handleAddBots} disabled={isRoomFull}>
-                {isRoomFull ? '人数已满' : '🤖 填充机器人'}
+                {isRoomFull ? '人数已满' : <><RiRobotLine size={16} style={{verticalAlign:'middle',marginRight:4}} />填充机器人</>}
               </button>
             )}
             {isHost && players.length >= effectiveMinPlayers && everyoneReady && (
@@ -623,7 +623,7 @@ export default function GameHost({ gameId, GameComponent }) {
               <div className="modal-title">确认离开</div>
               <div className="modal-message">
                 {playersRef.current.length <= 1
-                  ? '当前房间只有你一人，离开后房间将被关闭。'
+                  ? '当前仅你一人，离开后将关闭。'
                   : '确认离开房间？'}
               </div>
               <div className="modal-actions">
@@ -717,7 +717,7 @@ export default function GameHost({ gameId, GameComponent }) {
             <div className="modal-title">确认离开</div>
             <div className="modal-message">
               {playersRef.current.length <= 1
-                ? '当前房间只有你一人，离开后房间将被关闭。'
+                ? '当前仅你一人，离开后将关闭。'
                 : '确认离开房间？'}
             </div>
             <div className="modal-actions">
