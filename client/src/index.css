@@ -4830,6 +4830,26 @@ input {
     padding: 0;
   }
 
+  .chess-timer-settings {
+    padding: 16px;
+  }
+
+  .chess-timer-inputs {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .chess-timer-inputs input[type="number"] {
+    padding: 12px 8px;
+    font-size: 16px;
+  }
+
+  .chess-timer-confirm-btn {
+    width: 100%;
+    padding: 14px;
+    font-size: 15px;
+  }
+
   .chess-rps {
     padding: 28px 16px;
   }
@@ -5664,27 +5684,30 @@ input {
 
 .chess-timer-inputs {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   margin-bottom: 12px;
 }
 
 .chess-timer-inputs label {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   font-size: 13px;
   color: var(--text-muted);
+  flex: 1;
+  min-width: 0;
 }
 
 .chess-timer-inputs input[type="number"] {
-  width: 80px;
-  padding: 8px;
+  width: 100%;
+  padding: 10px 8px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   background: var(--bg-input);
   color: var(--text);
-  font-size: 14px;
+  font-size: 15px;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .chess-timer-confirm-btn {
