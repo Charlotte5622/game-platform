@@ -4831,23 +4831,20 @@ input {
   }
 
   .chess-timer-settings {
-    padding: 16px;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 10px 14px;
   }
 
-  .chess-timer-inputs {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .chess-timer-inputs input[type="number"] {
-    padding: 12px 8px;
-    font-size: 16px;
+  .chess-timer-field input[type="number"] {
+    width: 50px;
+    padding: 8px 4px;
+    font-size: 15px;
   }
 
   .chess-timer-confirm-btn {
-    width: 100%;
-    padding: 14px;
-    font-size: 15px;
+    padding: 8px 16px;
+    font-size: 14px;
   }
 
   .chess-rps {
@@ -5654,26 +5651,26 @@ input {
 
 /* 计时器设置面板 */
 .chess-timer-settings {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-  margin-bottom: 16px;
-}
-
-.chess-timer-settings-title {
-  font-size: 16px;
-  font-weight: 700;
-  margin-bottom: 12px;
+  border-radius: var(--radius-lg);
+  padding: 12px 20px;
+  text-align: center;
+  animation: slideUp 0.5s ease;
 }
 
 .chess-timer-toggle {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 6px;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .chess-timer-toggle input[type="checkbox"] {
@@ -5682,41 +5679,40 @@ input {
   cursor: pointer;
 }
 
-.chess-timer-inputs {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.chess-timer-inputs label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.chess-timer-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 13px;
   color: var(--text-muted);
-  flex: 1;
-  min-width: 0;
 }
 
-.chess-timer-inputs input[type="number"] {
-  width: 100%;
-  padding: 10px 8px;
+.chess-timer-label {
+  white-space: nowrap;
+}
+
+.chess-timer-field input[type="number"] {
+  width: 56px;
+  padding: 6px 4px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--bg-input);
   color: var(--text);
-  font-size: 15px;
+  font-size: 14px;
   text-align: center;
-  box-sizing: border-box;
+}
+
+.chess-timer-unit {
+  white-space: nowrap;
 }
 
 .chess-timer-confirm-btn {
-  padding: 10px 24px;
+  padding: 8px 18px;
   background: var(--primary);
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;

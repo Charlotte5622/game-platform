@@ -440,27 +440,28 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
         {/* 计时器设置 */}
         {!timerSettingsSent && (
           <div className="chess-timer-settings">
-            <h3 className="chess-timer-settings-title">⏱️ 计时设置</h3>
             <label className="chess-timer-toggle">
               <input type="checkbox" checked={timerEnabled} onChange={(e) => setTimerEnabled(e.target.checked)} />
-              <span>启用计时</span>
+              <span>⏱️ 计时</span>
             </label>
             {timerEnabled && (
-              <div className="chess-timer-inputs">
-                <label>
-                  总时间（分钟）
+              <>
+                <div className="chess-timer-field">
+                  <span className="chess-timer-label">总时间</span>
                   <input type="number" min="1" max="60" value={totalMinutes}
                     onChange={(e) => setTotalMinutes(Number(e.target.value) || 1)} />
-                </label>
-                <label>
-                  每步时间（秒）
+                  <span className="chess-timer-unit">分</span>
+                </div>
+                <div className="chess-timer-field">
+                  <span className="chess-timer-label">每步</span>
                   <input type="number" min="10" max="600" value={stepSeconds}
                     onChange={(e) => setStepSeconds(Number(e.target.value) || 10)} />
-                </label>
-              </div>
+                  <span className="chess-timer-unit">秒</span>
+                </div>
+              </>
             )}
             <button className="chess-timer-confirm-btn" onClick={handleSendTimerSettings}>
-              确认设置
+              确认
             </button>
           </div>
         )}
