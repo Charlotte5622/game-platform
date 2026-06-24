@@ -513,15 +513,31 @@ export function playSound(gameId, eventName) {
   if (fn) fn();
 }
 
-/**
- * 播放 public/sfx/ 目录下的 MP3 文件
- * 用于 Edge TTS 生成的中文语音
+/** 音色配置 */
+export const VOICE_OPTIONS = [
+  { id: 'xiaoxiao', label: '甜妹', icon: '🎀' },
+  { id: 'xiaoyi', label: '御姐', icon: '💋' },
+  { id: 'yunxi', label: '阳光男孩', icon: '☀️' },
+  { id: 'yunyang', label: '稳重男音', icon: '🎵' },
+];
+
+export function getVoice() {
+  return localStorage.getItem('voice') || 'xiaoxiao';
+}
+
+export function setVoice(voiceId) {
+  localStorage.setItem('voice', voiceId);
+  // 清除音频缓存，让新音色生效
+  Object.keys(_audioCache).forEach(k => delete _audioCache[k]);
+}
+
+/** 播放 public/sfx/ 目录下的 MP3 文件
+ *  支持音色切换：优先加载 voice/{voice}/{filename}，回退到原始路径
  */
 const _audioCache = {};
 async function playWav(filename) {
   try {
     const ctx = getCtx();
-    // 桌面端 AudioContext 需要用户手势后 resume，必须 await
     if (ctx.state === 'suspended') {
       await ctx.resume();
     }
@@ -538,7 +554,12 @@ async function playWav(filename) {
       doPlay(_audioCache[filename]);
       return;
     }
-    const resp = await fetch(`/sfx/${filename}`);
+    // 优先从音色目录加载
+    const voice = getVoice();
+    let resp = await fetch(`/sfx/voice/${voice}/${filename}`);
+    if (!resp.ok) {
+      resp = await fetch(`/sfx/${filename}`);
+    }
     if (!resp.ok) {
       console.warn(`[sounds] sfx fetch failed: ${filename} → ${resp.status}`);
       return;
@@ -591,6 +612,7 @@ SOUND_MAP['common'] = {
   win: () => playWav('common/win.mp3'),
   lose: () => playWav('common/lose.mp3'),
   landlord_decided: () => playWav('common/landlord_decided.mp3'),
+  logout_confirm: () => playWav('common/logout_confirm.mp3'),
 };
 
 SOUND_MAP['emote'] = {};

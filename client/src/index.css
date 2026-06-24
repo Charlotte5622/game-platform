@@ -330,6 +330,163 @@ input {
   opacity: 1;
 }
 
+/* 退出确认弹窗 */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.15s ease;
+}
+.modal-card {
+  background: var(--surface, #1e1e2e);
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-radius: 16px;
+  padding: 28px 32px;
+  min-width: 280px;
+  max-width: 360px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  animation: scaleIn 0.2s ease;
+}
+.modal-text {
+  color: var(--text, #e0e0e0);
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  margin: 0 0 24px;
+}
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+.modal-btn {
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.modal-btn-cancel {
+  background: var(--surface-hover, rgba(255,255,255,0.08));
+  color: var(--text-muted, #999);
+}
+.modal-btn-cancel:hover {
+  background: var(--surface-hover, rgba(255,255,255,0.15));
+}
+.modal-btn-confirm {
+  background: #e74c3c;
+  color: #fff;
+}
+.modal-btn-confirm:hover {
+  background: #c0392b;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Navbar 声音下拉菜单 */
+.sound-menu-wrapper {
+  position: relative;
+}
+.sound-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--surface, #1e1e2e);
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-radius: 14px;
+  padding: 14px 16px;
+  min-width: 200px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+  z-index: 1000;
+  animation: dropdownIn 0.15s ease;
+}
+@keyframes dropdownIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.sound-dropdown-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sound-dropdown-label {
+  font-size: 13px;
+  color: var(--text-muted, #aaa);
+  font-weight: 500;
+}
+.sound-toggle {
+  padding: 3px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--surface-hover, rgba(255,255,255,0.08));
+  color: var(--text-muted, #888);
+}
+.sound-toggle.on {
+  background: var(--primary, #6c5ce7);
+  color: #fff;
+}
+.sound-dropdown-divider {
+  height: 1px;
+  background: var(--border, rgba(255,255,255,0.08));
+  margin: 10px 0;
+}
+.sound-dropdown-section {
+  font-size: 12px;
+  color: var(--text-muted, #888);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.sound-voice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.sound-voice-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: var(--surface-hover, rgba(255,255,255,0.04));
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.sound-voice-btn:hover {
+  background: var(--surface-hover, rgba(255,255,255,0.1));
+}
+.sound-voice-btn.active {
+  border-color: var(--primary, #6c5ce7);
+  background: rgba(108, 92, 231, 0.12);
+}
+.sound-voice-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+.sound-voice-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text, #ddd);
+}
+
 .navbar-nickname {
   color: var(--secondary);
   font-weight: 600;
@@ -4310,6 +4467,12 @@ input {
   .navbar-icon-btn {
     font-size: 16px;
     padding: 2px;
+  }
+
+  .sound-dropdown {
+    min-width: 180px;
+    right: -10px;
+    padding: 10px 12px;
   }
 
   .navbar-actions {

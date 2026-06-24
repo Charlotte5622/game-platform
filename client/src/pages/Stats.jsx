@@ -155,7 +155,7 @@ export default function Stats() {
 
       {/* 总览 */}
       <div className="stats-hero">
-        <h1 className="stats-title">🏅 我的战绩</h1>
+        <h1 className="stats-title">我的战绩</h1>
         <div className="stats-summary">
           <div className="stats-summary-item">
             <span className="stats-summary-num">{summary.totalGames}</span>
