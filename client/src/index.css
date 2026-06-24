@@ -5903,8 +5903,10 @@ input {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
   gap: 12px;
   padding: 16px;
+  padding-top: 8px;
   min-height: calc(100vh - 64px);
   animation: fadeIn 0.4s ease;
 }
@@ -9597,9 +9599,18 @@ input {
 /* ===== 互动语音 ===== */
 .emote-container {
   position: fixed;
-  bottom: 80px;
-  right: 16px;
   z-index: 900;
+}
+
+.emote-container--draggable {
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.emote-container--draggable:active {
+  cursor: grabbing;
 }
 
 .emote-btn {
@@ -9671,9 +9682,9 @@ input {
 }
 
 .emote-bubble {
-  position: fixed;
-  bottom: 140px;
-  right: 16px;
+  position: absolute;
+  bottom: 52px;
+  right: 0;
   background: rgba(30, 30, 46, 0.95);
   border: 1px solid rgba(255,255,255,0.15);
   border-radius: 12px;
@@ -9713,16 +9724,10 @@ input {
 
 /* 手机端 */
 @media (max-width: 768px) {
-  .emote-container {
-    bottom: 70px;
-    right: 10px;
-  }
   .emote-panel {
     width: 180px;
   }
   .emote-bubble {
-    right: 10px;
-    bottom: 120px;
     font-size: 13px;
   }
 }

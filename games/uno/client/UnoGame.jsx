@@ -5,6 +5,11 @@ import { playSound } from '../../../client/src/services/sounds';
 // 花色颜色
 const COLORS = ['red', 'green', 'blue', 'yellow'];
 
+// 手牌排序用: 颜色权重 红>黄>绿>蓝>黑
+const COLOR_ORDER = { red: 0, yellow: 1, green: 2, blue: 3, black: 4 };
+// 手牌排序用: 数值权重
+const VALUE_ORDER = { '0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'skip': 10, 'reverse': 11, 'draw2': 12, 'wild': 13, 'wild+4': 14 };
+
 const COLOR_CSS = {
   red: '#e74c3c',
   green: '#27ae60',
@@ -167,6 +172,14 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
   const myPlacement = winners?.find(w => w.pid === playerId)?.placement;
   const hasCalledUno = !!gameState.calledUno?.[playerId];
   const canCallUno = isMyTurn && !isFinished && myHand?.length > 0 && myHand?.length <= 2 && !hasCalledUno;
+
+  // 排序手牌（保留原始索引用于出牌操作）
+  const sortedHandWithIndex = (myHand || []).map((card, i) => ({ card, originalIndex: i }))
+    .sort((a, b) => {
+      const co = (COLOR_ORDER[a.card.color] ?? 5) - (COLOR_ORDER[b.card.color] ?? 5);
+      if (co !== 0) return co;
+      return (VALUE_ORDER[a.card.value] ?? 99) - (VALUE_ORDER[b.card.value] ?? 99);
+    });
 
   const emitAction = (action) => {
     if (socket && roomId) {
@@ -392,17 +405,17 @@ export default function UnoGame({ socket, roomId, playerId, gameState, onAction,
       {/* 手牌 */}
       {!isFinished && (
         <div className={`uno-hand${!isMyTurn ? ' uno-hand-disabled' : ''}`}>
-          {myHand?.map((card, i) => (
-            <div key={card.id || i} className="uno-hand-card-wrap" style={{ zIndex: i }}>
+          {sortedHandWithIndex.map(({ card, originalIndex }, i) => (
+            <div key={card.id || `sorted-${originalIndex}`} className="uno-hand-card-wrap" style={{ zIndex: i }}>
               <UnoCard
                 card={card}
-                selected={selectedCard === i}
+                selected={selectedCard === originalIndex}
                 onClick={() => {
                   if (!isMyTurn) return;
-                  if (selectedCard === i) {
-                    handleCardClick(i);
+                  if (selectedCard === originalIndex) {
+                    handleCardClick(originalIndex);
                   } else {
-                    setSelectedCard(i);
+                    setSelectedCard(originalIndex);
                   }
                 }}
               />
