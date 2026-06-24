@@ -465,8 +465,8 @@ export const SOUND_MAP = {
     plane_wing: () => playWav('doudizhu/plane_wing.mp3'),
     four_two: () => playWav('doudizhu/four_two.mp3'),
     straight_pair: () => playWav('doudizhu/straight_pair.mp3'),
-    win: () => playWav('win.mp3'),
-    lose: () => playWav('lose.mp3'),
+    win: () => playWav('common/win.mp3'),
+    lose: () => playWav('common/lose.mp3'),
     timer_warn: soundTimerWarn,
     alert: soundTimerWarn,
   },
@@ -478,8 +478,8 @@ export const SOUND_MAP = {
     reverse: () => playWav('uno/reverse.mp3'),
     draw2: () => playWav('uno/draw2.mp3'),
     wild4: () => { soundUnoWild4(); playWav('uno/draw4.mp3'); },
-    win: () => playWav('win.mp3'),
-    lose: () => playWav('lose.mp3'),
+    win: () => playWav('common/win.mp3'),
+    lose: () => playWav('common/lose.mp3'),
   },
   'chinese-chess': {
   move: () => { soundChessMove(); playWav('chinese-chess/move.mp3'); },
@@ -488,9 +488,9 @@ export const SOUND_MAP = {
   checkmate: () => playWav('chinese-chess/checkmate.mp3'),
   draw_request: () => playWav('chinese-chess/draw_request.mp3'),
   draw_agreed: () => playWav('chinese-chess/draw_agreed.mp3'),
-  resign: () => playWav('lose.mp3'),
-  win: () => playWav('win.mp3'),
-  lose: () => playWav('lose.mp3'),
+  resign: () => playWav('common/lose.mp3'),
+  win: () => playWav('common/win.mp3'),
+  lose: () => playWav('common/lose.mp3'),
   },
   'turtle-soup': {
     ask: soundSoupAsk,
@@ -499,7 +499,7 @@ export const SOUND_MAP = {
     answer_irrelevant: () => playWav('turtle-soup/irrelevant.mp3'),
     answer_uncertain: () => playWav('turtle-soup/uncertain.mp3'),
     correct: soundSoupCorrect,
-    win: soundWin,
+    win: () => playWav('common/win.mp3'),
   },
 };
 
@@ -587,8 +587,8 @@ SOUND_MAP['mahjong'] = {
 // 五子棋 TTS 语音
 SOUND_MAP['gomoku'] = {
   place: () => playWav('gomoku/place.mp3'),
-  win: () => playWav('win.mp3'),
-  lose: () => playWav('lose.mp3'),
+  win: () => playWav('common/win.mp3'),
+  lose: () => playWav('common/lose.mp3'),
 };
 
 // 互动语音（所有游戏通用）
