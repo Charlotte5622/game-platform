@@ -145,6 +145,7 @@ export default function Leaderboard() {
                   <>
                     <span className="lb-list-stat">总分</span>
                     <span className="lb-list-stat">场次</span>
+                    <span className="lb-list-stat">胜率</span>
                   </>
                 ) : (
                   <>
@@ -162,6 +163,7 @@ export default function Leaderboard() {
                     <>
                       <span className="lb-list-stat lb-win">{p.totalScore}</span>
                       <span className="lb-list-stat">{p.total}</span>
+                      <span className="lb-list-stat">{p.winRate}%</span>
                     </>
                   ) : (
                     <>

@@ -209,7 +209,6 @@ export default function Stats() {
                       <span>📊 {g.totalScore || 0}分</span>
                       <span>🎮 {g.games}局</span>
                       <span>⏱️ {formatDuration(g.totalDuration)}</span>
-                      <span>📈 {winRate}%</span>
                     </>
                   ) : (
                     <>
