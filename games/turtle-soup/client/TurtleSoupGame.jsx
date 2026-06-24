@@ -39,28 +39,36 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
   const [revealCountdown, setRevealCountdown] = useState(null);
   const [expandedGuesses, setExpandedGuesses] = useState({});
   const chatEndRef = useRef(null);
-  const prevQCountRef = useRef(0);
+  const lastAnswerRef = useRef(null);
 
-  // AI 回答音效
+  // AI 回答音效 — 监听最后一个问题的 answer 字段变化
+  // 原先依赖 questions.length，但 AI 回答时 length 不变（只是填充 answer），
+  // 改为跟踪 answer 的唯一键，确保每次新回答只触发一次音效
   useEffect(() => {
     const qs = gameState?.questions;
     if (!qs || qs.length === 0) return;
-    if (qs.length > prevQCountRef.current) {
-      const lastQ = qs[qs.length - 1];
-      if (lastQ?.answer) {
-        if (lastQ.answer.includes('是') && !lastQ.answer.includes('不是')) {
-          playSound('turtle-soup', 'answer_yes');
-        } else if (lastQ.answer.includes('不是') || lastQ.answer.includes('也不是')) {
-          playSound('turtle-soup', 'answer_no');
-        } else if (lastQ.answer.includes('不相关')) {
-          playSound('turtle-soup', 'answer_irrelevant');
-        } else {
-          playSound('turtle-soup', 'answer_uncertain');
-        }
-      }
+    const lastQ = qs[qs.length - 1];
+    if (!lastQ?.answer) return;
+
+    // 用 timestamp+answer 做去重，防止同一回答重复播放
+    const answerKey = `${lastQ.timestamp}|${lastQ.answer}`;
+    if (lastAnswerRef.current === answerKey) return;
+    lastAnswerRef.current = answerKey;
+
+    const answer = lastQ.answer;
+    // 先匹配"是也不是"（同时含"是"和"不是"，必须优先判断）
+    if (answer.includes('是也不是')) {
+      playSound('turtle-soup', 'answer_uncertain');
+    } else if (answer.includes('不相关')) {
+      playSound('turtle-soup', 'answer_irrelevant');
+    } else if (answer.includes('不是')) {
+      playSound('turtle-soup', 'answer_no');
+    } else if (answer.includes('是')) {
+      playSound('turtle-soup', 'answer_yes');
+    } else {
+      playSound('turtle-soup', 'answer_uncertain');
     }
-    prevQCountRef.current = qs.length;
-  }, [gameState?.questions?.length]);
+  }, [gameState?.questions?.[gameState.questions.length - 1]?.answer]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });

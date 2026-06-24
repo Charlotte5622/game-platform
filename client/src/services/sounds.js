@@ -16,13 +16,15 @@ function getCtx() {
       _resumeBound = true;
       const resume = () => {
         if (audioCtx && audioCtx.state === 'suspended') {
-          audioCtx.resume();
+          audioCtx.resume().catch(() => {});
         }
       };
-      document.addEventListener('click', resume, { once: false, capture: true });
-      document.addEventListener('keydown', resume, { once: false, capture: true });
-      document.addEventListener('touchstart', resume, { once: false, capture: true });
-      document.addEventListener('pointerdown', resume, { once: false, capture: true });
+      // capture: true 确保在事件到达目标之前就触发 resume
+      document.addEventListener('click', resume, { capture: true });
+      document.addEventListener('keydown', resume, { capture: true });
+      document.addEventListener('mousedown', resume, { capture: true });
+      document.addEventListener('touchstart', resume, { capture: true });
+      document.addEventListener('pointerdown', resume, { capture: true });
     }
   }
   return audioCtx;
@@ -50,16 +52,23 @@ export function getVolume() { return masterVolume; }
  */
 function playTone(freq, duration, type = 'sine', vol = 0.5) {
   const ctx = getCtx();
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.type = type;
-  osc.frequency.value = freq;
-  gain.gain.setValueAtTime(vol * masterVolume, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-  osc.start();
-  osc.stop(ctx.currentTime + duration);
+  const _doPlay = () => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol * masterVolume, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  };
+  if (ctx.state === 'suspended') {
+    ctx.resume().then(_doPlay).catch(() => {});
+  } else {
+    _doPlay();
+  }
 }
 
 /**
@@ -67,24 +76,31 @@ function playTone(freq, duration, type = 'sine', vol = 0.5) {
  */
 function playNoise(duration, vol = 0.3) {
   const ctx = getCtx();
-  const bufferSize = ctx.sampleRate * duration;
-  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < bufferSize; i++) {
-    data[i] = Math.random() * 2 - 1;
+  const _doPlay = () => {
+    const bufferSize = ctx.sampleRate * duration;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(vol * masterVolume, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 1000;
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    source.start();
+  };
+  if (ctx.state === 'suspended') {
+    ctx.resume().then(_doPlay).catch(() => {});
+  } else {
+    _doPlay();
   }
-  const source = ctx.createBufferSource();
-  source.buffer = buffer;
-  const gain = ctx.createGain();
-  gain.gain.setValueAtTime(vol * masterVolume, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-  const filter = ctx.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.value = 1000;
-  source.connect(filter);
-  filter.connect(gain);
-  gain.connect(ctx.destination);
-  source.start();
 }
 
 // ==================== 背景配乐 ====================
@@ -137,6 +153,10 @@ const BGM_PATTERNS = {
 function playBgmTone(freq, duration, type, vol, when = 0) {
   if (!bgmState?.gain || !freq) return;
   const ctx = getCtx();
+  if (ctx.state === 'suspended') {
+    ctx.resume().catch(() => {});
+    return; // 会在 resume 后下一个 tick 播放
+  }
   const startAt = ctx.currentTime + when;
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
@@ -515,11 +535,17 @@ async function playWav(filename) {
       return;
     }
     const resp = await fetch(`/sfx/${filename}`);
+    if (!resp.ok) {
+      console.warn(`[sounds] sfx fetch failed: ${filename} → ${resp.status}`);
+      return;
+    }
     const buf = await resp.arrayBuffer();
     const decoded = await ctx.decodeAudioData(buf);
     _audioCache[filename] = decoded;
     doPlay(decoded);
-  } catch {}
+  } catch (e) {
+    console.warn('[sounds] playWav error:', filename, e);
+  }
 }
 
 // 麻将 TTS 语音
