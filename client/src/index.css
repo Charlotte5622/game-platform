@@ -8431,12 +8431,9 @@ input {
 
 /* 侧边面板 */
 .gomoku-side-panel {
-  width: 100%;
-  max-width: 620px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .gomoku-side-title {
@@ -8446,11 +8443,16 @@ input {
   margin-bottom: 12px;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .gomoku-side-actions {
   display: flex;
   gap: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
 }
 
 .gomoku-btn {
@@ -8493,13 +8495,20 @@ input {
 
 /* 落子记录 */
 .gomoku-move-list {
-  max-height: 300px;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  padding: 12px;
+  background: var(--bg-card);
+  border-radius: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
+.gomoku-move-list::-webkit-scrollbar {
+  display: none;
+}
 .gomoku-move-empty {
   color: var(--text-dim);
   font-size: 13px;
@@ -8710,7 +8719,7 @@ input {
 /* 桌面端：水平排列 */
 @media (min-width: 769px) {
   .gomoku {
-    max-width: 1000px;
+    max-width: 1100px;
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: center;
@@ -8725,18 +8734,20 @@ input {
 
   .gomoku-board-outer {
     flex: 1 1 auto;
-    max-width: 620px;
+    max-width: 660px;
     min-width: 0;
   }
 
   .gomoku-board-svg {
-    max-width: 620px;
+    max-width: 660px;
   }
 
   .gomoku-side-panel {
-    width: 220px;
-    max-width: 220px;
+    width: 280px;
+    max-width: 280px;
     flex-shrink: 0;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
   }
 
   .gomoku-move-list {

@@ -321,7 +321,6 @@ export default function GomokuGame({ socket, roomId, playerId, gameState, onActi
 
         {/* 侧边面板 */}
         <div className="gomoku-side-panel">
-          <div className="gomoku-side-title">操作</div>
           <div className="gomoku-side-actions">
             <button
               className="gomoku-btn gomoku-btn-draw"
@@ -339,8 +338,8 @@ export default function GomokuGame({ socket, roomId, playerId, gameState, onActi
             </button>
           </div>
 
-          <div className="gomoku-side-title" style={{ marginTop: '16px' }}>落子记录</div>
           <div className="gomoku-move-list">
+            <div className="gomoku-side-title">落子记录</div>
             {moves.length === 0 && (
               <div className="gomoku-move-empty">暂无落子</div>
             )}
