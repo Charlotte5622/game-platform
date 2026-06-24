@@ -6046,7 +6046,6 @@ input {
   justify-content: center;
   gap: 12px;
   flex-wrap: wrap;
-  min-height: 62px;
   align-content: center;
 }
 
