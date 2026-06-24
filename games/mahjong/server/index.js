@@ -238,19 +238,7 @@ class MahjongServer extends BaseGameServer {
       });
     }
 
-    // 出牌超时：30秒内不出牌，随机打一张
-    const turnPlayer = playerId;
-    const turnSnapshot = state.currentTurn;
-    setTimeout(() => {
-      const currentState = this.getState(roomId);
-      if (!currentState || currentState.phase !== 'playing') return;
-      if (currentState.currentTurn !== turnSnapshot) return; // 已经不是该玩家的回合
-      const hand = currentState.hands[turnPlayer];
-      if (hand.length === 0) return;
-      // 随机打一张
-      const randomTile = hand[Math.floor(Math.random() * hand.length)];
-      this.handleDiscard(roomId, turnPlayer, randomTile);
-    }, 30000);
+    // 出牌超时提示（不自动出牌，让玩家自己操作）
 
     this.saveState(roomId, state);
     this.broadcastStateUpdate(roomId, state);
