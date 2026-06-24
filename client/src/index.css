@@ -3664,6 +3664,7 @@ input {
   border-radius: var(--radius-lg);
   padding: 40px 24px;
   animation: slideUp 0.5s ease;
+  margin: auto 0;
 }
 
 .chess-rps-title {
@@ -3760,6 +3761,7 @@ input {
   border-radius: var(--radius-lg);
   padding: 40px 24px;
   animation: slideUp 0.5s ease;
+  margin: auto 0;
 }
 
 .chess-choose-title {
@@ -3949,7 +3951,7 @@ input {
 
 .chess-board-svg {
   width: 100%;
-  max-width: 700px;
+  max-width: 780px;
   height: auto;
   border-radius: 12px;
   box-shadow:
@@ -3985,7 +3987,7 @@ input {
 
   .chess-board-outer {
     flex: 1 1 auto;
-    max-width: 660px;
+    max-width: 720px;
     min-width: 0;
   }
 
@@ -6284,11 +6286,15 @@ input {
 }
 
 .uno-message-slot {
-  min-height: 40px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  margin: 0 auto;
+  width: min(100%, 520px);
 }
 
 .uno-error {
