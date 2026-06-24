@@ -419,38 +419,30 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
             </div>
           </div>
 
-          {/* 牌桌中央区域 — 所有弃牌 */}
+          {/* 牌桌中央区域 — 每家最后一张弃牌 */}
           <div className="mj-table-area">
             {/* 北家弃牌 — 上方 */}
             {discards?.[top.id] && discards[top.id].length > 0 && (
               <div className="mj-table-north">
-                {discards[top.id].map((t, i) => (
-                  <MjTile key={t.id || i} tile={t} small />
-                ))}
+                <MjTile tile={discards[top.id][discards[top.id].length - 1]} small highlight />
               </div>
             )}
             {/* 西家弃牌 — 左侧 */}
             {discards?.[left.id] && discards[left.id].length > 0 && (
               <div className="mj-table-west">
-                {discards[left.id].map((t, i) => (
-                  <MjTile key={t.id || i} tile={t} small />
-                ))}
+                <MjTile tile={discards[left.id][discards[left.id].length - 1]} small highlight />
               </div>
             )}
             {/* 东家弃牌 — 右侧 */}
             {discards?.[right.id] && discards[right.id].length > 0 && (
               <div className="mj-table-east">
-                {discards[right.id].map((t, i) => (
-                  <MjTile key={t.id || i} tile={t} small />
-                ))}
+                <MjTile tile={discards[right.id][discards[right.id].length - 1]} small highlight />
               </div>
             )}
             {/* 南家弃牌（我）— 下方 */}
             {discards?.[playerId] && discards[playerId].length > 0 && (
               <div className="mj-table-south">
-                {discards[playerId].map((t, i) => (
-                  <MjTile key={t.id || i} tile={t} small />
-                ))}
+                <MjTile tile={discards[playerId][discards[playerId].length - 1]} small highlight />
               </div>
             )}
           </div>
