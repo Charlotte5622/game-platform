@@ -1504,7 +1504,7 @@ input {
 .game-host {
   min-height: calc(100vh - 64px);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   padding: 24px;
   animation: fadeIn 0.4s ease;
@@ -3633,6 +3633,9 @@ input {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 64px);
   gap: 12px;
   padding: 16px;
   animation: fadeIn 0.4s ease;
@@ -3961,6 +3964,7 @@ input {
     max-width: 1100px;
     flex-direction: row;
     flex-wrap: wrap;
+    align-items: center;
     justify-content: center;
     gap: 20px;
     padding: 20px;
@@ -5609,6 +5613,7 @@ input {
   gap: 12px;
   font-size: 14px;
   font-weight: 600;
+  width: 100%;
 }
 
 .chess-claim-win-btn {
@@ -8477,6 +8482,9 @@ input {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 64px);
   gap: 12px;
   padding: 16px;
   animation: fadeIn 0.4s ease;
@@ -8964,6 +8972,7 @@ input {
     max-width: 1400px;
     flex-direction: row;
     flex-wrap: wrap;
+    align-items: center;
     justify-content: center;
     gap: 24px;
     padding: 20px;
@@ -8974,14 +8983,23 @@ input {
     order: -1;
   }
 
+  .gomoku-main {
+    width: 100%;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 24px;
+  }
+
   .gomoku-board-outer {
     flex: 1 1 auto;
-    max-width: 1100px;
-    min-width: 0;
+    max-width: 800px;
+    min-width: 400px;
   }
 
   .gomoku-board-svg {
-    max-width: 1100px;
+    max-width: 800px;
+    min-width: 400px;
   }
 
   .gomoku-side-panel {

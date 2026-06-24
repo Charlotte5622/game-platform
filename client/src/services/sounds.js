@@ -6,13 +6,25 @@
  */
 
 let audioCtx = null;
+let _resumeBound = false;
 
 function getCtx() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // 桌面端：首次用户交互时自动 resume，解决 suspended 状态
+    if (!_resumeBound) {
+      _resumeBound = true;
+      const resume = () => {
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+      };
+      document.addEventListener('click', resume, { once: false, capture: true });
+      document.addEventListener('keydown', resume, { once: false, capture: true });
+      document.addEventListener('touchstart', resume, { once: false, capture: true });
+      document.addEventListener('pointerdown', resume, { once: false, capture: true });
+    }
   }
-  // 恢复被浏览器挂起的上下文（手机端切后台回来）
-  if (audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
 }
 
@@ -482,11 +494,13 @@ export function playSound(gameId, eventName) {
  * 用于 Edge TTS 生成的中文语音
  */
 const _audioCache = {};
-function playWav(filename) {
+async function playWav(filename) {
   try {
     const ctx = getCtx();
-    // 必须在用户手势的同步调用栈中触发 resume
-    if (ctx.state === 'suspended') ctx.resume();
+    // 桌面端 AudioContext 需要用户手势后 resume，必须 await
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
     const doPlay = (buffer) => {
       const src = ctx.createBufferSource();
       src.buffer = buffer;
@@ -500,14 +514,11 @@ function playWav(filename) {
       doPlay(_audioCache[filename]);
       return;
     }
-    fetch(`/sfx/${filename}`)
-      .then(r => r.arrayBuffer())
-      .then(buf => ctx.decodeAudioData(buf))
-      .then(decoded => {
-        _audioCache[filename] = decoded;
-        doPlay(decoded);
-      })
-      .catch(() => {});
+    const resp = await fetch(`/sfx/${filename}`);
+    const buf = await resp.arrayBuffer();
+    const decoded = await ctx.decodeAudioData(buf);
+    _audioCache[filename] = decoded;
+    doPlay(decoded);
   } catch {}
 }
 

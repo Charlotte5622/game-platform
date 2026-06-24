@@ -261,6 +261,12 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
     const handleOpponentReconnected = () => { setOpponentDisconnected(false); };
     // 绝杀/游戏结束
     const handleCheckmate = (data) => {
+      isCheckmateRef.current = true;
+      // 取消待播放的走棋/吃子/将军声
+      if (pendingSoundRef.current) {
+        clearTimeout(pendingSoundRef.current);
+        pendingSoundRef.current = null;
+      }
       setGameResult({ type: 'checkmate', winner: data.winner, loser: data.loser, message: data.message, winnerColor: data.winnerColor });
       setTurnDeadline(null);
       setTimeLeft(0);
@@ -325,7 +331,7 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
     return () => clearInterval(interval);
   }, [turnDeadline]);
 
-  useEffect(() => { setMyRpsChoice(null); setSelected(null); }, [gameState?.phase]);
+  useEffect(() => { setMyRpsChoice(null); setSelected(null); isCheckmateRef.current = false; }, [gameState?.phase]);
   useEffect(() => { setSelected(null); }, [gameState?.turnColor]);
 
   if (!gameState) {
@@ -342,20 +348,27 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
   const historyRef = useRef(null);
   const prevMoveCountRef = useRef(0);
   const prevCheckRef = useRef(false);
+  const pendingSoundRef = useRef(null); // 用于抑制绝杀时的走棋声
+  const isCheckmateRef = useRef(false); // 绝杀标记
   useEffect(() => {
     if (historyRef.current) {
       historyRef.current.scrollTop = historyRef.current.scrollHeight;
     }
-    // 音效：吃子/将军/绝杀优先，不重复播走棋声
+    // 音效：延迟播放，让绝杀事件有机会先拦截
     const moveCount = moveHistory?.length || 0;
     if (moveCount > prevMoveCountRef.current && moveCount > 0) {
-      const lastMove = moveHistory[moveCount - 1];
-      if (lastMove?.captured) {
-        playSound('chinese-chess', 'capture');
-      } else if (check) {
-        playSound('chinese-chess', 'check');
-      } else {
-        playSound('chinese-chess', 'move');
+      // 如果已经是绝杀状态（新局重置后），跳过
+      if (!isCheckmateRef.current) {
+        const lastMove = moveHistory[moveCount - 1];
+        const soundType = lastMove?.captured ? 'capture' : check ? 'check' : 'move';
+        // 延迟一小段时间，让 checkmate 事件有机会取消
+        if (pendingSoundRef.current) clearTimeout(pendingSoundRef.current);
+        pendingSoundRef.current = setTimeout(() => {
+          pendingSoundRef.current = null;
+          if (!isCheckmateRef.current) {
+            playSound('chinese-chess', soundType);
+          }
+        }, 80);
       }
     }
     prevMoveCountRef.current = moveCount;
