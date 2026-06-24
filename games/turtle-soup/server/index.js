@@ -24,36 +24,7 @@ const MODELSOPE_API_KEY = process.env.MODELSCOPE_API_KEY || '';
 const MODELSOPE_MODEL = 'Qwen/Qwen3.5-397B-A17B';
 
 // ========== 游戏服务器基类 ==========
-
-class BaseGameServer {
-  constructor() {
-    this.broadcast = null;
-    this.sendToPlayer = null;
-    this.onGameOver = null;
-    this._getRoomData = null;
-    this._setRoomData = null;
-  }
-  getState(roomId) { return this._getRoomData ? this._getRoomData(roomId) : null; }
-  saveState(roomId, state) { if (this._setRoomData) this._setRoomData(roomId, state); }
-  doBroadcast(roomId, msg) { if (this.broadcast) this.broadcast(roomId, msg); }
-  doBroadcastTo(roomId, pid, msg) { if (this.sendToPlayer) this.sendToPlayer(roomId, pid, msg); }
-
-  /** 广播最新的 gameState 给所有玩家（每个玩家看到各自的可见状态） */
-  syncState(roomId) {
-    const state = this.getState(roomId);
-    if (!state) return;
-    for (const pid of state.players) {
-      this.doBroadcastTo(roomId, pid, {
-        type: 'state_update',
-        state: this.getVisibleState(state, pid),
-      });
-    }
-  }
-  initGameState(players) { return { players }; }
-  getVisibleState(gs, pid) { return gs; }
-  onPlayerAction(roomId, pid, action) {}
-  postInit(roomId) {}
-}
+const { BaseGameServer } = require('../../../server/src/services/baseGameServer');
 
 // ========== 海龟汤游戏服务器 ==========
 

@@ -24,24 +24,7 @@ const COLOR_MAP = {
   black: '#2d3436',
 };
 
-class BaseGameServer {
-  constructor() {
-    this.broadcast = null;
-    this.sendToPlayer = null;
-    this.onGameOver = null;
-    this._getRoomData = null;
-    this._setRoomData = null;
-  }
-
-  getState(roomId) { return this._getRoomData ? this._getRoomData(roomId) : null; }
-  saveState(roomId, state) { if (this._setRoomData) this._setRoomData(roomId, state); }
-  doBroadcast(roomId, msg) { if (this.broadcast) this.broadcast(roomId, msg); }
-  doBroadcastTo(roomId, pid, msg) { if (this.sendToPlayer) this.sendToPlayer(roomId, pid, msg); }
-  initGameState(players) { return { players }; }
-  getVisibleState(gs, pid) { return gs; }
-  onPlayerAction(roomId, pid, action) {}
-  postInit(roomId) {}
-}
+const { BaseGameServer } = require('../../../server/src/services/baseGameServer');
 
 class UnoServer extends BaseGameServer {
   constructor() {

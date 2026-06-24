@@ -96,7 +96,7 @@ export default function TurtleSoupGame({ socket, roomId, playerId, gameState, on
   useEffect(() => {
     if (!socket) return;
 
-    const getNickname = (pid) => players.find(p => p.id === pid)?.nickname || '玩家';
+    const getNickname = (pid) => gameState.playerInfo?.[pid]?.nickname || players.find(p => p.id === pid)?.nickname || '玩家';
 
     const handlers = {
       error: (data) => { setError(data.message); setTimeout(() => setError(''), 3000); },

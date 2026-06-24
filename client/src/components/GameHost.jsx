@@ -529,6 +529,9 @@ export default function GameHost({ gameId, GameComponent }) {
           <div className="matching-spinner">⏳</div>
           <h2 className="matching-text">正在匹配房间...</h2>
           <p className="matching-hint">正在寻找可用的游戏房间</p>
+          <button className="matching-cancel-btn" onClick={handleLeaveRoom} style={{ marginTop: '16px', padding: '8px 24px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text)', cursor: 'pointer' }}>
+            取消匹配
+          </button>
         </div>
       </div>
     );

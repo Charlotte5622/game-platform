@@ -43,7 +43,7 @@ export const useAuthStore = create((set, get) => ({
   login: async (identifier, password, rememberMe = false, captcha = null) => {
     set({ loading: true, error: null });
     try {
-      const res = await api.post('/api/auth/login', { identifier, username: identifier, password, rememberMe, captcha });
+      const res = await api.post('/api/auth/login', { identifier, username: identifier, password, rememberMe, captcha }, { skipAuthRefresh: true });
       const token = storeAuthSession(res.data);
       set({
         token,
@@ -138,7 +138,7 @@ export const useAuthStore = create((set, get) => ({
   changePassword: async (oldPassword, newPassword) => {
     set({ loading: true, error: null });
     try {
-      await api.post('/api/auth/change-password', { oldPassword, newPassword });
+      await api.post('/api/auth/change-password', { oldPassword, newPassword }, { skipAuthRefresh: true });
       disconnectSocket();
       clearAuthSession();
       set({ token: null, user: null, loading: false });

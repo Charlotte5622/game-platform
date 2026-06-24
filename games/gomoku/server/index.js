@@ -1,44 +1,6 @@
 const { createBoard, checkWin, isValidMove, isBoardFull } = require('./board');
 const { decideGomoku } = require('../../../server/src/services/botService');
-
-/**
- * 游戏服务器基类（与 chinese-chess 保持一致）
- */
-class BaseGameServer {
-  constructor() {
-    this.broadcast = null;
-    this.sendToPlayer = null;
-    this.onGameOver = null;
-    this._getRoomData = null;
-    this._setRoomData = null;
-  }
-  getState(roomId) { return this._getRoomData ? this._getRoomData(roomId) : null; }
-  saveState(roomId, state) { if (this._setRoomData) this._setRoomData(roomId, state); }
-  doBroadcast(roomId, msg) { if (this.broadcast) this.broadcast(roomId, msg); }
-  doBroadcastTo(roomId, pid, msg) { if (this.sendToPlayer) this.sendToPlayer(roomId, pid, msg); }
-  initGameState(players) { return { players }; }
-  getVisibleState(gs, pid) { return gs; }
-  onPlayerAction(roomId, pid, action) {}
-  postInit(roomId) {}
-}
-
-/**
- * 猜拳选项
- */
-const RPS_CHOICES = { rock: '石头', scissors: '剪刀', paper: '布' };
-
-/**
- * 猜拳判定: 返回 'draw' | 'p1' | 'p2'
- */
-function judgeRPS(c1, c2) {
-  if (c1 === c2) return 'draw';
-  if (
-    (c1 === 'rock' && c2 === 'scissors') ||
-    (c1 === 'scissors' && c2 === 'paper') ||
-    (c1 === 'paper' && c2 === 'rock')
-  ) return 'p1';
-  return 'p2';
-}
+const { BaseGameServer, RPS_CHOICES, judgeRPS } = require('../../../server/src/services/baseGameServer');
 
 /**
  * 五子棋游戏服务器

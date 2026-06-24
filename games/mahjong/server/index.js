@@ -1,44 +1,6 @@
 const { createAllTiles, shuffleTiles, sortHand, getTileTypeKey, isSameTileType } = require('./tiles');
 const { checkWin, canPung, canKong, canConcealedKong, canChow, canSelfWin, tileCounts } = require('./handValidator');
-
-/**
- * 游戏服务器基类
- */
-class BaseGameServer {
-  constructor() {
-    this.broadcast = null;
-    this.sendToPlayer = null;
-    this.onGameOver = null;
-    this._getRoomData = null;
-    this._setRoomData = null;
-  }
-
-  getState(roomId) {
-    return this._getRoomData ? this._getRoomData(roomId) : null;
-  }
-
-  saveState(roomId, state) {
-    if (this._setRoomData) this._setRoomData(roomId, state);
-  }
-
-  doBroadcast(roomId, message) {
-    if (this.broadcast) this.broadcast(roomId, message);
-  }
-
-  doBroadcastTo(roomId, playerId, message) {
-    if (this.sendToPlayer) this.sendToPlayer(roomId, playerId, message);
-  }
-
-  initGameState(players) { return { players }; }
-  getVisibleState(gameState, playerId) { return gameState; }
-  onPlayerAction(roomId, playerId, action) {}
-
-  /**
-   * 依赖注入后调用，用于发送 game_start
-   * 子类可覆盖（如斗地主由 setLandlord 触发，麻将直接发送）
-   */
-  postInit(roomId) {}
-}
+const { BaseGameServer } = require('../../../server/src/services/baseGameServer');
 
 /**
  * 四人麻将游戏服务器
