@@ -324,12 +324,14 @@ export default function ChineseChessGame({ socket, roomId, playerId, gameState, 
     }
     const update = () => {
       const remaining = Math.max(0, Math.round((turnDeadline - Date.now()) / 1000));
-      setTimeLeft(remaining);
+      // cap to configured step time to avoid clock-skew display > stepSeconds
+      const capped = stepSeconds > 0 ? Math.min(remaining, stepSeconds) : remaining;
+      setTimeLeft(capped);
     };
     update(); // 立即更新一次
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
-  }, [turnDeadline]);
+  }, [turnDeadline, stepSeconds]);
 
   useEffect(() => { setMyRpsChoice(null); setSelected(null); isCheckmateRef.current = false; }, [gameState?.phase]);
   useEffect(() => { setSelected(null); }, [gameState?.turnColor]);

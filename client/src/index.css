@@ -3634,7 +3634,7 @@ input {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   min-height: calc(100vh - 64px);
   gap: 12px;
   padding: 16px;
@@ -5661,6 +5661,9 @@ input {
   padding: 12px 20px;
   text-align: center;
   animation: slideUp 0.5s ease;
+  width: 100%;
+  max-width: 460px;
+  flex-wrap: wrap;
 }
 
 .chess-timer-toggle {
@@ -9637,7 +9640,7 @@ input {
   position: absolute;
   bottom: 52px;
   right: 0;
-  width: 200px;
+  width: 260px;
   max-height: 320px;
   overflow-y: auto;
   background: rgba(30, 30, 46, 0.96);
