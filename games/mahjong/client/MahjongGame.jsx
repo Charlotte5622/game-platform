@@ -263,6 +263,12 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
     socket.on('win', handleWin);
     socket.on('draw', () => playSound('mahjong', 'draw'));
     socket.on('player_draw', () => playSound('mahjong', 'draw'));
+    // 对手出牌音效
+    const handleDiscard = (data) => {
+      if (String(data.playerId) === String(playerId)) return;
+      playSound('mahjong', 'discard');
+    };
+    socket.on('discard', handleDiscard);
     return () => {
       socket.off('pung', handleAction);
       socket.off('kong', handleAction);
@@ -270,6 +276,7 @@ export default function MahjongGame({ socket, roomId, playerId, gameState, onAct
       socket.off('win', handleWin);
       socket.off('draw');
       socket.off('player_draw');
+      socket.off('discard', handleDiscard);
     };
   }, [socket, gameState?.currentTurn]);
 

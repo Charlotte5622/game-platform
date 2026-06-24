@@ -333,6 +333,7 @@ export function soundWelcome() {
   notes.forEach((f, i) => {
     setTimeout(() => playTone(f, 0.15, 'sine', 0.3), i * 120);
   });
+  playWav('lobby/welcome.mp3');
 }
 
 /** 加入/创建房间 */

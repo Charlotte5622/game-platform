@@ -156,6 +156,28 @@ export default function DoudizhuGame({ socket, roomId, playerId, gameState, onAc
     return () => socket.off('error', handleError);
   }, [socket]);
 
+  // 对手出牌/过牌音效
+  useEffect(() => {
+    if (!socket) return;
+    const handlePlayUpdate = (data) => {
+      if (String(data.playerId) === String(playerId)) return; // 自己出的不重复播
+      const ct = data.cardType?.type;
+      if (ct === 'rocket') playSound('doudizhu', 'rocket');
+      else if (ct === 'bomb') playSound('doudizhu', 'bomb');
+      else playSound('doudizhu', 'play_card');
+    };
+    const handlePassUpdate = (data) => {
+      if (String(data.playerId) === String(playerId)) return;
+      playSound('doudizhu', 'pass');
+    };
+    socket.on('play_update', handlePlayUpdate);
+    socket.on('pass_update', handlePassUpdate);
+    return () => {
+      socket.off('play_update', handlePlayUpdate);
+      socket.off('pass_update', handlePassUpdate);
+    };
+  }, [socket, playerId]);
+
   useEffect(() => {
     if (!socket) return;
     const handlePass = (data) => {
